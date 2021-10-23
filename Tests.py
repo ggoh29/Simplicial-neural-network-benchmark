@@ -278,9 +278,8 @@ class MyTestCase(unittest.TestCase):
         L1= torch.matmul(sigma1.T, sigma1) + torch.matmul(sigma2, sigma2.T)
         L1_coo = torch.sparse.FloatTensor.add(torch.sparse.mm(sigma1_coo.t(), sigma1_coo),
                                                 torch.sparse.mm(sigma2_coo, sigma2_coo.t()))
-        print(L1_coo)
+
         L1_coo = L1_coo.to_dense()
-        print(L1_coo)
         self.assertTrue(torch.all(torch.eq(L1, L1_coo)).item())
 
 
