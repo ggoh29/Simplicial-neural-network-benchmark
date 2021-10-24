@@ -16,9 +16,9 @@ class GCN(nn.Module):
 
     def forward(self, features, adjacency, batch):
 
-        x1 = torch.tanh(self.conv1(features, adjacency))
-        x2 = torch.tanh(self.conv2(x1, adjacency))
-        x3 = torch.tanh(self.conv3(x2, adjacency))
+        x1 = F.relu(self.conv1(features, adjacency))
+        x2 = F.relu(self.conv2(x1, adjacency))
+        x3 = F.relu(self.conv3(x2, adjacency))
 
         x = global_max_pool((x1 + x2 + x3)/3, batch)
 

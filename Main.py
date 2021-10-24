@@ -1,7 +1,7 @@
 from DatasetProcessing.ImageToDataset import ImageToGraph
 from torchvision import datasets
 import torchvision.transforms as transforms
-from torch_geometric.data import DataLoader
+from torch_geometric.loader import DataLoader
 import torch
 from skimage.future import graph
 from skimage.segmentation import slic
@@ -9,11 +9,12 @@ from skimage.measure import regionprops
 import numpy as np
 from multiprocessing import Pool
 from models.GNN import GCN
+from models.SNN import SNN
 
 train_data = datasets.MNIST('./data', train=True, transform=transforms.ToTensor(), download=True)
 test_data = datasets.MNIST('./data', train=False, transform=transforms.ToTensor(), download=True)
 
-batch_size = 32
+batch_size = 1
 
 train_dataloader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
 test_dataloader = DataLoader(test_data, batch_size=batch_size, shuffle=True)
@@ -81,7 +82,9 @@ def process_batch_and_feed_to_NN(NN, image_list, p):
 
 if __name__ == "__main__":
 
-    GNN = GCN().to(device)
+    I2G = ImageToGraph(superpixel_size)
+
+    GNN = SNN(5,10,15,10).to(device)
     optimizer_GNN = torch.optim.Adam(GNN.parameters(), lr=0.001, weight_decay=5e-4)
 
     criterion = torch.nn.CrossEntropyLoss()
@@ -89,14 +92,14 @@ if __name__ == "__main__":
     GNN.train()
 
     with Pool(8) as p:
-        for epoch in range(10):
+        for epoch in range(1):
             train_acc = 0
             i = 0
             train_running_loss = 0
             for train_features, train_labels in train_dataloader:
                 train_features.to(device), train_labels.to(device)
                 optimizer_GNN.zero_grad()
-                prediction = process_batch_and_feed_to_NN(GNN, train_features, p)
+                prediction = I2G.process_batch_and_feed_to_NN(GNN, train_features, p)
                 loss = criterion(prediction, train_labels)
                 loss.backward()
                 optimizer_GNN.step()
