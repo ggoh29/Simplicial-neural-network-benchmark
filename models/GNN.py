@@ -14,13 +14,15 @@ class GCN(nn.Module):
         self.conv3 = GCNConv(64, 64)
         self.layer = nn.Linear(64, 10)
 
-    def forward(self, features, adjacency, batch):
+    def forward(self, X, L, batch):
+        adjacency = L[0].coalesce().indices()
+        features = X[0]
 
         x1 = F.relu(self.conv1(features, adjacency))
         x2 = F.relu(self.conv2(x1, adjacency))
         x3 = F.relu(self.conv3(x2, adjacency))
 
-        x = global_max_pool((x1 + x2 + x3)/3, batch)
+        x = global_max_pool((x1 + x2 + x3)/3, batch[0])
 
         return F.softmax(self.layer(x), dim = 1)
 

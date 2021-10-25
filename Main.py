@@ -14,7 +14,7 @@ from models.SNN import SNN
 train_data = datasets.MNIST('./data', train=True, transform=transforms.ToTensor(), download=True)
 test_data = datasets.MNIST('./data', train=False, transform=transforms.ToTensor(), download=True)
 
-batch_size = 1
+batch_size = 16
 
 train_dataloader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
 test_dataloader = DataLoader(test_data, batch_size=batch_size, shuffle=True)
@@ -82,9 +82,9 @@ def process_batch_and_feed_to_NN(NN, image_list, p):
 
 if __name__ == "__main__":
 
-    I2G = ImageToGraph(superpixel_size)
+    I2G = ImageToGraph(superpixel_size, 0)
 
-    GNN = SNN(5,10,15,10).to(device)
+    GNN = GCN().to(device)
     optimizer_GNN = torch.optim.Adam(GNN.parameters(), lr=0.001, weight_decay=5e-4)
 
     criterion = torch.nn.CrossEntropyLoss()
@@ -92,7 +92,7 @@ if __name__ == "__main__":
     GNN.train()
 
     with Pool(8) as p:
-        for epoch in range(1):
+        for epoch in range(10):
             train_acc = 0
             i = 0
             train_running_loss = 0
@@ -118,7 +118,7 @@ if __name__ == "__main__":
         with torch.no_grad():
             for test_features, test_labels in test_dataloader:
                 test_features.to(device), test_labels.to(device)
-                prediction = process_batch_and_feed_to_NN(GNN, test_features, p)
+                prediction = I2G.process_batch_and_feed_to_NN(GNN, test_features, p)
                 test_acc += (torch.argmax(prediction, 1).flatten() == test_labels).type(torch.float).mean().item()
                 i += 1
 

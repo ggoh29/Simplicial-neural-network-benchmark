@@ -27,41 +27,41 @@ class SNN(nn.Module):
         # Degree 0 convolutions.
         self.C0_1 = SCN(f1_size, 32)
         self.C0_2 = SCN(32, 32)
-        self.C0_3 = SCN(32, output_size)
+        self.C0_3 = SCN(32, 32)
 
         # Degree 1 convolutions.
         self.C1_1 = SCN(f2_size, 32)
         self.C1_2 = SCN(32, 32)
-        self.C1_3 = SCN(32, output_size)
+        self.C1_3 = SCN(32, 32)
 
         # Degree 2 convolutions.
         self.C2_1 = SCN(f3_size, 32)
         self.C2_2 = SCN(32, 32)
-        self.C2_3 = SCN(32, output_size)
+        self.C2_3 = SCN(32, 32)
+
+        self.layer = nn.Linear(32, 10)
 
         self.output_size = output_size
 
 
-    def forward(self, X0, X1, X2, L0, L1, L2, batch0, batch1, batch2):
+    def forward(self, X, L, batch):
 
-        out0_1 = self.C0_1(L0, nn.LeakyReLU()(X0))
-        out0_2 = self.C0_2(L0, nn.LeakyReLU()(out0_1))
-        out0_3 = self.C0_3(L0, out0_2)
+        out0_1 = self.C0_1(L[0], nn.LeakyReLU()(X[0]))
+        out0_2 = self.C0_2(L[0], nn.LeakyReLU()(out0_1))
+        out0_3 = self.C0_3(L[0], out0_2)
 
-        # out0 = global_max_pool(out0_3, batch0)
+        out0 = global_mean_pool(out0_3, batch[0])
 
-        out1_1 = self.C1_1(L1, nn.LeakyReLU()(X1))
-        out1_2 = self.C1_2(L1, nn.LeakyReLU()(out1_1))
-        out1_3 = self.C1_3(L1, out1_2)
+        out1_1 = self.C1_1(L[1], nn.LeakyReLU()(X[1]))
+        out1_2 = self.C1_2(L[1], nn.LeakyReLU()(out1_1))
+        out1_3 = self.C1_3(L[1], out1_2)
 
-        # out1 = global_max_pool(out1_3, batch1)
+        out1 = global_mean_pool(out1_3, batch[1])
 
-        out2_1 = self.C2_1(L2, nn.LeakyReLU()(X2))
-        out2_2 = self.C2_2(L2, nn.LeakyReLU()(out2_1))
-        out2_3 = self.C2_3(L2, out2_2)
+        out2_1 = self.C2_1(L[2], nn.LeakyReLU()(X[2]))
+        out2_2 = self.C2_2(L[2], nn.LeakyReLU()(out2_1))
+        out2_3 = self.C2_3(L[2], out2_2)
 
-        # out2 = global_max_pool(out2_3, batch2)
+        out2 = global_mean_pool(out2_3, batch[2])
 
-        out = torch.cat([out0_3, out1_3, out2_3], dim=0)
-        out = torch.sum(out, 0)
-        return F.softmax(out, dim = 0).view(1, self.output_size)
+        return F.softmax(self.layer(out0 + out1 + out2), dim = 0)
