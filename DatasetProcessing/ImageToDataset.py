@@ -11,7 +11,7 @@ import networkx as nx
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-class ImageToGraph:
+class ImageToSimplicialComplex:
 
     def __init__(self, superpixel_size, simplicial_complex_size=2):
         self.spixel_size = superpixel_size

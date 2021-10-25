@@ -23,7 +23,6 @@ class GCN(nn.Module):
         x3 = F.relu(self.conv3(x2, adjacency))
 
         x = global_max_pool((x1 + x2 + x3)/3, batch[0])
-
         return F.softmax(self.layer(x), dim = 1)
 
 
