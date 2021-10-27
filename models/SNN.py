@@ -40,7 +40,6 @@ class SNN(nn.Module):
         self.C2_3 = SCN(32, 32)
 
         self.layer = nn.Linear(32, 10)
-
         self.output_size = output_size
 
 

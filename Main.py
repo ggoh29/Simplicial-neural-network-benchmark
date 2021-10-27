@@ -10,6 +10,7 @@ import numpy as np
 from multiprocessing import Pool
 from models.GNN import GCN
 from models.SNN import SNN
+from constants import DEVICE
 
 train_data = datasets.MNIST('./data', train=True, transform=transforms.ToTensor(), download=True)
 test_data = datasets.MNIST('./data', train=False, transform=transforms.ToTensor(), download=True)
@@ -19,15 +20,13 @@ batch_size = 16
 train_dataloader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
 test_dataloader = DataLoader(test_data, batch_size=batch_size, shuffle=True)
 
-superpixel_size = 50
-
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+superpixel_size = 75
 
 if __name__ == "__main__":
 
-    I2G = ImageToSimplicialComplex(superpixel_size, 0)
+    I2G = ImageToSimplicialComplex(superpixel_size, 2)
 
-    GNN = GCN().to(device)
+    GNN = SNN(5, 10, 15, 10).to(DEVICE)
     optimizer_GNN = torch.optim.Adam(GNN.parameters(), lr=0.001, weight_decay=5e-4)
 
     criterion = torch.nn.CrossEntropyLoss()
@@ -35,12 +34,12 @@ if __name__ == "__main__":
     GNN.train()
 
     with Pool(8) as p:
-        for epoch in range(10):
+        for epoch in range(25):
             train_acc = 0
             i = 0
             train_running_loss = 0
             for train_features, train_labels in train_dataloader:
-                train_features.to(device), train_labels.to(device)
+                train_features.to(DEVICE), train_labels.to(DEVICE)
                 optimizer_GNN.zero_grad()
                 prediction = I2G.process_batch_and_feed_to_NN(GNN, train_features, p)
                 loss = criterion(prediction, train_labels)
@@ -60,7 +59,7 @@ if __name__ == "__main__":
     with Pool(8) as p:
         with torch.no_grad():
             for test_features, test_labels in test_dataloader:
-                test_features.to(device), test_labels.to(device)
+                test_features.to(DEVICE), test_labels.to(DEVICE)
                 prediction = I2G.process_batch_and_feed_to_NN(GNN, test_features, p)
                 test_acc += (torch.argmax(prediction, 1).flatten() == test_labels).type(torch.float).mean().item()
                 i += 1
