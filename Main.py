@@ -3,38 +3,39 @@ from torchvision import datasets
 import torchvision.transforms as transforms
 from torch_geometric.loader import DataLoader
 import torch
-from skimage.future import graph
-from skimage.segmentation import slic
-from skimage.measure import regionprops
-import numpy as np
 from multiprocessing import Pool
-from models.GNN import GCN
+from models.GNN import GCN, GCN3
+from DatasetProcessing.MakeGraph import EdgeFlowSC, MakeSC
 from models.SNN import SNN
 from constants import DEVICE
 
-train_data = datasets.MNIST('./data', train=True, transform=transforms.ToTensor(), download=True)
-test_data = datasets.MNIST('./data', train=False, transform=transforms.ToTensor(), download=True)
+# train_data = datasets.MNIST('./data', train=True, transform=transforms.ToTensor(), download=True)
+# test_data = datasets.MNIST('./data', train=False, transform=transforms.ToTensor(), download=True)
+
+train_data = datasets.CIFAR10(root='./data', train=True, download=True, transform=transforms.ToTensor())
+test_data = datasets.CIFAR10(root='./data', train=False, download=True, transform=transforms.ToTensor())
 
 batch_size = 16
 
 train_dataloader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
 test_dataloader = DataLoader(test_data, batch_size=batch_size, shuffle=True)
 
-superpixel_size = 75
+superpixel_size = 100
 
 if __name__ == "__main__":
 
-    I2G = ImageToSimplicialComplex(superpixel_size, 2)
+    I2G = ImageToSimplicialComplex(superpixel_size, EdgeFlowSC, 2)
 
     GNN = SNN(5, 10, 15, 10).to(DEVICE)
+    # GNN = GCN3().to(DEVICE)
     optimizer_GNN = torch.optim.Adam(GNN.parameters(), lr=0.001, weight_decay=5e-4)
 
     criterion = torch.nn.CrossEntropyLoss()
 
     GNN.train()
 
-    with Pool(8) as p:
-        for epoch in range(25):
+    with Pool(4) as p:
+        for epoch in range(10):
             train_acc = 0
             i = 0
             train_running_loss = 0

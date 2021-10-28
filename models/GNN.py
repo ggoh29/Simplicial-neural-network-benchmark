@@ -22,7 +22,7 @@ class GCN(nn.Module):
         x2 = F.relu(self.conv2(x1, adjacency))
         x3 = F.relu(self.conv3(x2, adjacency))
 
-        x = global_max_pool((x1 + x2 + x3)/3, batch[0])
+        x = global_mean_pool((x1 + x2 + x3)/3, batch[0])
         return F.softmax(self.layer(x), dim = 1)
 
 
@@ -56,3 +56,23 @@ class GCN2(torch.nn.Module):
         x = F.relu(x)
         x = F.softmax(self.linear2(x), dim = 1)
         return x
+
+
+class GCN3(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Linear(5, 64, bias = True)
+        self.conv2 = nn.Linear(64, 64, bias = True)
+        self.conv3 = nn.Linear(64, 64, bias = True)
+        self.layer = nn.Linear(64, 10, bias = True)
+
+    def forward(self, X, L, batch):
+        L = L[0]
+        x = X[0]
+
+        x1 = F.relu(self.conv1(torch.sparse.mm(L, x)))
+        x2 = F.relu(self.conv2(torch.sparse.mm(L, x1)))
+        x3 = F.relu(self.conv3(torch.sparse.mm(L, x2)))
+
+        x = global_mean_pool((x1 + x2 + x3)/3, batch[0])
+        return F.softmax(self.layer(x), dim = 1)

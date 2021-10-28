@@ -2,11 +2,12 @@ import unittest
 import torch
 from skimage.future import graph
 from skimage.segmentation import slic
-from skimage.measure import regionprops
 import numpy as np
 import networkx as nx
 from utils import triangle_to_edge_matrix, edge_to_node_matrix
 from constants import DEVICE, TEST_IMAGE_1, TEST_IMAGE_2
+from DatasetProcessing.ImageToDataset import ImageToSimplicialComplex
+from DatasetProcessing.MakeGraph import EdgeFlowSC, MakeSC
 
 class MyTestCase(unittest.TestCase):
     def test_sparse_mm_yields_same_result_as_dense_mm(self):
@@ -52,6 +53,8 @@ class MyTestCase(unittest.TestCase):
         image = np.array(image)
         superpixel = slic(image, n_segments=150, compactness=0.75, start_label=1)
         rag = graph.rag_mean_color(image, superpixel)
+
+        # Ensuring this function works correctly
         sigma1 = edge_to_node_matrix(rag.edges(), rag.nodes)
 
         L0 = torch.matmul(sigma1, sigma1.T)
@@ -79,6 +82,8 @@ class MyTestCase(unittest.TestCase):
         rag = graph.rag_mean_color(image, superpixel)
         triangles = [*filter(lambda x: len(x) == 3, nx.enumerate_all_cliques(rag))]
         sigma1 = edge_to_node_matrix(rag.edges(), rag.nodes)
+
+        # Ensuring this function works correctly
         sigma2 = triangle_to_edge_matrix(triangles, rag.edges)
 
         L1 = torch.matmul(sigma1.T, sigma1) + torch.matmul(sigma2, sigma2.T)
@@ -133,6 +138,41 @@ class MyTestCase(unittest.TestCase):
         L1_test = D - A_upper + I_1 + A_lower
 
         self.assertTrue(torch.all(torch.eq(L1, L1_test)).item())
+
+
+    def test_edge_flow_Lapacian_0_generated_correctly(self):
+        I2SC = ImageToSimplicialComplex(100, EdgeFlowSC, 0)
+        image = TEST_IMAGE_2
+        image = np.array(image)
+        nodes, edges, triangles, node_features = I2SC.convert_superpixel(image)
+        _, L_i, L_v = I2SC.features_to_lapacians(nodes, edges, triangles, node_features)
+        L0 = torch.sparse_coo_tensor(L_i[0], L_v[0])
+        L0 = L0.to_dense()
+
+        D = [[0 for _ in range(len(nodes))] for _ in range(len(nodes))]
+        D = torch.tensor(D, dtype=torch.float, device=DEVICE)
+
+        adj = {}
+
+        for x, y in edges:
+            if x not in adj:
+                adj[x] = []
+            adj[x].append(y)
+            if y not in adj:
+                adj[y] = []
+            adj[y].append(x)
+
+
+        for x_node in nodes:
+            D[x_node-1][x_node-1] += len(adj[x_node])
+
+        G = nx.Graph()
+        G.add_edges_from(edges)
+        A = nx.adjacency_matrix(G, nodelist=range(1, len(nodes)+1)).todense()
+
+        L0_test = D - A
+
+        self.assertTrue(torch.all(torch.eq(L0, L0_test)).item())
 
 
 
