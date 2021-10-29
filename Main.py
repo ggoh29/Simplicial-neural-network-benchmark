@@ -24,10 +24,10 @@ superpixel_size = 100
 
 if __name__ == "__main__":
 
-    I2G = ImageToSimplicialComplex(superpixel_size, EdgeFlowSC, 2)
+    I2G = ImageToSimplicialComplex(superpixel_size, EdgeFlowSC, simplicial_complex_size=0)
 
-    GNN = SNN(5, 10, 15, 10).to(DEVICE)
-    # GNN = GCN3().to(DEVICE)
+    # GNN = SNN(5, 10, 15, 10).to(DEVICE)
+    GNN = GCN().to(DEVICE)
     optimizer_GNN = torch.optim.Adam(GNN.parameters(), lr=0.001, weight_decay=5e-4)
 
     criterion = torch.nn.CrossEntropyLoss()
