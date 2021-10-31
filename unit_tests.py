@@ -6,8 +6,8 @@ import numpy as np
 import networkx as nx
 from utils import triangle_to_edge_matrix, edge_to_node_matrix
 from constants import DEVICE, TEST_IMAGE_1, TEST_IMAGE_2
-from DatasetProcessing.ImageToDataset import ImageToSimplicialComplex
-from DatasetProcessing.MakeGraph import EdgeFlowSC, MakeSC
+from dataset.ImageToDataset import ImageToSimplicialComplex
+from dataset.MakeGraph import EdgeFlowSC, MakeSC
 
 class MyTestCase(unittest.TestCase):
     def test_sparse_mm_yields_same_result_as_dense_mm(self):
@@ -144,7 +144,7 @@ class MyTestCase(unittest.TestCase):
         I2SC = ImageToSimplicialComplex(100, EdgeFlowSC, 0)
         image = TEST_IMAGE_2
         image = np.array(image)
-        nodes, edges, triangles, node_features = I2SC.convert_superpixel(image)
+        nodes, edges, triangles, node_features = I2SC.image_to_features(image)
         _, L_i, L_v = I2SC.features_to_lapacians(nodes, edges, triangles, node_features)
         L0 = torch.sparse_coo_tensor(L_i[0], L_v[0])
         L0 = L0.to_dense()
@@ -179,7 +179,7 @@ class MyTestCase(unittest.TestCase):
         I2SC = ImageToSimplicialComplex(100, EdgeFlowSC, 2)
         image = TEST_IMAGE_2
         image = np.array(image)
-        nodes, edges, triangles, node_features = I2SC.convert_superpixel(image)
+        nodes, edges, triangles, node_features = I2SC.image_to_features(image)
         _, L_i, L_v = I2SC.features_to_lapacians(nodes, edges, triangles, node_features)
         L1 = torch.sparse_coo_tensor(L_i[1], L_v[1])
         L1 = L1.to_dense()

@@ -10,6 +10,12 @@ def colour_intensity(feature):
 	return feature[2] ** 2 + feature[3] ** 2 + feature[4] ** 2
 
 
+def make_triangles(triangle, features):
+	tri = list(triangle)
+	tri = [*sorted(tri, key = lambda x : colour_intensity(features[x-1]), reverse=True)]
+	return tuple(tri)
+
+
 # Transforms a graph into a simplicial complex
 class MakeSC(ABC):
 
@@ -32,6 +38,7 @@ class EdgeFlowSC(MakeSC):
 
 	@staticmethod
 	def convert_graph(rag, regions):
+
 		node_features = [unpack_node(rag, region) for region in regions]
 		edges = []
 		for x, y in rag.edges:
@@ -41,5 +48,9 @@ class EdgeFlowSC(MakeSC):
 			else:
 				edges.append((x,y))
 
+		def _make_tri(triangles):
+			return make_triangles(triangles, node_features)
+
 		triangles = [*filter(lambda x: len(x) == 3, nx.enumerate_all_cliques(rag))]
+		triangles = [*map(_make_tri, triangles)]
 		return rag.nodes(), edges, triangles, node_features

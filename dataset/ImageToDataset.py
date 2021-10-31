@@ -14,7 +14,7 @@ class ImageToSimplicialComplex:
         self.sc_size = simplicial_complex_size
 
     def process_batch_and_feed_to_NN(self, NN, images, p):
-        feature_and_lapacian_list = p.map(self.graph_to_lapacian, images)
+        feature_and_lapacian_list = p.map(self.image_to_lapacian, images)
         X, L_i, L_v = [*zip(*feature_and_lapacian_list)]
         X, L_i, L_v = [*zip(*X)], [*zip(*L_i)], [*zip(*L_v)]
 
@@ -45,12 +45,12 @@ class ImageToSimplicialComplex:
         batch = torch.tensor([i for sublist in batch for i in sublist], device=DEVICE)
         return feature_batch, lapacian_batch, batch
 
-    def graph_to_lapacian(self, img):
+    def image_to_lapacian(self, img):
         image = (img.double().numpy())[0]
-        nodes, edges, triangles, node_features = self.convert_superpixel(image)
+        nodes, edges, triangles, node_features = self.image_to_features(image)
         return self.features_to_lapacians(nodes, edges, triangles, node_features)
 
-    def convert_superpixel(self, image):
+    def image_to_features(self, image):
         superpixel = slic(image, n_segments=self.spixel_size, compactness=0.75, start_label=1)
         rag = graph.rag_mean_color(image, superpixel)
         regions = regionprops(superpixel)
