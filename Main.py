@@ -1,6 +1,6 @@
 import torch
 from models.GNN import GCN, GCN3
-from dataset.SuperpixelLoader import SuperPixelLoader
+from dataset.SuperpixelLoader import SuperPixelLoader, DatasetType
 from dataset.MakeGraph import EdgeFlowSC, RAGSC
 from models.SNN import SNN
 from constants import DEVICE
@@ -8,13 +8,15 @@ from run_tests import train, test
 from multiprocessing import Pool
 
 
-batch_size = 16
-superpixel_size = 100
+batch_size = 4
+superpixel_size = 75
 
 if __name__ == "__main__":
 
-    train_dataset = SuperPixelLoader("CIFAR10", superpixel_size, EdgeFlowSC, True, batch_size, 4)
-    test_dataset = SuperPixelLoader("CIFAR10", superpixel_size, EdgeFlowSC, False, batch_size, 4)
+    dataset = DatasetType.CIFAR10
+
+    train_dataset = SuperPixelLoader(dataset, superpixel_size, EdgeFlowSC, True, batch_size, 4)
+    test_dataset = SuperPixelLoader(dataset, superpixel_size, EdgeFlowSC, False, batch_size, 4)
 
     GNN = SNN(5, 10, 15, 10).to(DEVICE)
     # GNN = GCN().to(DEVICE)

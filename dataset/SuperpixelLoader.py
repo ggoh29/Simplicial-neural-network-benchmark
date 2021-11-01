@@ -4,10 +4,17 @@ import torchvision.transforms as transforms
 from torch_geometric.loader import DataLoader
 from dataset.ImageToDataset import ImageToSimplicialComplex
 from constants import DEVICE
+from enum import Enum
+from skimage import color
+
+
+class DatasetType(Enum):
+	MNIST = 1
+	CIFAR10 = 2
 
 class SuperPixelLoader(torch.utils.data.Dataset):
 
-	def __init__(self, dataset_name, superpixel_size, simplicial_complex_type, train, batchsize, pool_size, simplicial_complex_size=2):
+	def __init__(self, dataset_name, superpixel_size, simplicial_complex_type, train, batchsize, pool_size, simplicial_complex_size=0):
 		'''
 		:param dataset_name: Name of dataset. currently either MNIST or CIFAR10.
 		:param superpixel_size: Number of superpixel nodes per image
@@ -15,10 +22,12 @@ class SuperPixelLoader(torch.utils.data.Dataset):
 		:param simplicial_complex_size: Maximum size of simplices in resulting simplicial complex. In range [0, 2]
 		'''
 
-		if dataset_name == 'MNIST':
+		if dataset_name == DatasetType.MNIST:
 			dataset = datasets.MNIST
-		elif dataset_name == 'CIFAR10':
+		elif dataset_name == DatasetType.CIFAR10:
 			dataset = datasets.CIFAR10
+
+		self.type = dataset_name
 
 		self.train_data = dataset(root='./data', train=train, download=True, transform=transforms.ToTensor())
 
@@ -35,6 +44,8 @@ class SuperPixelLoader(torch.utils.data.Dataset):
 
 	def __getitem__(self, idx):
 		image, label = self.train_data[idx]
+		# if self.type == datasets.CIFAR10:
+		# 	image = color.rgb2gray(image)
 		return self.I2SC.image_to_lapacian(image), label
 
 	def __iter__(self):

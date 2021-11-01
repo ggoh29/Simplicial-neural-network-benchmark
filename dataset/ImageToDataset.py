@@ -20,8 +20,8 @@ class ImageToSimplicialComplex:
     def process_batch(self, images):
         with Pool(self.p_size) as p:
             feature_and_lapacian_list = p.map(self.image_to_lapacian, images)
-        X_batch, L_batch, batch_size = self.sanitize_input_for_batch(feature_and_lapacian_list)
 
+        X_batch, L_batch, batch_size = self.sanitize_input_for_batch(feature_and_lapacian_list)
         return X_batch, L_batch, batch_size
 
 
@@ -81,6 +81,8 @@ class ImageToSimplicialComplex:
 
 
     def image_to_features(self, image):
+        # When setting compactness to 0.1, sometimes start_label starts at 0 even though explicitly stating it starts at 1
+        # Weird
         superpixel = slic(image, n_segments=self.spixel_size, compactness=1, start_label=1)
         rag = graph.rag_mean_color(image, superpixel)
         regions = regionprops(superpixel)
@@ -98,6 +100,7 @@ class ImageToSimplicialComplex:
         L0 = torch.sparse.mm(sigma1, sigma1.t())
 
         if self.sc_size == 0:
+            assert(X0.size()[0] == L0.size()[0])
             return [[X0], [L0.coalesce().indices()], [L0.coalesce().values()]]
 
         X1 = []
@@ -108,6 +111,8 @@ class ImageToSimplicialComplex:
 
         if self.sc_size == 1:
             L1 = torch.sparse.mm(sigma1.t(), sigma1)
+            assert (X0.size()[0] == L0.size()[0])
+            assert (X1.size()[0] == L1.size()[0])
             return [[X0, X1], [L0.coalesce().indices(), L1.coalesce().indices()],
                     [L0.coalesce().values(), L1.coalesce().values()]]
 
@@ -124,6 +129,10 @@ class ImageToSimplicialComplex:
         L2 = torch.sparse.mm(sigma2.t(), sigma2)
 
         # splitting the sparse tensor as pooling cannot return sparse and to make preparation for minibatching easier
+        assert (X0.size()[0] == L0.size()[0])
+        assert (X1.size()[0] == L1.size()[0])
+        assert (X2.size()[0] == L2.size()[0])
+
         return [[X0, X1, X2],
                 [L0.coalesce().indices(), L1.coalesce().indices(), L2.coalesce().indices()],
                 [L0.coalesce().values(), L1.coalesce().values(), L2.coalesce().values()]]

@@ -20,7 +20,6 @@ class SCN1(nn.Module):
 class SCN(nn.Module):
     def __init__(self, feature_size, output_size, enable_bias = True):
         super().__init__()
-        # self.K = 5
         self.theta = nn.parameter.Parameter(0.01 * torch.randn((feature_size, output_size)))
 
     def forward(self, L, x):

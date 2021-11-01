@@ -6,23 +6,21 @@ def train(NN, epoch_size, dataloader, optimizer, criterion):
 	for epoch in range(epoch_size):
 		train_acc = 0
 		i = 0
-		print("epoch" + str(epoch))
 		train_running_loss = 0
 		for X_batch, L_batch, batch_size, train_labels in dataloader:
-			print(i)
 			i += 1
-		# 	optimizer.zero_grad()
-		# 	prediction = NN(X_batch, L_batch, batch_size)
-		# 	loss = criterion(prediction, train_labels)
-		# 	loss.backward()
-		# 	optimizer.step()
-		#
-		# 	train_running_loss += loss.detach().item()
-		# 	train_acc += (torch.argmax(prediction, 1).flatten() == train_labels).type(torch.float).mean().item()
-		# 	i += 1
-		#
-		# print(
-		# 	f"Epoch {epoch} | Train running loss {train_running_loss / i} | Loss {loss} | Train accuracy {train_acc / i}")
+			optimizer.zero_grad()
+			prediction = NN(X_batch, L_batch, batch_size)
+			loss = criterion(prediction, train_labels)
+			loss.backward()
+			optimizer.step()
+
+			train_running_loss += loss.detach().item()
+			train_acc += (torch.argmax(prediction, 1).flatten() == train_labels).type(torch.float).mean().item()
+			i += 1
+
+		print(
+			f"Epoch {epoch} | Train running loss {train_running_loss / i} | Loss {loss} | Train accuracy {train_acc / i}")
 
 
 def test(NN, dataloader):
@@ -36,4 +34,4 @@ def test(NN, dataloader):
 			test_acc += (torch.argmax(prediction, 1).flatten() == test_labels).type(torch.float).mean().item()
 			i += 1
 
-	print(test_acc / i)
+	print(f"Test accuracy of {test_acc / i}")
