@@ -1,11 +1,13 @@
 import torch
 import torch.nn as nn
 from torch_geometric.nn import GCNConv
+import scipy.sparse as sp
+import scipy.sparse.linalg as spl
 from torch_geometric.nn import global_mean_pool, global_max_pool
 import torch.nn.functional as F
 
 
-class SCN(nn.Module):
+class SCN1(nn.Module):
     def __init__(self, feature_size, output_size, enable_bias = True):
         super().__init__()
         self.conv = nn.Linear(feature_size, output_size, bias = enable_bias)
@@ -15,26 +17,37 @@ class SCN(nn.Module):
         return self.conv(x)
 
 
+class SCN(nn.Module):
+    def __init__(self, feature_size, output_size, enable_bias = True):
+        super().__init__()
+        # self.K = 5
+        self.theta = nn.parameter.Parameter(0.01 * torch.randn((feature_size, output_size)))
+
+    def forward(self, L, x):
+        X = torch.sparse.mm(L, x)
+        return torch.mm(X, self.theta)
+
+
 class SNN(nn.Module):
     def __init__(self, f1_size, f2_size, f3_size, output_size, bias = True):
         super().__init__()
 
         # Degree 0 convolutions.
-        self.C0_1 = SCN(f1_size, 32, enable_bias = bias)
-        self.C0_2 = SCN(32, 32, enable_bias = bias)
-        self.C0_3 = SCN(32, 32, enable_bias = bias)
+        self.C0_1 = SCN(f1_size, 30, enable_bias = bias)
+        self.C0_2 = SCN(30, 30, enable_bias = bias)
+        self.C0_3 = SCN(30, output_size, enable_bias = bias)
 
         # Degree 1 convolutions.
-        self.C1_1 = SCN(f2_size, 32, enable_bias = bias)
-        self.C1_2 = SCN(32, 32, enable_bias = bias)
-        self.C1_3 = SCN(32, 32, enable_bias = bias)
+        self.C1_1 = SCN(f2_size, 30, enable_bias = bias)
+        self.C1_2 = SCN(30, 30, enable_bias = bias)
+        self.C1_3 = SCN(30, output_size, enable_bias = bias)
 
         # Degree 2 convolutions.
-        self.C2_1 = SCN(f3_size, 32, enable_bias = bias)
-        self.C2_2 = SCN(32, 32, enable_bias = bias)
-        self.C2_3 = SCN(32, 32, enable_bias = bias)
+        self.C2_1 = SCN(f3_size, 30, enable_bias = bias)
+        self.C2_2 = SCN(30, 30, enable_bias = bias)
+        self.C2_3 = SCN(30, output_size, enable_bias = bias)
 
-        self.layer = nn.Linear(32, 10)
+        self.layer = nn.Linear(10, 10)
         self.output_size = output_size
 
 
