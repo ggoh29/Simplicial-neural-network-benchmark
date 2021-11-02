@@ -7,6 +7,17 @@ from constants import DEVICE
 from enum import Enum
 from skimage import color
 
+def make_smaller_dataset_2_classes(data):
+	l = len(data)
+	data = data[:l // 4] + data[(l // 2):(3 * l // 4)]
+	return data
+
+def make_smaller_dataset_4_classes(data):
+	l = len(data)
+	data = data[:l // 8] + data[(l // 4):(3 * l // 8)] \
+				+ data[(l // 2):(5 * l // 8)] + data[(3 * l // 4):(7 * l // 8)]
+	return data
+
 
 class DatasetType(Enum):
 	MNIST = 1
@@ -14,7 +25,7 @@ class DatasetType(Enum):
 
 class SuperPixelLoader(torch.utils.data.Dataset):
 
-	def __init__(self, dataset_name, superpixel_size, simplicial_complex_type, train, batchsize, pool_size, simplicial_complex_size=0):
+	def __init__(self, dataset_name, superpixel_size, simplicial_complex_type, train, batchsize, pool_size, simplicial_complex_size=2):
 		'''
 		:param dataset_name: Name of dataset. currently either MNIST or CIFAR10.
 		:param superpixel_size: Number of superpixel nodes per image
@@ -29,13 +40,16 @@ class SuperPixelLoader(torch.utils.data.Dataset):
 
 		self.type = dataset_name
 
-		self.train_data = dataset(root='./data', train=train, download=True, transform=transforms.ToTensor())
+		self.data = dataset(root='./data', train=train, download=True, transform=transforms.ToTensor())
+
+		self.data = [*sorted(self.data, key = lambda i : i[1])][:2 * (len(self.data)//5)]
+		self.data = make_smaller_dataset_4_classes(self.data)
 
 		self.sc_size = simplicial_complex_size
 		self.I2SC = ImageToSimplicialComplex(superpixel_size, simplicial_complex_type, pool_size, simplicial_complex_size)
-		self.n_samples = len(self.train_data)
+		self.n_samples = len(self.data)
 
-		self.loader = DataLoader(self.train_data, batch_size=batchsize, shuffle=True)
+		self.loader = DataLoader(self.data, batch_size=batchsize, shuffle=True)
 		self.loader_iter = iter(self.loader)
 
 

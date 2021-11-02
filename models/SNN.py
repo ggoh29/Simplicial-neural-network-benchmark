@@ -31,22 +31,24 @@ class SNN(nn.Module):
     def __init__(self, f1_size, f2_size, f3_size, output_size, bias = True):
         super().__init__()
 
+        conv_size = 15
+
         # Degree 0 convolutions.
-        self.C0_1 = SCN(f1_size, 30, enable_bias = bias)
-        self.C0_2 = SCN(30, 30, enable_bias = bias)
-        self.C0_3 = SCN(30, output_size, enable_bias = bias)
+        self.C0_1 = SCN(f1_size, conv_size, enable_bias = bias)
+        self.C0_2 = SCN(conv_size, conv_size, enable_bias = bias)
+        self.C0_3 = SCN(conv_size, output_size, enable_bias = bias)
 
         # Degree 1 convolutions.
-        self.C1_1 = SCN(f2_size, 30, enable_bias = bias)
-        self.C1_2 = SCN(30, 30, enable_bias = bias)
-        self.C1_3 = SCN(30, output_size, enable_bias = bias)
+        self.C1_1 = SCN(f2_size, conv_size, enable_bias = bias)
+        self.C1_2 = SCN(conv_size, conv_size, enable_bias = bias)
+        self.C1_3 = SCN(conv_size, output_size, enable_bias = bias)
 
         # Degree 2 convolutions.
-        self.C2_1 = SCN(f3_size, 30, enable_bias = bias)
-        self.C2_2 = SCN(30, 30, enable_bias = bias)
-        self.C2_3 = SCN(30, output_size, enable_bias = bias)
+        self.C2_1 = SCN(f3_size, conv_size, enable_bias = bias)
+        self.C2_2 = SCN(conv_size, conv_size, enable_bias = bias)
+        self.C2_3 = SCN(conv_size, output_size, enable_bias = bias)
 
-        self.layer = nn.Linear(10, 10)
+        self.layer = nn.Linear(output_size, output_size)
         self.output_size = output_size
 
 
@@ -70,4 +72,4 @@ class SNN(nn.Module):
 
         out2 = global_mean_pool(out2_3, batch[2])
 
-        return F.softmax(self.layer(out0 + out1 + out2), dim = 0)
+        return F.softmax(self.layer(out0 + out1 + out2), dim = 1)

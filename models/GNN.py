@@ -7,15 +7,18 @@ from torch_scatter import scatter_max
 
 
 class GCN(nn.Module):
-    def __init__(self):
+    def __init__(self, input_size, output_size):
         super().__init__()
-        self.conv1 = GCNConv(5, 64)
-        self.conv2 = GCNConv(64, 64)
-        self.conv3 = GCNConv(64, 64)
-        self.layer = nn.Linear(64, 10)
+
+        f_size = 16
+        self.conv1 = GCNConv(input_size, f_size)
+        self.conv2 = GCNConv(f_size, f_size)
+        self.conv3 = GCNConv(f_size, f_size)
+        self.layer = nn.Linear(f_size, output_size)
 
     def forward(self, X, L, batch):
         adjacency = L[0].coalesce().indices()
+        # weights = L[0].coalesce().values()
         features = X[0]
 
         x1 = F.relu(self.conv1(features, adjacency))
