@@ -42,8 +42,8 @@ class SuperPixelLoader(torch.utils.data.Dataset):
 
 		self.data = dataset(root='./data', train=train, download=True, transform=transforms.ToTensor())
 
-		self.data = [*sorted(self.data, key = lambda i : i[1])][:2 * (len(self.data)//5)]
-		self.data = make_smaller_dataset_4_classes(self.data)
+		# self.data = [*sorted(self.data, key = lambda i : i[1])][:2 * (len(self.data)//5)]
+		# self.data = make_smaller_dataset_4_classes(self.data)
 
 		self.sc_size = simplicial_complex_size
 		self.I2SC = ImageToSimplicialComplex(superpixel_size, simplicial_complex_type, pool_size, simplicial_complex_size)

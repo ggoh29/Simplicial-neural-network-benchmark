@@ -9,16 +9,16 @@ from multiprocessing import Pool
 
 
 batch_size = 8
-superpixel_size = 75
+superpixel_size = 150
 
 if __name__ == "__main__":
 
-    dataset = DatasetType.MNIST
+    dataset = DatasetType.CIFAR10
 
     train_dataset = SuperPixelLoader(dataset, superpixel_size, EdgeFlowSC, True, batch_size, 4, simplicial_complex_size=2)
     test_dataset = SuperPixelLoader(dataset, superpixel_size, EdgeFlowSC, False, batch_size, 4, simplicial_complex_size=2)
 
-    GNN = SNN(5, 10, 15, 4).to(DEVICE)
+    GNN = SNN(5, 10, 15, 10).to(DEVICE)
     # GNN = GCN(5, 4).to(DEVICE)
     optimizer = torch.optim.Adam(GNN.parameters(), lr=0.001, weight_decay=5e-4)
     criterion = torch.nn.CrossEntropyLoss()
