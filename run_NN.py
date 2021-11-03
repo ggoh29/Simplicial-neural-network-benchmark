@@ -1,4 +1,3 @@
-from constants import DEVICE
 import torch
 
 def train(NN, epoch_size, dataloader, optimizer, criterion):

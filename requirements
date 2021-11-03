@@ -1,0 +1,6 @@
+torch
+torchvision
+torch_geometric
+torch_scatter
+numpy
+skimage

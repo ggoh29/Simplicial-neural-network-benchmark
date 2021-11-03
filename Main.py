@@ -5,7 +5,6 @@ from dataset.MakeGraph import EdgeFlowSC, RAGSC
 from models.SNN import SNN
 from constants import DEVICE
 from run_NN import train, test
-from multiprocessing import Pool
 
 
 batch_size = 8
