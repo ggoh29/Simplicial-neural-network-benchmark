@@ -1,21 +1,31 @@
 import torch
 from torchvision import datasets
 import torchvision.transforms as transforms
-from torch_geometric.loader import DataLoader
-from dataset.ImageToDataset import ImageToSimplicialComplex
+
+from dataset.ImageToDataset import DatasetBatcher
 from constants import DEVICE
 from enum import Enum
 from skimage import color
+import torch
+from torchvision import datasets
+from dataset.ImageToDataset import ProcessImage, SCData
+from constants import DEVICE
+import torchvision.transforms as transforms
+from torch_geometric.data import InMemoryDataset
+from joblib import Parallel, delayed
+from tqdm import tqdm
+
 
 def make_smaller_dataset_2_classes(data):
 	l = len(data)
 	data = data[:l // 4] + data[(l // 2):(3 * l // 4)]
 	return data
 
+
 def make_smaller_dataset_4_classes(data):
 	l = len(data)
 	data = data[:l // 8] + data[(l // 4):(3 * l // 8)] \
-				+ data[(l // 2):(5 * l // 8)] + data[(3 * l // 4):(7 * l // 8)]
+		   + data[(l // 2):(5 * l // 8)] + data[(3 * l // 4):(7 * l // 8)]
 	return data
 
 
@@ -23,55 +33,140 @@ class DatasetType(Enum):
 	MNIST = 1
 	CIFAR10 = 2
 
-class SuperPixelLoader(torch.utils.data.Dataset):
 
-	def __init__(self, dataset_name, superpixel_size, simplicial_complex_type, train, batchsize, pool_size, simplicial_complex_size=2):
-		'''
-		:param dataset_name: Name of dataset. currently either MNIST or CIFAR10.
-		:param superpixel_size: Number of superpixel nodes per image
-		:param simplicial_complex_type: Format used to construct simplicial complex. Currently either RAG or EdgeFlow.
-		:param simplicial_complex_size: Maximum size of simplices in resulting simplicial complex. In range [0, 2]
-		'''
+class SimplicialComplexDataset(InMemoryDataset):
 
-		if dataset_name == DatasetType.MNIST:
-			dataset = datasets.MNIST
-		elif dataset_name == DatasetType.CIFAR10:
-			dataset = datasets.CIFAR10
+	def __init__(self, root, name, superpix_size, edgeflow_type, complex_size = 2, n_jobs = 4, train=True):
 
-		self.type = dataset_name
+		if name == DatasetType.MNIST:
+			self.dataset = datasets.MNIST
+		elif name == DatasetType.CIFAR10:
+			self.dataset = datasets.CIFAR10
 
-		self.data = dataset(root='./data', train=train, download=True, transform=transforms.ToTensor())
+		self.n_jobs = n_jobs
 
-		# self.data = [*sorted(self.data, key = lambda i : i[1])][:2 * (len(self.data)//5)]
-		# self.data = make_smaller_dataset_4_classes(self.data)
+		if train:
+			train_str = "Train"
+		else:
+			train_str = "Test"
 
-		self.sc_size = simplicial_complex_size
-		self.I2SC = ImageToSimplicialComplex(superpixel_size, simplicial_complex_type, pool_size, simplicial_complex_size)
-		self.n_samples = len(self.data)
+		self.train = train
 
-		self.loader = DataLoader(self.data, batch_size=batchsize, shuffle=True)
-		self.loader_iter = iter(self.loader)
+		name = f"{name.name}_{superpix_size}_{edgeflow_type.__name__}/{train_str}"
+		folder = f"{root}/{name}"
 
+		self.batcher = DatasetBatcher(complex_size)
+		self.I2SC = ProcessImage(superpix_size, edgeflow_type)
+		self.pre_transform = self.I2SC.image_to_features
+
+		super().__init__(folder, pre_transform=self.pre_transform)
+		self.data, self.slices = torch.load(self.processed_paths[0])
 
 	def __len__(self):
-		return self.n_samples
+		return len(self.slices["X0"])-1
+
+	def load_dataset(self):
+		"""Load the dataset from here and process it if it doesn't exist"""
+		print("Loading dataset from disk...")
+		data, slices = torch.load(self.processed_paths[0])
+		return data, slices
+
+	@property
+	def raw_file_names(self):
+		return []
+
+	def download(self):
+		# Instantiating this will download and process the graph dataset.
+		self.data_download = self.dataset(root='./data', train=self.train, download=True, transform=transforms.ToTensor())
+		self.data_download = [*sorted(self.data_download, key = lambda i : i[1])][:2 * (len(self.data_download)//5)]
+		self.data_download = make_smaller_dataset_4_classes(self.data_download)
+
+	@property
+	def processed_file_names(self):
+		return ["features.pt"]
+
+	def process(self):
+		# Read data into huge `Data` list.
+		if self.pre_transform is not None:
+			print("Pre-transforming dataset...")
+			data_list = Parallel(n_jobs=self.n_jobs, prefer="threads")\
+				(delayed(self.pre_transform)(image) for image in tqdm(self.data_download))
+
+		print("Finished Pre-transforming dataset.")
+		data, slices = self.collate(data_list)
+		torch.save((data, slices), self.processed_paths[0])
+
+	def collate(self, data_list):
+		X0, X1, X2 = [], [], []
+		sigma1, sigma2 = [], []
+		label = []
+
+		x0_total, x1_total, x2_total = 0, 0, 0
+		s1_total, s2_total = 0, 0
+
+		slices = {"X0": [0],
+				  "X1": [0],
+				  "X2": [0],
+				  "sigma1": [0],
+				  "sigma2": [0]}
+
+		for data in data_list:
+			x0, x1, x2 = data.X0, data.X1, data.X2
+			s1, s2 = data.sigma1, data.sigma2
+			l = data.label
+			x0_s, x1_s, x2_s = x0.shape[0], x1.shape[0], x2.shape[0]
+			s1_s, s2_s = s1.shape[1], s2.shape[1]
+
+			X0.append(x0); X1.append(x1); X2.append(x2)
+			sigma1.append(s1); sigma2.append(s2)
+			label.append(l)
+
+			x0_total += x0_s
+			x1_total += x1_s
+			x2_total += x2_s
+			s1_total += s1_s
+			s2_total += s2_s
+
+			slices["X0"].append(x0_total)
+			slices["X1"].append(x1_total)
+			slices["X2"].append(x2_total)
+			slices["sigma1"].append(s1_total)
+			slices["sigma2"].append(s2_total)
+
+		X0 = torch.cat(X0, dim=0)
+		X1 = torch.cat(X1, dim=0)
+		X2 = torch.cat(X2, dim=0)
+		sigma1 = torch.cat(sigma1, dim=-1)
+		sigma2 = torch.cat(sigma2, dim=-1)
+		label = torch.cat(label, dim=-1)
+
+		data = SCData(X0, X1, X2, sigma1, sigma2, label)
+
+		return data, slices
 
 	def __getitem__(self, idx):
-		image, label = self.train_data[idx]
-		# if self.type == datasets.CIFAR10:
-		# 	image = color.rgb2gray(image)
-		return self.I2SC.image_to_lapacian(image), label
+		return self.get(idx)
 
-	def __iter__(self):
-		return self
+	def get(self, idx):
+		x0_slice = self.slices["X0"][idx:idx + 2]
+		x1_slice = self.slices["X1"][idx:idx + 2]
+		x2_slice = self.slices["X2"][idx:idx + 2]
+		s1_slice = self.slices["sigma1"][idx:idx + 2]
+		s2_slice = self.slices["sigma2"][idx:idx + 2]
+		label_slice = [idx, idx + 1]
 
-	def __next__(self):
-		train_features, train_labels = next(self.loader_iter, (None, None))
+		X0 = self.data.X0[x0_slice[0]: x0_slice[1]]
+		X1 = self.data.X1[x1_slice[0]: x1_slice[1]]
+		X2 = self.data.X2[x2_slice[0]: x2_slice[1]]
 
-		if train_features is None:
-			self.loader_iter = iter(self.loader)
-			raise StopIteration
+		sigma1 = self.data.sigma1[:, s1_slice[0]: s1_slice[1]]
+		sigma2 = self.data.sigma2[:, s2_slice[0]: s2_slice[1]]
 
-		train_features.to(DEVICE), train_labels.to(DEVICE)
-		X_batch, L_batch, batch_size = self.I2SC.process_batch(train_features)
-		return X_batch, L_batch, batch_size, train_labels
+		label = self.data.label[label_slice[0]: label_slice[1]]
+
+		return SCData(X0, X1, X2, sigma1, sigma2, label)
+
+	def batch(self, datalist):
+		 return self.batcher.collated_data_to_batch(datalist)
+
+

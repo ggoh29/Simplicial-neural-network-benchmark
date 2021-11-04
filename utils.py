@@ -2,6 +2,20 @@ import torch
 from constants import DEVICE
 
 
+def dense_to_tensor(matrix):
+    "Converts a dense matrix to a 3 x N matrix"
+    indices = matrix.coalesce().indices()
+    values = matrix.coalesce().values().unsqueeze(0)
+    return torch.cat([indices, values], dim=0)
+
+
+def tensor_to_dense(matrix):
+    "Converts a 3 x N matrix to a dense matrix"
+    indices = matrix[0:2]
+    values = matrix[2:3].squeeze()
+    return torch.sparse_coo_tensor(indices, values)
+
+
 def edge_to_node_matrix(edges, nodes):
     sigma1 = torch.tensor([[0 for _ in edges] for _ in nodes], dtype=torch.float, device=DEVICE)
     j = 0

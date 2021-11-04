@@ -7,7 +7,7 @@ import networkx as nx
 from utils import triangle_to_edge_matrix, edge_to_node_matrix
 from constants import DEVICE, TEST_IMAGE_1, TEST_IMAGE_2
 from dataset.ImageToDataset import ImageToSimplicialComplex
-from dataset.MakeGraph import EdgeFlowSC, MakeSC
+from dataset.EdgeFlow import EdgeFlowSC, MakeSC
 
 class MyTestCase(unittest.TestCase):
     def test_sparse_mm_yields_same_result_as_dense_mm(self):
