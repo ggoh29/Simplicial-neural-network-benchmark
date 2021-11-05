@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 import networkx as nx
+from skimage.future import graph
+from skimage.measure import regionprops
 
 
 def unpack_node(rag, region):
@@ -15,13 +17,12 @@ def make_triangles(triangle, features):
 	tri = [*sorted(tri, key = lambda x : colour_intensity(features[x-1]), reverse=True)]
 	return tri
 
-
 # Transforms a graph into a simplicial complex
 class EdgeFlow(ABC):
 
 	@staticmethod
 	@abstractmethod
-	def convert_graph(rag, regions, image):
+	def convert_graph(image, superpixel):
 		pass
 
 
@@ -30,7 +31,9 @@ class RAGBasedEdgeFlow(EdgeFlow):
 	"Edges flow from based on those computed in graph.rag_mean_color"
 
 	@staticmethod
-	def convert_graph(rag, regions):
+	def convert_graph(image, superpixel):
+		rag = graph.rag_mean_color(image, superpixel)
+		regions = regionprops(superpixel)
 		node_features = [unpack_node(rag, region) for region in regions]
 		triangles = [*filter(lambda x: len(x) == 3, nx.enumerate_all_cliques(rag))]
 		return rag.nodes(), rag.edges(), triangles, node_features
@@ -41,7 +44,9 @@ class PixelBasedEdgeFlowSC(EdgeFlow):
 	"Edges flow from high pixel values to low pixel values"
 
 	@staticmethod
-	def convert_graph(rag, regions):
+	def convert_graph(image, superpixel):
+		rag = graph.rag_mean_color(image, superpixel)
+		regions = regionprops(superpixel)
 		node_features = [unpack_node(rag, region) for region in regions]
 		edges = []
 		for x, y in rag.edges:

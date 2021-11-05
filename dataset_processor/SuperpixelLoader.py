@@ -1,21 +1,15 @@
-import torch
-from torchvision import datasets
-import torchvision.transforms as transforms
-
-from dataset.ImageToDataset import DatasetBatcher
-from constants import DEVICE
+from dataset_processor.DatasetBatcher import DatasetBatcher
 from enum import Enum
-from skimage import color
 import torch
 from torchvision import datasets
-from dataset.ImageToDataset import ProcessImage, SCData
-from constants import DEVICE
+from dataset_processor.ImageProcessor import ProcessImage, SCData
 import torchvision.transforms as transforms
 from torch_geometric.data import InMemoryDataset
 from joblib import Parallel, delayed
 from tqdm import tqdm
 
 
+# functions to make a smaller dataset_processor for testing
 def make_smaller_dataset_2_classes(data):
 	l = len(data)
 	data = data[:l // 4] + data[(l // 2):(3 * l // 4)]
@@ -36,7 +30,7 @@ class DatasetType(Enum):
 
 class SimplicialComplexDataset(InMemoryDataset):
 
-	def __init__(self, root, name, superpix_size, edgeflow_type, complex_size = 2, n_jobs = 4, train=True):
+	def __init__(self, root, name, superpix_size, edgeflow_type, complex_size=2, n_jobs=4, train=True):
 
 		if name == DatasetType.MNIST:
 			self.dataset = datasets.MNIST
@@ -56,18 +50,18 @@ class SimplicialComplexDataset(InMemoryDataset):
 		folder = f"{root}/{name}"
 
 		self.batcher = DatasetBatcher(complex_size)
-		self.I2SC = ProcessImage(superpix_size, edgeflow_type)
-		self.pre_transform = self.I2SC.image_to_features
+		self.ImageProcessor = ProcessImage(superpix_size, edgeflow_type)
+		self.pre_transform = self.ImageProcessor.image_to_features
 
 		super().__init__(folder, pre_transform=self.pre_transform)
 		self.data, self.slices = torch.load(self.processed_paths[0])
 
 	def __len__(self):
-		return len(self.slices["X0"])-1
+		return len(self.slices["X0"]) - 1
 
 	def load_dataset(self):
-		"""Load the dataset from here and process it if it doesn't exist"""
-		print("Loading dataset from disk...")
+		"""Load the dataset_processor from here and process it if it doesn't exist"""
+		print("Loading dataset_processor from disk...")
 		data, slices = torch.load(self.processed_paths[0])
 		return data, slices
 
@@ -76,10 +70,11 @@ class SimplicialComplexDataset(InMemoryDataset):
 		return []
 
 	def download(self):
-		# Instantiating this will download and process the graph dataset.
-		self.data_download = self.dataset(root='./data', train=self.train, download=True, transform=transforms.ToTensor())
-		self.data_download = [*sorted(self.data_download, key = lambda i : i[1])][:2 * (len(self.data_download)//5)]
-		self.data_download = make_smaller_dataset_4_classes(self.data_download)
+		# Instantiating this will download and process the graph dataset_processor.
+		self.data_download = self.dataset(root='./data', train=self.train, download=True,
+										  transform=transforms.ToTensor())
+		#self.data_download = [*sorted(self.data_download, key=lambda i: i[1])][:2 * (len(self.data_download) // 5)]
+		#self.data_download = make_smaller_dataset_4_classes(self.data_download)
 
 	@property
 	def processed_file_names(self):
@@ -88,11 +83,11 @@ class SimplicialComplexDataset(InMemoryDataset):
 	def process(self):
 		# Read data into huge `Data` list.
 		if self.pre_transform is not None:
-			print("Pre-transforming dataset...")
-			data_list = Parallel(n_jobs=self.n_jobs, prefer="threads")\
+			print("Pre-transforming dataset_processor...")
+			data_list = Parallel(n_jobs=self.n_jobs, prefer="threads") \
 				(delayed(self.pre_transform)(image) for image in tqdm(self.data_download))
 
-		print("Finished Pre-transforming dataset.")
+		print("Finished Pre-transforming dataset_processor.")
 		data, slices = self.collate(data_list)
 		torch.save((data, slices), self.processed_paths[0])
 
@@ -117,8 +112,11 @@ class SimplicialComplexDataset(InMemoryDataset):
 			x0_s, x1_s, x2_s = x0.shape[0], x1.shape[0], x2.shape[0]
 			s1_s, s2_s = s1.shape[1], s2.shape[1]
 
-			X0.append(x0); X1.append(x1); X2.append(x2)
-			sigma1.append(s1); sigma2.append(s2)
+			X0.append(x0);
+			X1.append(x1);
+			X2.append(x2)
+			sigma1.append(s1);
+			sigma2.append(s2)
 			label.append(l)
 
 			x0_total += x0_s
@@ -167,6 +165,4 @@ class SimplicialComplexDataset(InMemoryDataset):
 		return SCData(X0, X1, X2, sigma1, sigma2, label)
 
 	def batch(self, datalist):
-		 return self.batcher.collated_data_to_batch(datalist)
-
-
+		return self.batcher.collated_data_to_batch(datalist)
