@@ -5,7 +5,7 @@ from skimage.measure import regionprops
 
 
 def unpack_node(rag, region):
-	return list(rag._node[region['label']]['mean color']) + list(region['centroid'])
+	return list(rag._node[region['label']]['mean color'])+ list(region['centroid'])
 
 
 def colour_intensity(feature):

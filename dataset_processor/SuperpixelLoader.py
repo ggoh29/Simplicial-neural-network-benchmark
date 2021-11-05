@@ -54,6 +54,7 @@ class SimplicialComplexDataset(InMemoryDataset):
 		self.pre_transform = self.ImageProcessor.image_to_features
 
 		super().__init__(folder, pre_transform=self.pre_transform)
+		print(self.processed_paths)
 		self.data, self.slices = torch.load(self.processed_paths[0])
 
 	def __len__(self):
@@ -112,10 +113,10 @@ class SimplicialComplexDataset(InMemoryDataset):
 			x0_s, x1_s, x2_s = x0.shape[0], x1.shape[0], x2.shape[0]
 			s1_s, s2_s = s1.shape[1], s2.shape[1]
 
-			X0.append(x0);
-			X1.append(x1);
+			X0.append(x0)
+			X1.append(x1)
 			X2.append(x2)
-			sigma1.append(s1);
+			sigma1.append(s1)
 			sigma2.append(s2)
 			label.append(l)
 

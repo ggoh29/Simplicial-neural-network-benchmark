@@ -39,6 +39,15 @@ class SCData:
                f" sigma1={stl(self.sigma1)}, sigma2={stl(self.sigma2)}, label={stl(self.label)})"
         return name
 
+    def __eq__(self, other):
+        x0 = torch.all(torch.eq(self.X0, other.X0)).item()
+        x1 = torch.all(torch.eq(self.X1, other.X1)).item()
+        x2 = torch.all(torch.eq(self.X2, other.X2)).item()
+        s1 = torch.all(torch.eq(self.sigma1, other.sigma1)).item()
+        s2 = torch.all(torch.eq(self.sigma2, other.sigma2)).item()
+        l0 = torch.all(torch.eq(self.label, other.label)).item()
+        return all([x0, x1, x2, s1, s2, l0])
+
 
 class ProcessImage:
 
