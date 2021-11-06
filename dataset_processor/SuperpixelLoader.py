@@ -1,12 +1,14 @@
 from dataset_processor.DatasetBatcher import DatasetBatcher
-from enum import Enum
 import torch
-from torchvision import datasets
 from dataset_processor.ImageProcessor import ProcessImage, SCData
 import torchvision.transforms as transforms
 from torch_geometric.data import InMemoryDataset
 from joblib import Parallel, delayed
 from tqdm import tqdm
+from torchvision import datasets
+
+dataset_dct = {datasets.MNIST : "MNIST",
+			   datasets.CIFAR10 : "CIFAR10"}
 
 
 # functions to make a smaller dataset_processor for testing
@@ -23,30 +25,17 @@ def make_smaller_dataset_4_classes(data):
 	return data
 
 
-class DatasetType(Enum):
-	MNIST = 1
-	CIFAR10 = 2
-
-
 class SimplicialComplexDataset(InMemoryDataset):
 
-	def __init__(self, root, name, superpix_size, edgeflow_type, complex_size=2, n_jobs=4, train=True):
+	def __init__(self, root, dataset_name, superpix_size, edgeflow_type, complex_size=2, n_jobs=8, train=True):
 
-		if name == DatasetType.MNIST:
-			self.dataset = datasets.MNIST
-		elif name == DatasetType.CIFAR10:
-			self.dataset = datasets.CIFAR10
-
+		self.dataset = dataset_name
 		self.n_jobs = n_jobs
 
-		if train:
-			train_str = "Train"
-		else:
-			train_str = "Test"
-
+		self.train_str = {True : "train", False : "test"}[train]
 		self.train = train
 
-		name = f"{name.name}_{superpix_size}_{edgeflow_type.__name__}/{train_str}"
+		name = f"{dataset_dct[dataset_name]}_{superpix_size}_{edgeflow_type.__name__}/{self.train_str}"
 		folder = f"{root}/{name}"
 
 		self.batcher = DatasetBatcher(complex_size)
@@ -54,7 +43,6 @@ class SimplicialComplexDataset(InMemoryDataset):
 		self.pre_transform = self.ImageProcessor.image_to_features
 
 		super().__init__(folder, pre_transform=self.pre_transform)
-		print(self.processed_paths)
 		self.data, self.slices = torch.load(self.processed_paths[0])
 
 	def __len__(self):
@@ -74,8 +62,8 @@ class SimplicialComplexDataset(InMemoryDataset):
 		# Instantiating this will download and process the graph dataset_processor.
 		self.data_download = self.dataset(root='./data', train=self.train, download=True,
 										  transform=transforms.ToTensor())
-		#self.data_download = [*sorted(self.data_download, key=lambda i: i[1])][:2 * (len(self.data_download) // 5)]
-		#self.data_download = make_smaller_dataset_4_classes(self.data_download)
+		# self.data_download = [*sorted(self.data_download, key=lambda i: i[1])][:2 * (len(self.data_download) // 5)]
+		# self.data_download = make_smaller_dataset_4_classes(self.data_download)
 
 	@property
 	def processed_file_names(self):
@@ -84,11 +72,11 @@ class SimplicialComplexDataset(InMemoryDataset):
 	def process(self):
 		# Read data into huge `Data` list.
 		if self.pre_transform is not None:
-			print("Pre-transforming dataset_processor...")
+			print(f"Pre-transforming {self.train_str} dataset..")
 			data_list = Parallel(n_jobs=self.n_jobs, prefer="threads") \
 				(delayed(self.pre_transform)(image) for image in tqdm(self.data_download))
 
-		print("Finished Pre-transforming dataset_processor.")
+		print(f"Finished pre-transforming {self.train_str} dataset.")
 		data, slices = self.collate(data_list)
 		torch.save((data, slices), self.processed_paths[0])
 
