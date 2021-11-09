@@ -28,7 +28,7 @@ class SNN(nn.Module):
     def __init__(self, f1_size, f2_size, f3_size, output_size, bias = True):
         super().__init__()
 
-        conv_size = 15
+        conv_size = 32
 
         # Degree 0 convolutions.
         self.C0_1 = SCN(f1_size, conv_size, enable_bias = bias)
