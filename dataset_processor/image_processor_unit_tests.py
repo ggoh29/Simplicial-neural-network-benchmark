@@ -11,6 +11,43 @@ from dataset_processor.EdgeFlow import RAGBasedEdgeFlow, PixelBasedEdgeFlowSC
 
 class MyTestCase(unittest.TestCase):
 
+    def test_generating_utils_works_correctly(self):
+        # This test is a toy example based on Control Using Higher Order Laplacians in Network Topologies (2006)
+        # by Abubakr Muhammad , Magnus Egerstedt
+        nodes = [1, 2, 3, 4, 5]
+        edges = [(1, 2), (1, 3), (2, 3), (2, 4), (3, 4), (3, 5), (4, 5)]
+        triangles = [(2, 3, 4)]
+        sigma1 = edge_to_node_matrix(edges, nodes)
+        sigma2 = triangle_to_edge_matrix(triangles, edges)
+
+        L0_actual = [[2, -1, -1, 0, 0],
+                     [-1, 3, -1, -1, 0],
+                     [-1, -1, 4, -1, -1],
+                     [0, -1, -1, 3, -1],
+                     [0, 0, -1, -1, 2]]
+        L0_actual = torch.tensor(L0_actual, dtype=torch.float, device=DEVICE)
+
+        L1_actual = [[2, 1, -1, -1, 0, 0, 0],
+                     [1, 2, 1, 0, -1, -1, 0],
+                     [-1, 1, 3, 0, 0, -1, 0],
+                     [-1, 0, 0, 3, 0, 0, -1],
+                     [0, -1, 0, 0, 3, 1, -1],
+                     [0, -1, -1, 0, 1, 2, 1],
+                     [0, 0, 0, -1, -1, 1, 2]]
+        L1_actual = torch.tensor(L1_actual, dtype=torch.float, device=DEVICE)
+        L2_actual = torch.tensor([[3]], dtype=torch.float, device=DEVICE)
+
+        L0 = torch.matmul(sigma1, sigma1.t())
+        L1 = torch.matmul(sigma1.t(), sigma1) + torch.matmul(sigma2, sigma2.t())
+        L2 = torch.matmul(sigma2.t(), sigma2)
+
+        self.assertTrue(torch.all(torch.eq(L0, L0_actual)).item())
+        self.assertTrue(torch.all(torch.eq(L1, L1_actual)).item())
+        self.assertTrue(torch.all(torch.eq(L2, L2_actual)).item())
+
+
+
+
     def test_sparse_mm_yields_same_result_as_dense_mm(self):
         image = TEST_MNIST_IMAGE_1
 
@@ -180,6 +217,99 @@ class MyTestCase(unittest.TestCase):
         L0_test = D - A
 
         self.assertTrue(torch.all(torch.eq(L0, L0_test)).item())
+
+    def test_edge_flow_Lapacian_1_generated_correctly(self):
+        sp_size = 100
+        flow = PixelBasedEdgeFlowSC
+
+        image = TEST_MNIST_IMAGE_2
+        image = torch.tensor(image, dtype=torch.float, device=DEVICE)
+
+        PI = ProcessImage(sp_size, flow)
+        scData = PI.image_to_features((image, 0))
+
+        image = np.array(image)
+
+        sigma1 = tensor_to_dense(scData.sigma1)
+        sigma2 = tensor_to_dense(scData.sigma2)
+        L1 = torch.sparse.FloatTensor.add(torch.sparse.mm(sigma1.t(), sigma1), torch.sparse.mm(sigma2, sigma2.t())).to_dense()
+
+        superpixel = slic(image, n_segments=sp_size, compactness=1, start_label=1)
+        nodes, edges, triangles, node_features = flow.convert_graph(image, superpixel)
+
+        I_1 = torch.eye(len(edges)) * 2
+
+        A_lower = [[0 for _ in range(len(edges))] for _ in range(len(edges))]
+        A_lower = torch.tensor(A_lower, dtype=torch.float, device=DEVICE)
+
+        edge_l = [e for e in edges]
+        edges = {edge_l[i]: i for i in range(len(edge_l))}
+
+        for i in range(0, len(edges)):
+            for j in range(i + 1, len(edges)):
+                x_1, y_1 = edge_l[i]
+                x_2, y_2 = edge_l[j]
+                if x_1 == x_2 or y_1 == y_2:
+                    A_lower[edges[(x_1, y_1)]][edges[(x_2, y_2)]] += 1
+                    A_lower[edges[(x_2, y_2)]][edges[(x_1, y_1)]] += 1
+                elif x_1 == y_2 or y_1 == x_2:
+                    A_lower[edges[(x_1, y_1)]][edges[(x_2, y_2)]] -= 1
+                    A_lower[edges[(x_2, y_2)]][edges[(x_1, y_1)]] -= 1
+
+        D = [[0 for _ in range(len(edges))] for _ in range(len(edges))]
+        D = torch.tensor(D, dtype=torch.float, device=DEVICE)
+
+        A_upper = [[0 for _ in range(len(edges))] for _ in range(len(edges))]
+        A_upper = torch.tensor(A_upper, dtype=torch.float, device=DEVICE)
+
+        for i, j, k in triangles:
+
+            bl = [1, 1, 1]
+
+            if (i,j) in edges:
+                e1 = (i,j)
+            else:
+                e1 = (j,i)
+                bl[0] = -1
+
+            if (j,k) in edges:
+                e2 = (j,k)
+            else:
+                e2 = (k,j)
+                bl[1] = -1
+
+            if (k,i) in edges:
+                e3 = (k,i)
+            else:
+                e3 = (i,k)
+                bl[2] = -1
+
+            D[edges[e1]][edges[e1]] += 1
+            D[edges[e2]][edges[e2]] += 1
+            D[edges[e3]][edges[e3]] += 1
+
+            face_1 = (e1, e3, bl[0] * bl[2])
+            face_2 = (e3, e2, bl[1] * bl[2])
+            face_3 = (e1, e2, bl[0] * bl[1])
+            for i in range(3):
+                face1, face2, bl = [face_1, face_2, face_3][i]
+                if face1 in edges and face2 in edges:
+                    A_upper[edges[face1]][edges[face2]] -= 1 * bl
+                    A_upper[edges[face2]][edges[face1]] -= 1 * bl
+                elif face1 in edges and face2[::-1] in edges:
+                    A_upper[edges[face1]][edges[face2[::-1]]] += 1 * bl
+                    A_upper[edges[face2[::-1]]][edges[face1]] += 1 * bl
+                elif face2 in edges and face1[::-1] in edges:
+                    A_upper[edges[face2]][edges[face1[::-1]]] += 1 * bl
+                    A_upper[edges[face1[::-1]]][edges[face2]] += 1 * bl
+                else:
+                    A_upper[edges[face2[::-1]]][edges[face1[::-1]]] += 1 * bl
+                    A_upper[edges[face1[::-1]]][edges[face2[::-1]]] += 1 * bl
+
+        L1_test = D - A_upper + I_1 + A_lower
+
+        self.assertTrue(torch.all(torch.eq(L1, L1_test)).item())
+
 
     def test_edge_flow_Lapacian_1_generated_correctly(self):
         sp_size = 100
