@@ -2,32 +2,27 @@ import torch
 import torch.nn as nn
 from torch_geometric.nn import global_mean_pool, global_max_pool
 import torch.nn.functional as F
-
-def chebyshev(L, X, k=5):
-    dp = [X, torch.sparse.mm(L, X)]
-    for i in range(2, k):
-        nxt = 2*(torch.sparse.mm(L, dp[i-1]))
-        dp.append(torch.sparse.FloatTensor.add(nxt, -(dp[i-2])))
-    return dp[k-1]
-
+from models.nn_utils import chebyshev
 
 class SCN1(nn.Module):
-    def __init__(self, feature_size, output_size, enable_bias = True):
+    def __init__(self, feature_size, output_size, enable_bias = True, k = 5):
         super().__init__()
-        self.conv = nn.Linear(feature_size, output_size, bias = enable_bias)
+        self.k = k
+        self.conv = nn.Linear(feature_size * k, output_size, bias = enable_bias)
 
     def forward(self, L, x):
-        x = torch.sparse.mm(L, x)
-        return self.conv(x)
+        X = chebyshev(L, x, self.k)
+        return self.conv(X)
 
 
 class SCN(nn.Module):
-    def __init__(self, feature_size, output_size, enable_bias = True):
+    def __init__(self, feature_size, output_size, enable_bias = True, k = 5):
         super().__init__()
-        self.theta = nn.parameter.Parameter(0.01 * torch.randn((feature_size, output_size)))
+        self.k = k
+        self.theta = nn.parameter.Parameter(0.01 * torch.randn((feature_size * k, output_size)))
 
     def forward(self, L, x):
-        X = chebyshev(L, x)
+        X = chebyshev(L, x, self.k)
         return torch.mm(X, self.theta)
 
 

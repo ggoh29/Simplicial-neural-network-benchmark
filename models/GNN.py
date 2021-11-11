@@ -3,7 +3,8 @@ import torch.nn as nn
 from torch_geometric.nn import GCNConv, GATConv
 from torch_geometric.nn import global_mean_pool, global_max_pool
 import torch.nn.functional as F
-from torch_scatter import scatter_max
+from models.nn_utils import chebyshev
+
 
 
 class GCN(nn.Module):
@@ -81,7 +82,7 @@ class GCN3(nn.Module):
     def forward(self, X, L, batch):
         adjacency = L[0].coalesce().indices()
         # weights = L[0].coalesce().values()
-        features = X[0]
+        features = chebyshev(L[0], X[0])
 
         x1 = F.relu(self.conv1(features, adjacency))
         x2 = F.relu(self.conv2(x1, adjacency))
