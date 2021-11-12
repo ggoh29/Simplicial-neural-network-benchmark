@@ -5,3 +5,5 @@ numpy
 scikit-image
 scipy
 torch_sparse
+torch-scatter
+torch-cluster
