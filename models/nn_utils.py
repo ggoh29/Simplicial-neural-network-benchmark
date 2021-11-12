@@ -5,4 +5,4 @@ def chebyshev(L, X, k=3):
     for i in range(2, k):
         nxt = 2*(torch.sparse.mm(L, dp[i-1]))
         dp.append(torch.sparse.FloatTensor.add(nxt, -(dp[i-2])))
-    return dp[k-1]
+    return torch.cat(dp, dim=1)

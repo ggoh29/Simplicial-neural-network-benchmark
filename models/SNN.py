@@ -5,10 +5,10 @@ import torch.nn.functional as F
 from models.nn_utils import chebyshev
 
 class SCN1(nn.Module):
-    def __init__(self, feature_size, output_size, enable_bias = True, k = 5):
+    def __init__(self, feature_size, output_size, enable_bias = True, k = 3):
         super().__init__()
         self.k = k
-        self.conv = nn.Linear(feature_size * k, output_size, bias = enable_bias)
+        self.conv = nn.Linear(k * feature_size, output_size, bias = enable_bias)
 
     def forward(self, L, x):
         X = chebyshev(L, x, self.k)
@@ -16,10 +16,10 @@ class SCN1(nn.Module):
 
 
 class SCN(nn.Module):
-    def __init__(self, feature_size, output_size, enable_bias = True, k = 5):
+    def __init__(self, feature_size, output_size, enable_bias = True, k = 3):
         super().__init__()
         self.k = k
-        self.theta = nn.parameter.Parameter(0.01 * torch.randn((feature_size * k, output_size)))
+        self.theta = nn.parameter.Parameter(0.01 * torch.randn((k * feature_size, output_size)))
 
     def forward(self, L, x):
         X = chebyshev(L, x, self.k)
