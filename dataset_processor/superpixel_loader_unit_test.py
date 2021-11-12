@@ -1,5 +1,4 @@
 import unittest
-from torchvision import datasets
 from dataset_processor.SuperpixelLoader import SimplicialComplexDataset
 from dataset_processor.EdgeFlow import PixelBasedEdgeFlowSC
 from dataset_processor.ImageProcessor import ProcessImage
