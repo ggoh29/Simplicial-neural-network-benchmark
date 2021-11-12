@@ -1,8 +1,6 @@
 import torch
-import scipy.sparse.linalg as spl
-import numpy as np
 from constants import DEVICE
-from scipy.sparse import coo_matrix
+
 
 def dense_to_tensor(matrix):
     "Converts a dense matrix to a 3 x N matrix"
@@ -52,19 +50,3 @@ def triangle_to_edge_matrix(triangles, edges):
 
     return sigma2
 
-def normalise(L):
-
-    i = L.coalesce().indices()
-    v = L.coalesce().values()
-    M = L.shape[0]
-    L = coo_matrix((v, i), shape=(M, M))
-    topeig = spl.eigsh(L, k=1, which="LM", return_eigenvectors=False)[0]
-    ret = L.copy()
-    ret *= 2.0 / topeig
-    ret.setdiag(ret.diagonal(0) - np.ones(M), 0)
-    values = ret.data
-    indices = np.vstack((ret.row, ret.col))
-
-    i = torch.LongTensor(indices)
-    v = torch.FloatTensor(values)
-    return torch.sparse.FloatTensor(i, v)

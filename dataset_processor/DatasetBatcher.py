@@ -1,6 +1,5 @@
 import torch
 from constants import DEVICE
-from utils import normalise
 
 class DatasetBatcher:
 
@@ -18,32 +17,23 @@ class DatasetBatcher:
         sigma1, sigma2 = to_sparse_coo(scData.sigma1), to_sparse_coo(scData.sigma2)
 
         X0, X1, X2 = scData.X0, scData.X1, scData.X2
-        X0_size, X1_size, X2_size = X0.shape[0], X1.shape[0], X2.shape[0]
-        L0 = normalise(torch.sparse.mm(sigma1, sigma1.t()))
-        L0_I = torch.eye(X0_size).to_sparse()
-        L0 = torch.sparse.FloatTensor.add(L0_I, -L0)
+        L0 = torch.sparse.mm(sigma1, sigma1.t())
 
         if self.sc_size == 0:
             assert (X0.size()[0] == L0.size()[0])
             return [[X0], [L0.coalesce().indices()], [L0.coalesce().values()]], scData.label
 
-        L1_I = torch.eye(X1_size).to_sparse()
 
         if self.sc_size == 1:
-            L1 = normalise(torch.sparse.mm(sigma1.t(), sigma1))
-            L1 = torch.sparse.FloatTensor.add(L1_I, -L1)
+            L1 = torch.sparse.mm(sigma1.t(), sigma1)
             assert (X0.size()[0] == L0.size()[0])
             assert (X1.size()[0] == L1.size()[0])
             return [[X0, X1], [L0.coalesce().indices(), L1.coalesce().indices()],
                     [L0.coalesce().values(), L1.coalesce().values()]], scData.label
 
         L1 = torch.sparse.FloatTensor.add(torch.sparse.mm(sigma1.t(), sigma1), torch.sparse.mm(sigma2, sigma2.t()))
-        L1 = normalise(L1)
-        L1 = torch.sparse.FloatTensor.add(L1_I, -L1)
 
-        L2 = normalise(torch.sparse.mm(sigma2.t(), sigma2))
-        L2_I = torch.eye(X2_size).to_sparse()
-        L2 = torch.sparse.FloatTensor.add(L2_I, -L2)
+        L2 = torch.sparse.mm(sigma2.t(), sigma2)
 
         # splitting the sparse tensor as pooling cannot return sparse and to make preparation for minibatching easier
         assert (X0.size()[0] == L0.size()[0])

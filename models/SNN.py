@@ -2,9 +2,9 @@ import torch
 import torch.nn as nn
 from torch_geometric.nn import global_mean_pool, global_max_pool
 import torch.nn.functional as F
-from models.nn_utils import chebyshev
+from models.nn_utils import chebyshev, normalise
 
-class SCN1(nn.Module):
+class SCN(nn.Module):
     def __init__(self, feature_size, output_size, enable_bias = True, k = 3):
         super().__init__()
         self.k = k
@@ -15,7 +15,7 @@ class SCN1(nn.Module):
         return self.conv(X)
 
 
-class SCN(nn.Module):
+class SCN1(nn.Module):
     def __init__(self, feature_size, output_size, enable_bias = True, k = 3):
         super().__init__()
         self.k = k
@@ -52,6 +52,8 @@ class SNN(nn.Module):
 
 
     def forward(self, X, L, batch):
+
+        L = [normalise(l) for l in L]
 
         out0_1 = self.C0_1(L[0], X[0])
         out0_2 = self.C0_2(L[0], nn.LeakyReLU()(out0_1))
