@@ -6,6 +6,7 @@ from torch_geometric.data import InMemoryDataset
 from joblib import Parallel, delayed
 from tqdm import tqdm
 from torchvision import datasets
+import pdb
 
 dataset_dct = {datasets.MNIST : "MNIST",
 			   datasets.CIFAR10 : "CIFAR10"}
@@ -44,6 +45,7 @@ class SimplicialComplexDataset(InMemoryDataset):
 
 		super().__init__(folder, pre_transform=self.pre_transform)
 		self.data, self.slices = torch.load(self.processed_paths[0])
+		self.data = self.data.cpu()
 
 	def __len__(self):
 		return len(self.slices["X0"]) - 1
@@ -62,8 +64,8 @@ class SimplicialComplexDataset(InMemoryDataset):
 		# Instantiating this will download and process the graph dataset_processor.
 		self.data_download = self.dataset(root='./data', train=self.train, download=True,
 										  transform=transforms.ToTensor())
-		self.data_download = [*sorted(self.data_download, key=lambda i: i[1])][:2 * (len(self.data_download) // 5)]
-		self.data_download = make_smaller_dataset_4_classes(self.data_download)
+		# self.data_download = [*sorted(self.data_download, key=lambda i: i[1])][:2 * (len(self.data_download) // 5)]
+		# self.data_download = make_smaller_dataset_4_classes(self.data_download)
 
 	@property
 	def processed_file_names(self):
@@ -135,6 +137,7 @@ class SimplicialComplexDataset(InMemoryDataset):
 		return self.get(idx)
 
 	def get(self, idx):
+		pdb.set_trace()
 		x0_slice = self.slices["X0"][idx:idx + 2]
 		x1_slice = self.slices["X1"][idx:idx + 2]
 		x2_slice = self.slices["X2"][idx:idx + 2]
