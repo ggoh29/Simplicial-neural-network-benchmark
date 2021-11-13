@@ -7,19 +7,19 @@ from constants import DEVICE
 import torch
 from run_NN import test, train
 from torchvision import datasets
-from constants import KWARGS
 
 batch_size = 8
-superpixel_size = 100
-# dataset = datasets.MNIST
-dataset = datasets.CIFAR10
+superpixel_size = 50
+dataset = datasets.MNIST
+# dataset = datasets.CIFAR10
 edgeFlow = PixelBasedEdgeFlowSC
 
 if __name__ == "__main__":
     train_data = SimplicialComplexDataset('./data', dataset, superpixel_size, edgeFlow , complex_size=2, train=True)
-    train_dataset = DataLoader(train_data, batch_size=batch_size, collate_fn=train_data.batch, shuffle=True, **KWARGS)
+    train_dataset = DataLoader(train_data, batch_size=batch_size, collate_fn=train_data.batch, num_workers=4, shuffle=True)
     test_data = SimplicialComplexDataset('./data', dataset, superpixel_size, edgeFlow ,complex_size=2, train=False)
-    test_dataset = DataLoader(test_data, batch_size=batch_size, collate_fn=test_data.batch, shuffle=True, **KWARGS)
+    test_dataset = DataLoader(test_data, batch_size=batch_size, collate_fn=test_data.batch, num_workers=4,
+                              shuffle=True)
 
     GNN = SNN(5, 10, 15, 4).to(DEVICE)
 

@@ -1,8 +1,6 @@
 import torch
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-# trying this madness because of RuntimeError: CUDA error: initialization error
-KWARGS = {'num_workers': 4, 'pin_memory': True} if torch.cuda.is_available() else {'num_workers': 4}
 
 TEST_MNIST_IMAGE_1 = [[0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
 					   0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
