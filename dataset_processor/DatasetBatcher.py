@@ -1,5 +1,6 @@
 import torch
 from constants import DEVICE
+from models.nn_utils import normalise
 
 class DatasetBatcher:
 
@@ -18,6 +19,7 @@ class DatasetBatcher:
 
         X0, X1, X2 = scData.X0, scData.X1, scData.X2
         L0 = torch.sparse.mm(sigma1, sigma1.t())
+        L0 = normalise(L0)
 
         if self.sc_size == 0:
             assert (X0.size()[0] == L0.size()[0])
@@ -26,6 +28,7 @@ class DatasetBatcher:
 
         if self.sc_size == 1:
             L1 = torch.sparse.mm(sigma1.t(), sigma1)
+            L1 = normalise(L1)
             assert (X0.size()[0] == L0.size()[0])
             assert (X1.size()[0] == L1.size()[0])
             return [[X0, X1], [L0.coalesce().indices(), L1.coalesce().indices()],
@@ -34,6 +37,9 @@ class DatasetBatcher:
         L1 = torch.sparse.FloatTensor.add(torch.sparse.mm(sigma1.t(), sigma1), torch.sparse.mm(sigma2, sigma2.t()))
 
         L2 = torch.sparse.mm(sigma2.t(), sigma2)
+
+        L1 = normalise(L1)
+        L2 = normalise(L2)
 
         # splitting the sparse tensor as pooling cannot return sparse and to make preparation for minibatching easier
         assert (X0.size()[0] == L0.size()[0])
