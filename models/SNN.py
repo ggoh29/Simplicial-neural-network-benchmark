@@ -53,7 +53,7 @@ class SNN(nn.Module):
 
     def forward(self, X, L, batch):
 
-        L = [normalise(l) for l in L]
+        # L = [normalise(l) for l in L]
 
         out0_1 = self.C0_1(L[0], X[0])
         out0_2 = self.C0_2(L[0], nn.LeakyReLU()(out0_1))

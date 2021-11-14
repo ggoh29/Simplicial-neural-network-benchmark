@@ -39,11 +39,14 @@ def test(NN, dataloader):
 
 	test_acc = 0
 	i = 0
+	predictions = []
 	with torch.no_grad():
 		for features, test_labels in dataloader:
 			X_batch, L_batch, batch_size, test_labels = clean_batched_data(features, test_labels)
 			prediction = NN(X_batch, L_batch, batch_size)
 			test_acc += (torch.argmax(prediction, 1).flatten() == test_labels).type(torch.float).mean().item()
+			predictions.append(prediction)
 			i += 1
 
 	print(f"Test accuracy of {test_acc / i}")
+	return predictions

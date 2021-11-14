@@ -39,7 +39,7 @@ class RAGBasedEdgeFlow(EdgeFlow):
 		return rag.nodes(), rag.edges(), triangles, node_features
 
 
-class PixelBasedEdgeFlowSC(EdgeFlow):
+class PixelBasedEdgeFlow(EdgeFlow):
 
 	"Edges flow from high pixel values to low pixel values"
 
@@ -63,7 +63,7 @@ class PixelBasedEdgeFlowSC(EdgeFlow):
 		triangles = [*map(_make_tri, triangles)]
 		return rag.nodes(), edges, triangles, node_features
 
-class RandomBasedEdgeFlowSC(EdgeFlow):
+class RandomBasedEdgeFlow(EdgeFlow):
 
 	"Class to test permutation invariance. Edges are randomly permuted"
 
