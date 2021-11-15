@@ -1,4 +1,3 @@
-from dataset_processor.DatasetBatcher import DatasetBatcher
 import torch
 from dataset_processor.ImageProcessor import ProcessImage, SCData
 import torchvision.transforms as transforms
@@ -27,7 +26,7 @@ def make_smaller_dataset_4_classes(data):
 
 class SimplicialComplexDataset(InMemoryDataset):
 
-	def __init__(self, root, dataset_name, superpix_size, edgeflow_type, complex_size=2, n_jobs=8, train=True, normalise_fn = None):
+	def __init__(self, root, dataset_name, superpix_size, edgeflow_type, n_jobs=8, train=True):
 
 		self.dataset = dataset_name
 		self.n_jobs = n_jobs
@@ -38,7 +37,6 @@ class SimplicialComplexDataset(InMemoryDataset):
 		name = f"{dataset_dct[dataset_name]}_{superpix_size}_{edgeflow_type.__name__}/{self.train_str}"
 		folder = f"{root}/{name}"
 
-		self.batcher = DatasetBatcher(complex_size, normalise_fn)
 		self.ImageProcessor = ProcessImage(superpix_size, edgeflow_type)
 		self.pre_transform = self.ImageProcessor.image_to_features
 
@@ -62,8 +60,8 @@ class SimplicialComplexDataset(InMemoryDataset):
 		# Instantiating this will download and process the graph dataset_processor.
 		self.data_download = self.dataset(root='./data', train=self.train, download=True,
 										  transform=transforms.ToTensor())
-		self.data_download = [*sorted(self.data_download, key=lambda i: i[1])][:(len(self.data_download) // 5)]
-		self.data_download = make_smaller_dataset_2_classes(self.data_download)
+		# self.data_download = [*sorted(self.data_download, key=lambda i: i[1])][:(len(self.data_download) // 5)]
+		# self.data_download = make_smaller_dataset_2_classes(self.data_download)
 
 	@property
 	def processed_file_names(self):
@@ -152,6 +150,3 @@ class SimplicialComplexDataset(InMemoryDataset):
 		label = self.data.label[label_slice[0]: label_slice[1]]
 
 		return SCData(X0, X1, X2, sigma1, sigma2, label)
-
-	def batch(self, datalist):
-		return self.batcher.collated_data_to_batch(datalist)

@@ -1,6 +1,6 @@
 import unittest
 from dataset_processor.SuperpixelLoader import SimplicialComplexDataset
-from dataset_processor.EdgeFlow import PixelBasedEdgeFlowSC
+from dataset_processor.EdgeFlow import PixelBasedEdgeFlow
 from dataset_processor.ImageProcessor import ProcessImage
 import torchvision.transforms as transforms
 from torchvision import datasets
@@ -12,9 +12,9 @@ class MyTestCase(unittest.TestCase):
         superpixel_size = 75
         range_size = 10000
 
-        train_data = SimplicialComplexDataset('./data', datasets.MNIST, superpixel_size, PixelBasedEdgeFlowSC, train=True)
+        train_data = SimplicialComplexDataset('./data', datasets.MNIST, superpixel_size, PixelBasedEdgeFlow, train=True)
         mnist_images = datasets.MNIST(root='./data', train=True, download=True, transform=transforms.ToTensor())
-        PI = ProcessImage(superpixel_size, PixelBasedEdgeFlowSC)
+        PI = ProcessImage(superpixel_size, PixelBasedEdgeFlow)
 
         for i in tqdm(range(range_size)):
             scData_1 = train_data[i]
@@ -27,9 +27,9 @@ class MyTestCase(unittest.TestCase):
         superpixel_size = 75
         range_size = 1000
 
-        train_data = SimplicialComplexDataset('./data', datasets.CIFAR10, superpixel_size, PixelBasedEdgeFlowSC, train=True)
+        train_data = SimplicialComplexDataset('./data', datasets.CIFAR10, superpixel_size, PixelBasedEdgeFlow, train=True)
         mnist_images = datasets.MNIST(root='./data', train=True, download=True, transform=transforms.ToTensor())
-        PI = ProcessImage(superpixel_size, PixelBasedEdgeFlowSC)
+        PI = ProcessImage(superpixel_size, PixelBasedEdgeFlow)
 
         for i in tqdm(range(range_size)):
             scData_1 = train_data[i]

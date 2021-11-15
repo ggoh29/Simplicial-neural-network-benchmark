@@ -3,37 +3,10 @@ import torch.nn as nn
 from torch_geometric.nn import GCNConv, GATConv
 from torch_geometric.nn import global_mean_pool, global_max_pool
 import torch.nn.functional as F
-from models.nn_utils import chebyshev
-
+from models.nn_utils import chebyshev, collated_data_to_batch, unpack_feature_dct_to_L_X_B, convert_indices_and_values_to_sparse
 
 
 class GCN(nn.Module):
-    def __init__(self, input_size, output_size):
-        super().__init__()
-
-        f_size = 64
-        self.conv1 = GCNConv(input_size, f_size)
-        self.conv2 = GCNConv(f_size, f_size)
-        self.conv3 = GCNConv(f_size, f_size)
-        self.layer = nn.Linear(f_size, output_size)
-
-    def forward(self, X, L, batch):
-        adjacency = L[0].coalesce().indices()
-        # weights = L[0].coalesce().values()
-        features = X[0]
-
-        x1 = F.relu(self.conv1(features, adjacency))
-        x2 = F.relu(self.conv2(x1, adjacency))
-        x3 = F.relu(self.conv3(x2, adjacency))
-
-        x = global_mean_pool((x1 + x2 + x3)/3, batch[0])
-        return F.softmax(self.layer(x), dim = 1)
-
-    def normalise(self, L):
-        return L
-
-
-class GCN2(nn.Module):
     def __init__(self, input_size, output_size):
         super().__init__()
 
@@ -43,7 +16,9 @@ class GCN2(nn.Module):
         self.conv3 = GCNConv(f_size, f_size)
         self.layer = nn.Linear(f_size, output_size)
 
-    def forward(self, X, L, batch):
+    def forward(self, feature_dct):
+        L, X, batch = unpack_feature_dct_to_L_X_B(feature_dct)
+
         adjacency = L[0].coalesce().indices()
         # weights = L[0].coalesce().values()
         features = chebyshev(L[0], X[0])
@@ -55,11 +30,15 @@ class GCN2(nn.Module):
         x = global_mean_pool((x1 + x2 + x3)/3, batch[0])
         return F.softmax(self.layer(x), dim = 1)
 
-    def normalise(self, L):
-        return L
+    def batch(self, scDataList):
+        features, label = collated_data_to_batch(scDataList)
+        return features, label
+
+    def clean_feature_dct(self, feature_dct):
+        return convert_indices_and_values_to_sparse(feature_dct)
 
 
-class GCN3(nn.Module):
+class GAT(nn.Module):
     def __init__(self, input_size, output_size):
         super().__init__()
 
@@ -69,7 +48,9 @@ class GCN3(nn.Module):
         self.conv3 = GATConv(f_size, f_size)
         self.layer = nn.Linear(f_size, output_size)
 
-    def forward(self, X, L, batch):
+    def forward(self, features_dct):
+        L, X, batch = unpack_feature_dct_to_L_X_B(features_dct)
+
         adjacency = L[0].coalesce().indices()
         # weights = L[0].coalesce().values()
         features =  X[0]
@@ -81,5 +62,9 @@ class GCN3(nn.Module):
         x = global_mean_pool((x1 + x2 + x3)/3, batch[0])
         return F.softmax(self.layer(x), dim = 1)
 
-    def normalise(self, L):
-        return L
+    def batch(self, scDataList):
+        features, label = collated_data_to_batch(scDataList)
+        return features, label
+
+    def clean_feature_dct(self, feature_dct):
+        return convert_indices_and_values_to_sparse(feature_dct)

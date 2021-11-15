@@ -2,7 +2,9 @@ import torch
 import torch.nn as nn
 from torch_geometric.nn import global_mean_pool, global_max_pool
 import torch.nn.functional as F
-from models.nn_utils import chebyshev, normalise
+from models.GNN_template import GCNTemplate
+from models.nn_utils import chebyshev, normalise, collated_data_to_batch,\
+    unpack_feature_dct_to_L_X_B, convert_indices_and_values_to_sparse
 
 
 class SCN(nn.Module):
@@ -23,13 +25,14 @@ class SCN1(nn.Module):
         self.theta = nn.parameter.Parameter(0.01 * torch.randn((k * feature_size, output_size)))
 
     def forward(self, L, x):
-        X = chebyshev(L, x, self.k)
+        # X = chebyshev(L, x, self.k)
+        X = torch.sparse.mm(L, x)
         return torch.mm(X, self.theta)
 
 
-class SNN(nn.Module):
+class SNN(GCNTemplate):
     def __init__(self, f1_size, f2_size, f3_size, output_size, bias = True):
-        super().__init__()
+        super().__init__(output_size)
 
         conv_size = 32
 
@@ -49,11 +52,10 @@ class SNN(nn.Module):
         self.C2_3 = SCN(conv_size, output_size, enable_bias = bias)
 
         self.layer = nn.Linear(output_size * 3, output_size)
-        self.output_size = output_size
 
 
-    def forward(self, X, L, batch):
-        # L = [normalise(l) for l in L]
+    def forward(self, features_dct):
+        L, X, batch = unpack_feature_dct_to_L_X_B(features_dct)
 
         out0_1 = self.C0_1(L[0], X[0])
         out0_2 = self.C0_2(L[0], nn.LeakyReLU()(out0_1))
@@ -77,5 +79,34 @@ class SNN(nn.Module):
 
         return F.softmax(self.layer(out), dim = 1)
 
-    def normalise(self, L):
-        return normalise(L)
+
+    def _normalised_scData_to_Lapacian(self, scData):
+
+        def to_sparse_coo(matrix):
+            indices = matrix[0:2]
+            values = matrix[2:3].squeeze()
+            return torch.sparse_coo_tensor(indices, values)
+
+        sigma1, sigma2 = to_sparse_coo(scData.sigma1), to_sparse_coo(scData.sigma2)
+
+        X0, X1, X2 = scData.X0, scData.X1, scData.X2
+        L0 = normalise(torch.sparse.mm(sigma1, sigma1.t()))
+        L1 = normalise(torch.sparse.FloatTensor.add(torch.sparse.mm(sigma1.t(), sigma1), torch.sparse.mm(sigma2, sigma2.t())))
+        L2 = normalise(torch.sparse.mm(sigma2.t(), sigma2))
+
+        # splitting the sparse tensor as pooling cannot return sparse and to make preparation for minibatching easier
+        assert (X0.size()[0] == L0.size()[0])
+        assert (X1.size()[0] == L1.size()[0])
+        assert (X2.size()[0] == L2.size()[0])
+
+        return [[X0, X1, X2],
+                [L0.coalesce().indices(), L1.coalesce().indices(), L2.coalesce().indices()],
+                [L0.coalesce().values(), L1.coalesce().values(), L2.coalesce().values()]], scData.label
+
+
+    def batch(self, scDataList):
+        features_dct, label = collated_data_to_batch(scDataList, self._normalised_scData_to_Lapacian)
+        return features_dct, label
+
+    def clean_feature_dct(self, feature_dct):
+        return convert_indices_and_values_to_sparse(feature_dct)

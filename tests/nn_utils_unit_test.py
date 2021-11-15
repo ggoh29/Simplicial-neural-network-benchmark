@@ -1,23 +1,22 @@
 import unittest
 from dataset_processor.ImageProcessor import ProcessImage
 import torch
-from dataset_processor.DatasetBatcher import DatasetBatcher
 from constants import TEST_MNIST_IMAGE_1, DEVICE
 from utils import tensor_to_dense
 import numpy as np
-from dataset_processor.EdgeFlow import PixelBasedEdgeFlowSC, RAGBasedEdgeFlow
+from dataset_processor.EdgeFlow import PixelBasedEdgeFlow, RAGBasedEdgeFlow
 from run_NN import test, train
 from torchvision import datasets
 from dataset_processor.SuperpixelLoader import SimplicialComplexDataset
 from torch.utils.data import DataLoader
 from models.SNN import SNN
-from models.GNN import GCN
+from models.nn_utils import collated_data_to_batch, convert_indices_and_values_to_sparse, unpack_feature_dct_to_L_X_B
 
 class MyTestCase(unittest.TestCase):
 
 	def test_batching_gives_correct_result_1(self):
 		sp_size = 100
-		flow = PixelBasedEdgeFlowSC
+		flow = PixelBasedEdgeFlow
 
 		image = TEST_MNIST_IMAGE_1
 		image = torch.tensor(image, dtype=torch.float, device=DEVICE)
@@ -27,10 +26,9 @@ class MyTestCase(unittest.TestCase):
 
 		batch = [scData, scData, scData, scData]
 
-		db = DatasetBatcher(simplicial_complex_size=0)
-		(features, l_i, v_i, _) , _ = db.collated_data_to_batch(batch)
-		lapacian = torch.sparse_coo_tensor(l_i[0], v_i[0])
-		features = features[0]
+		features_dct, _  = collated_data_to_batch(batch)
+		features_dct = convert_indices_and_values_to_sparse(features_dct)
+		features, lapacian, _ = unpack_feature_dct_to_L_X_B(features_dct)
 
 		features = torch.sparse.mm(lapacian, features)
 
@@ -48,7 +46,7 @@ class MyTestCase(unittest.TestCase):
 
 	def test_batching_gives_correct_result_2(self):
 		sp_size = 100
-		flow = PixelBasedEdgeFlowSC
+		flow = PixelBasedEdgeFlow
 		mulitplier = 5
 
 		image = TEST_MNIST_IMAGE_1
@@ -59,9 +57,9 @@ class MyTestCase(unittest.TestCase):
 
 		batch = [scData, scData, scData, scData]
 
-		db = DatasetBatcher(simplicial_complex_size=0)
-		(features, l_i, v_i, _) , _ = db.collated_data_to_batch(batch)
-		lapacian = torch.sparse_coo_tensor(l_i[0], v_i[0])
+		features_dct, _ = collated_data_to_batch(batch)
+		features_dct = convert_indices_and_values_to_sparse(features_dct)
+		features, lapacian, _ = unpack_feature_dct_to_L_X_B(features_dct)
 
 		sigma1 = tensor_to_dense(scData.sigma1)
 		lapacian_test = torch.sparse.mm(sigma1, sigma1.t()).to_dense()
@@ -90,11 +88,9 @@ class MyTestCase(unittest.TestCase):
 		GNN = SNN(5, 10, 15, 4).to(DEVICE)
 		# GNN = GCN(5, 4).to(DEVICE)
 
-		data = SimplicialComplexDataset('./data', dataset, superpixel_size, edgeFlow, complex_size=2, train=True)
-		batched_data = DataLoader(data, batch_size=8, collate_fn=data.batch, num_workers=1,
-								   shuffle=False)
-		individual_data = DataLoader(data, batch_size=1, collate_fn=data.batch, num_workers=1,
-								  shuffle=False)
+		data = SimplicialComplexDataset('./data', dataset, superpixel_size, edgeFlow, train=True)
+		batched_data = DataLoader(data, batch_size=8, collate_fn=GNN.batch, num_workers=1, shuffle=False)
+		individual_data = DataLoader(data, batch_size=1, collate_fn=GNN.batch, num_workers=1, shuffle=False)
 
 		optimizer = torch.optim.Adam(GNN.parameters(), lr=0.001, weight_decay=5e-4)
 		criterion = torch.nn.CrossEntropyLoss()

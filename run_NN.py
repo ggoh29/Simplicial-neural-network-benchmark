@@ -4,15 +4,6 @@ from constants import DEVICE
 def convert_to_device(lst):
 	return [i.to(DEVICE) for i in lst]
 
-def clean_batched_data(features, label):
-    X_batch, I_batch, V_batch, batch_size = features
-    # multiprocessing doesnt allow for sparse tensors to be storeed. So storing indices and values as separate tensors
-    # and reconstructing the sparse matrix here.
-    Lapacian_batch = []
-    for i, v in zip(I_batch, V_batch):
-        Lapacian_batch.append(torch.sparse_coo_tensor(i, v))
-    return X_batch, Lapacian_batch, batch_size, label
-
 def train(NN, epoch_size, dataloader, optimizer, criterion):
 	NN.train()
 	train_running_loss = 0
@@ -20,14 +11,12 @@ def train(NN, epoch_size, dataloader, optimizer, criterion):
 		epoch_train_running_loss = 0
 		train_acc = 0
 		i = 0
-		for features, train_labels in dataloader:
-			X_batch, L_batch, batch_size, train_labels = clean_batched_data(features, train_labels)
-			X_batch = convert_to_device(X_batch)
-			L_batch = convert_to_device(L_batch)
+		for features_dct, train_labels in dataloader:
+			features_dct = NN.clean_feature_dct(features_dct)
+			features_dct = {key : convert_to_device(features_dct[key]) for key in features_dct}
 			train_labels = train_labels.to(DEVICE)
-			batch_size = convert_to_device(batch_size)
 			optimizer.zero_grad()
-			prediction = NN(X_batch, L_batch, batch_size)
+			prediction = NN(features_dct)
 			loss = criterion(prediction, train_labels)
 			loss.backward()
 			optimizer.step()
@@ -49,13 +38,11 @@ def test(NN, dataloader):
 	i = 0
 	predictions = []
 	with torch.no_grad():
-		for features, test_labels in dataloader:
-			X_batch, L_batch, batch_size, test_labels = clean_batched_data(features, test_labels)
-			X_batch = convert_to_device(X_batch)
-			L_batch = convert_to_device(L_batch)
+		for features_dct, test_labels in dataloader:
+			features_dct = NN.clean_feature_dct(features_dct)
+			features_dct = {key : convert_to_device(features_dct[key]) for key in features_dct}
 			test_labels = test_labels.to(DEVICE)
-			batch_size = convert_to_device(batch_size)
-			prediction = NN(X_batch, L_batch, batch_size)
+			prediction = NN(features_dct)
 			test_acc += (torch.argmax(prediction, 1).flatten() == test_labels).type(torch.float).mean().item()
 			predictions.append(prediction)
 			i += 1

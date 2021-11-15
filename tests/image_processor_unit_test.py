@@ -7,7 +7,7 @@ import networkx as nx
 from utils import triangle_to_edge_matrix, edge_to_node_matrix, tensor_to_dense, dense_to_tensor
 from constants import DEVICE, TEST_CIFAR10_IMAGE_1, TEST_MNIST_IMAGE_1, TEST_MNIST_IMAGE_2
 from dataset_processor.ImageProcessor import ProcessImage
-from dataset_processor.EdgeFlow import RAGBasedEdgeFlow, PixelBasedEdgeFlowSC
+from dataset_processor.EdgeFlow import RAGBasedEdgeFlow, PixelBasedEdgeFlow
 
 class MyTestCase(unittest.TestCase):
 
@@ -179,7 +179,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_edge_flow_Lapacian_0_generated_correctly(self):
         sp_size = 100
-        flow = PixelBasedEdgeFlowSC
+        flow = PixelBasedEdgeFlow
 
         PI = ProcessImage(sp_size, flow)
         image = TEST_MNIST_IMAGE_2
@@ -220,7 +220,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_edge_flow_Lapacian_1_generated_correctly(self):
         sp_size = 100
-        flow = PixelBasedEdgeFlowSC
+        flow = PixelBasedEdgeFlow
 
         image = TEST_MNIST_IMAGE_2
         image = torch.tensor(image, dtype=torch.float, device=DEVICE)
@@ -313,7 +313,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_edge_flow_Lapacian_1_generated_correctly(self):
         sp_size = 100
-        flow = PixelBasedEdgeFlowSC
+        flow = PixelBasedEdgeFlow
 
         image = TEST_MNIST_IMAGE_2
         image = torch.tensor(image, dtype=torch.float, device=DEVICE)

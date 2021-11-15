@@ -1,8 +1,13 @@
 import torch
 import scipy.sparse.linalg as spl
 import numpy as np
-from constants import DEVICE
 from scipy.sparse import coo_matrix
+
+
+def to_sparse_coo(matrix):
+    indices = matrix[0:2]
+    values = matrix[2:3].squeeze()
+    return torch.sparse_coo_tensor(indices, values)
 
 def chebyshev(L, X, k=3):
     dp = [X, torch.sparse.mm(L, X)]
@@ -27,4 +32,121 @@ def normalise(L):
     i = torch.LongTensor(indices)
     v = torch.FloatTensor(values)
     return torch.sparse.FloatTensor(i, v)
+
+
+def scData_to_simplicial0(scData):
+
+    sigma1, sigma2 = to_sparse_coo(scData.sigma1), to_sparse_coo(scData.sigma2)
+
+    X0, X1, X2 = scData.X0, scData.X1, scData.X2
+    L0 = torch.sparse.mm(sigma1, sigma1.t())
+
+    # splitting the sparse tensor as pooling cannot return sparse and to make preparation for minibatching easier
+    assert (X0.size()[0] == L0.size()[0])
+    return [[X0], [L0.coalesce().indices()], [L0.coalesce().values()]], scData.label
+
+
+def scData_to_simplicial1(scData):
+    sigma1, sigma2 = to_sparse_coo(scData.sigma1), to_sparse_coo(scData.sigma2)
+
+    X0, X1, X2 = scData.X0, scData.X1, scData.X2
+    L0 = torch.sparse.mm(sigma1, sigma1.t())
+
+    L1 = torch.sparse.mm(sigma1.t(), sigma1)
+
+    # splitting the sparse tensor as pooling cannot return sparse and to make preparation for minibatching easier
+    assert (X0.size()[0] == L0.size()[0])
+    assert (X1.size()[0] == L1.size()[0])
+    return [[X0, X1], [L0.coalesce().indices(), L1.coalesce().indices()],
+            [L0.coalesce().values(), L1.coalesce().values()]], scData.label
+
+
+def scData_to_simplicial2(scData):
+
+    sigma1, sigma2 = to_sparse_coo(scData.sigma1), to_sparse_coo(scData.sigma2)
+
+    X0, X1, X2 = scData.X0, scData.X1, scData.X2
+    L0 = torch.sparse.mm(sigma1, sigma1.t())
+
+    L1 = torch.sparse.FloatTensor.add(torch.sparse.mm(sigma1.t(), sigma1), torch.sparse.mm(sigma2, sigma2.t()))
+    L2 = torch.sparse.mm(sigma2.t(), sigma2)
+
+    # splitting the sparse tensor as pooling cannot return sparse and to make preparation for minibatching easier
+    assert (X0.size()[0] == L0.size()[0])
+    assert (X1.size()[0] == L1.size()[0])
+    assert (X2.size()[0] == L2.size()[0])
+
+    return [[X0, X1, X2],
+            [L0.coalesce().indices(), L1.coalesce().indices(), L2.coalesce().indices()],
+            [L0.coalesce().values(), L1.coalesce().values(), L2.coalesce().values()]], scData.label
+
+
+def collated_data_to_batch(samples, fn = scData_to_simplicial0):
+    LapacianData = [fn(scData) for scData in samples]
+    Lapacians, labels = map(list, zip(*LapacianData))
+    labels = torch.cat(labels, dim=0)
+    feature_dct = _sanitize_input_for_batch(Lapacians)
+
+    return feature_dct, labels
+
+
+def _sanitize_input_for_batch(input_list):
+
+    X, L_i, L_v = [*zip(*input_list)]
+    X, L_i, L_v = [*zip(*X)], [*zip(*L_i)], [*zip(*L_v)]
+
+    return _make_batch(X, L_i, L_v)
+
+
+def _make_batch(X, L_i, L_v):
+
+    X_batch, I_batch, V_batch, batch_index = [], [], [], []
+    for i in range(len(X)):
+        x, i, v, batch = _individual_batch(X[i], L_i[i], L_v[i])
+        X_batch.append(x)
+        I_batch.append(i)
+        V_batch.append(v)
+        batch_index.append(batch)
+
+    features_dct = {'features' : X_batch,
+                    'lapacian_indices' : I_batch,
+                    'lapacian_values' : V_batch,
+                    'batch_index' : batch_index}
+
+    # I_batch and V_batch form the indices and values of coo_sparse tensor but sparse tensors
+    # cant be stored so storing them as two separate tensors
+    return features_dct
+
+
+def _individual_batch(x_list, L_i_list, l_v_list):
+    feature_batch = torch.cat(x_list, dim=0)
+
+    sizes = [*map(lambda x: x.size()[0], x_list)]
+    L_i_list = list(L_i_list)
+    mx = 0
+    for i in range(1, len(sizes)):
+        mx += sizes[i - 1]
+        L_i_list[i] += mx
+    I_cat = torch.cat(L_i_list, dim=1)
+    V_cat = torch.cat(l_v_list, dim=0)
+    # lapacian_batch = torch.sparse_coo_tensor(L_cat, V_cat)
+    batch = [[i for _ in range(sizes[i])] for i in range(len(sizes))]
+    batch = torch.tensor([i for sublist in batch for i in sublist])
+    return feature_batch, I_cat, V_cat, batch
+
+
+def convert_indices_and_values_to_sparse(feature_dct):
+    lapacian = []
+    indices, values = feature_dct['lapacian_indices'], feature_dct['lapacian_values']
+    for i, v in zip(indices, values):
+        lapacian.append(torch.sparse_coo_tensor(i, v))
+    feature_dct['lapacian'] = lapacian
+    feature_dct.pop('lapacian_indices')
+    feature_dct.pop('lapacian_values')
+    return feature_dct
+
+
+def unpack_feature_dct_to_L_X_B(dct):
+    # unpack to lapacian, features and batch
+    return dct['lapacian'], dct['features'], dct['batch_index']
 
