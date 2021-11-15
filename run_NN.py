@@ -1,4 +1,8 @@
 import torch
+from constants import DEVICE
+
+def convert_to_device(lst):
+	return [i.to(DEVICE) for i in lst]
 
 def clean_batched_data(features, label):
     X_batch, I_batch, V_batch, batch_size = features
@@ -18,6 +22,10 @@ def train(NN, epoch_size, dataloader, optimizer, criterion):
 		i = 0
 		for features, train_labels in dataloader:
 			X_batch, L_batch, batch_size, train_labels = clean_batched_data(features, train_labels)
+			X_batch = convert_to_device(X_batch)
+			L_batch = convert_to_device(L_batch)
+			train_labels = train_labels.to(DEVICE)
+			batch_size = convert_to_device(batch_size)
 			optimizer.zero_grad()
 			prediction = NN(X_batch, L_batch, batch_size)
 			loss = criterion(prediction, train_labels)
@@ -43,6 +51,10 @@ def test(NN, dataloader):
 	with torch.no_grad():
 		for features, test_labels in dataloader:
 			X_batch, L_batch, batch_size, test_labels = clean_batched_data(features, test_labels)
+			X_batch = convert_to_device(X_batch)
+			L_batch = convert_to_device(L_batch)
+			test_labels = test_labels.to(DEVICE)
+			batch_size = convert_to_device(batch_size)
 			prediction = NN(X_batch, L_batch, batch_size)
 			test_acc += (torch.argmax(prediction, 1).flatten() == test_labels).type(torch.float).mean().item()
 			predictions.append(prediction)

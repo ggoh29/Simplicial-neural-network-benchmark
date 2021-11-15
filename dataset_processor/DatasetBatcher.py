@@ -1,11 +1,10 @@
 import torch
-from constants import DEVICE
-from models.nn_utils import normalise
 
 class DatasetBatcher:
 
-    def __init__(self, simplicial_complex_size=2):
+    def __init__(self, simplicial_complex_size=2, normalise_fn = None):
         self.sc_size = simplicial_complex_size
+        self.normalise_fn = normalise_fn
 
 
     def sc_data_to_lapacian(self, scData):
@@ -19,7 +18,9 @@ class DatasetBatcher:
 
         X0, X1, X2 = scData.X0, scData.X1, scData.X2
         L0 = torch.sparse.mm(sigma1, sigma1.t())
-        L0 = normalise(L0)
+
+        if self.normalise_fn is not None:
+            L0 = self.normalise_fn(L0)
 
         if self.sc_size == 0:
             assert (X0.size()[0] == L0.size()[0])
@@ -28,18 +29,21 @@ class DatasetBatcher:
 
         if self.sc_size == 1:
             L1 = torch.sparse.mm(sigma1.t(), sigma1)
-            L1 = normalise(L1)
+
+            if self.normalise_fn is not None:
+                L1 = self.normalise_fn(L1)
+
             assert (X0.size()[0] == L0.size()[0])
             assert (X1.size()[0] == L1.size()[0])
             return [[X0, X1], [L0.coalesce().indices(), L1.coalesce().indices()],
                     [L0.coalesce().values(), L1.coalesce().values()]], scData.label
 
         L1 = torch.sparse.FloatTensor.add(torch.sparse.mm(sigma1.t(), sigma1), torch.sparse.mm(sigma2, sigma2.t()))
-
         L2 = torch.sparse.mm(sigma2.t(), sigma2)
 
-        L1 = normalise(L1)
-        L2 = normalise(L2)
+        if self.normalise_fn is not None:
+            L1 = self.normalise_fn(L1)
+            L2 = self.normalise_fn(L2)
 
         # splitting the sparse tensor as pooling cannot return sparse and to make preparation for minibatching easier
         assert (X0.size()[0] == L0.size()[0])
@@ -100,5 +104,5 @@ class DatasetBatcher:
         V_cat = torch.cat(l_v_list, dim=0)
         # lapacian_batch = torch.sparse_coo_tensor(L_cat, V_cat)
         batch = [[i for _ in range(sizes[i])] for i in range(len(sizes))]
-        batch = torch.tensor([i for sublist in batch for i in sublist], device=DEVICE)
+        batch = torch.tensor([i for sublist in batch for i in sublist])
         return feature_batch, I_cat, V_cat, batch

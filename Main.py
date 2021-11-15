@@ -7,25 +7,30 @@ from constants import DEVICE
 import torch
 from run_NN import test, train
 from torchvision import datasets
+from models.nn_utils import normalise
 
 batch_size = 8
-superpixel_size = 50
+superpixel_size = 25
 dataset = datasets.MNIST
-dataset = datasets.CIFAR10
-# edgeFlow = PixelBasedEdgeFlow
-edgeFlow = RAGBasedEdgeFlow
+# dataset = datasets.CIFAR10
+edgeFlow = PixelBasedEdgeFlow
+# edgeFlow = RAGBasedEdgeFlow
+
 
 if __name__ == "__main__":
-    train_data = SimplicialComplexDataset('./data', dataset, superpixel_size, edgeFlow , complex_size=2, train=True)
+
+    GNN = SNN(5, 10, 15, 2).to(DEVICE)
+    # GNN = GCN3(5, 10).to(DEVICE)
+    # GNN = GCN2(5, 10, batch_size).to(DEVICE)
+
+    train_data = SimplicialComplexDataset('./data', dataset, superpixel_size, edgeFlow , complex_size=2, train=True, normalise_fn=normalise)
     train_dataset = DataLoader(train_data, batch_size=batch_size, collate_fn=train_data.batch, num_workers=4, shuffle=True)
-    test_data = SimplicialComplexDataset('./data', dataset, superpixel_size, edgeFlow ,complex_size=2, train=False)
+    test_data = SimplicialComplexDataset('./data', dataset, superpixel_size, edgeFlow ,complex_size=2, train=False, normalise_fn=normalise)
     test_dataset = DataLoader(test_data, batch_size=batch_size, collate_fn=test_data.batch, num_workers=4,
                               shuffle=True)
 
-    GNN = SNN(5, 10, 15, 4).to(DEVICE)
 
-    # GNN = GCN3(5, 10).to(DEVICE)
-    # GNN = GCN2(5, 10, batch_size).to(DEVICE)
+
     optimizer = torch.optim.Adam(GNN.parameters(), lr=0.001, weight_decay=5e-4)
     criterion = torch.nn.CrossEntropyLoss()
 

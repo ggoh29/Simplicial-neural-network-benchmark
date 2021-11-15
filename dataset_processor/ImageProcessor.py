@@ -1,11 +1,10 @@
 import torch
 from skimage.segmentation import slic
 from utils import triangle_to_edge_matrix, edge_to_node_matrix
-from constants import DEVICE
 from utils import dense_to_tensor, tensor_to_dense
 from skimage import color
 import numpy as np
-
+from constants import DEVICE
 
 def stl(t):
     "Shape to list"
@@ -57,6 +56,7 @@ class ProcessImage:
 
 
     def image_to_features(self, image):
+        # Saving to disk must be cpu rather than cuda
         image, label = image
         label = torch.tensor([label], device=DEVICE)
         image = (image.double().numpy())

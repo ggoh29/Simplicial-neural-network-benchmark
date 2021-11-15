@@ -27,7 +27,7 @@ def make_smaller_dataset_4_classes(data):
 
 class SimplicialComplexDataset(InMemoryDataset):
 
-	def __init__(self, root, dataset_name, superpix_size, edgeflow_type, complex_size=2, n_jobs=8, train=True):
+	def __init__(self, root, dataset_name, superpix_size, edgeflow_type, complex_size=2, n_jobs=8, train=True, normalise_fn = None):
 
 		self.dataset = dataset_name
 		self.n_jobs = n_jobs
@@ -38,7 +38,7 @@ class SimplicialComplexDataset(InMemoryDataset):
 		name = f"{dataset_dct[dataset_name]}_{superpix_size}_{edgeflow_type.__name__}/{self.train_str}"
 		folder = f"{root}/{name}"
 
-		self.batcher = DatasetBatcher(complex_size)
+		self.batcher = DatasetBatcher(complex_size, normalise_fn)
 		self.ImageProcessor = ProcessImage(superpix_size, edgeflow_type)
 		self.pre_transform = self.ImageProcessor.image_to_features
 
@@ -62,8 +62,8 @@ class SimplicialComplexDataset(InMemoryDataset):
 		# Instantiating this will download and process the graph dataset_processor.
 		self.data_download = self.dataset(root='./data', train=self.train, download=True,
 										  transform=transforms.ToTensor())
-		# self.data_download = [*sorted(self.data_download, key=lambda i: i[1])][:2 * (len(self.data_download) // 5)]
-		# self.data_download = make_smaller_dataset_4_classes(self.data_download)
+		self.data_download = [*sorted(self.data_download, key=lambda i: i[1])][:(len(self.data_download) // 5)]
+		self.data_download = make_smaller_dataset_2_classes(self.data_download)
 
 	@property
 	def processed_file_names(self):
@@ -120,12 +120,12 @@ class SimplicialComplexDataset(InMemoryDataset):
 			slices["sigma1"].append(s1_total)
 			slices["sigma2"].append(s2_total)
 
-		X0 = torch.cat(X0, dim=0)
-		X1 = torch.cat(X1, dim=0)
-		X2 = torch.cat(X2, dim=0)
-		sigma1 = torch.cat(sigma1, dim=-1)
-		sigma2 = torch.cat(sigma2, dim=-1)
-		label = torch.cat(label, dim=-1)
+		X0 = torch.cat(X0, dim=0).to('cpu')
+		X1 = torch.cat(X1, dim=0).to('cpu')
+		X2 = torch.cat(X2, dim=0).to('cpu')
+		sigma1 = torch.cat(sigma1, dim=-1).to('cpu')
+		sigma2 = torch.cat(sigma2, dim=-1).to('cpu')
+		label = torch.cat(label, dim=-1).to('cpu')
 
 		data = SCData(X0, X1, X2, sigma1, sigma2, label)
 

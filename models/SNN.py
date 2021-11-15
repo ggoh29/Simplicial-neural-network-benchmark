@@ -4,6 +4,7 @@ from torch_geometric.nn import global_mean_pool, global_max_pool
 import torch.nn.functional as F
 from models.nn_utils import chebyshev, normalise
 
+
 class SCN(nn.Module):
     def __init__(self, feature_size, output_size, enable_bias = True, k = 3):
         super().__init__()
@@ -52,7 +53,6 @@ class SNN(nn.Module):
 
 
     def forward(self, X, L, batch):
-
         # L = [normalise(l) for l in L]
 
         out0_1 = self.C0_1(L[0], X[0])
@@ -76,3 +76,6 @@ class SNN(nn.Module):
         out = torch.cat([out0, out1, out2], dim = 1)
 
         return F.softmax(self.layer(out), dim = 1)
+
+    def normalise(self, L):
+        return normalise(L)
