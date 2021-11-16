@@ -12,38 +12,38 @@ def stl(t):
 
 class SCData:
 
-    def __init__(self, X0, X1, X2, sigma1, sigma2, label):
+    def __init__(self, X0, X1, X2, b1, b2, label):
         self.X0 = X0
         self.X1 = X1
         self.X2 = X2
-        # sigma1 and sigma2 can either be sparse or dense but since python doesn't really have overloading, doing this instead
-        if sigma1.is_sparse:
-            sigma1 = dense_to_tensor(sigma1)
-        self.sigma1 = sigma1
+        # b1 and b2 can either be sparse or dense but since python doesn't really have overloading, doing this instead
+        if b1.is_sparse:
+            b1 = dense_to_tensor(b1)
+        self.b1 = b1
 
-        if sigma2.is_sparse:
-            sigma2 = dense_to_tensor(sigma2)
-        self.sigma2 = sigma2
+        if b2.is_sparse:
+            b2 = dense_to_tensor(b2)
+        self.b2 = b2
 
         self.label = label
 
 
     def __str__(self):
         name = f"SCData(X0={stl(self.X0)}, X1={stl(self.X1)}, X2={stl(self.X2)}," \
-               f" sigma1={stl(self.sigma1)}, sigma2={stl(self.sigma2)}, label={stl(self.label)})"
+               f" b1={stl(self.b1)}, b2={stl(self.b2)}, label={stl(self.label)})"
         return name
 
     def __repr__(self):
         name = f"SCData(X0={stl(self.X0)}, X1={stl(self.X1)}, X2={stl(self.X2)}," \
-               f" sigma1={stl(self.sigma1)}, sigma2={stl(self.sigma2)}, label={stl(self.label)})"
+               f" b1={stl(self.b1)}, b2={stl(self.b2)}, label={stl(self.label)})"
         return name
 
     def __eq__(self, other):
         x0 = torch.all(torch.eq(self.X0, other.X0)).item()
         x1 = torch.all(torch.eq(self.X1, other.X1)).item()
         x2 = torch.all(torch.eq(self.X2, other.X2)).item()
-        s1 = torch.all(torch.eq(self.sigma1, other.sigma1)).item()
-        s2 = torch.all(torch.eq(self.sigma2, other.sigma2)).item()
+        s1 = torch.all(torch.eq(self.b1, other.b1)).item()
+        s2 = torch.all(torch.eq(self.b2, other.b2)).item()
         l0 = torch.all(torch.eq(self.label, other.label)).item()
         return all([x0, x1, x2, s1, s2, l0])
 
@@ -92,13 +92,13 @@ class ProcessImage:
 
         X2 = torch.tensor(X2, dtype=torch.float, device=DEVICE)
 
-        sigma1 = edge_to_node_matrix(edges, nodes)
-        sigma1 = sigma1.to_sparse()
+        b1 = edge_to_node_matrix(edges, nodes)
+        b1 = b1.to_sparse()
 
-        sigma2 = triangle_to_edge_matrix(triangles, edges)
-        sigma2 = sigma2.to_sparse()
+        b2 = triangle_to_edge_matrix(triangles, edges)
+        b2 = b2.to_sparse()
 
-        return SCData(X0, X1, X2, sigma1, sigma2, label)
+        return SCData(X0, X1, X2, b1, b2, label)
 
 
 

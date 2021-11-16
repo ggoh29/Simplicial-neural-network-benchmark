@@ -11,11 +11,11 @@ class SCN(nn.Module):
     def __init__(self, feature_size, output_size, enable_bias = True, k = 3):
         super().__init__()
         self.k = k
-        self.conv = nn.Linear(k * feature_size, output_size, bias = enable_bias)
+        self.conv = nn.Linear(feature_size, output_size, bias = enable_bias)
 
     def forward(self, L, x):
-        X = chebyshev(L, x, self.k)
-        # X = torch.sparse.mm(L, x)
+        # X = chebyshev(L, x, self.k)
+        X = torch.sparse.mm(L, x)
         return self.conv(X)
 
 
@@ -88,12 +88,12 @@ class SNN(GCNTemplate):
             values = matrix[2:3].squeeze()
             return torch.sparse_coo_tensor(indices, values)
 
-        sigma1, sigma2 = to_sparse_coo(scData.sigma1), to_sparse_coo(scData.sigma2)
+        b1, b2 = to_sparse_coo(scData.b1), to_sparse_coo(scData.b2)
 
         X0, X1, X2 = scData.X0, scData.X1, scData.X2
-        L0 = normalise(torch.sparse.mm(sigma1, sigma1.t()))
-        L1 = normalise(torch.sparse.FloatTensor.add(torch.sparse.mm(sigma1.t(), sigma1), torch.sparse.mm(sigma2, sigma2.t())))
-        L2 = normalise(torch.sparse.mm(sigma2.t(), sigma2))
+        L0 = normalise(torch.sparse.mm(b1, b1.t()))
+        L1 = normalise(torch.sparse.FloatTensor.add(torch.sparse.mm(b1.t(), b1), torch.sparse.mm(b2, b2.t())))
+        L2 = normalise(torch.sparse.mm(b2.t(), b2))
 
         # splitting the sparse tensor as pooling cannot return sparse and to make preparation for minibatching easier
         assert (X0.size()[0] == L0.size()[0])

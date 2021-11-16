@@ -2,6 +2,7 @@ from dataset_processor.SuperpixelLoader import SimplicialComplexDataset
 from dataset_processor.EdgeFlow import PixelBasedEdgeFlow, RAGBasedEdgeFlow
 from torch.utils.data import DataLoader
 from models.SNN import SNN
+from models.SCN import SNN_Bunch
 from models.GNN import GCN, GAT
 from constants import DEVICE
 import torch
@@ -10,18 +11,18 @@ from torchvision import datasets
 from models.nn_utils import normalise
 
 batch_size = 8
-superpixel_size = 100
-# dataset = datasets.MNIST
-dataset = datasets.CIFAR10
+superpixel_size = 25
+dataset = datasets.MNIST
+# dataset = datasets.CIFAR10
 edgeFlow = PixelBasedEdgeFlow
 # edgeFlow = RAGBasedEdgeFlow
 
 
 if __name__ == "__main__":
 
-    GNN = SNN(5, 10, 15, 10).to(DEVICE)
-    # GNN = GCN3(5, 10).to(DEVICE)
-    # GNN = GCN2(5, 10, batch_size).to(DEVICE)
+    # GNN = SNN(5, 10, 15, 4).to(DEVICE)
+    GNN = GCN(5, 2).to(DEVICE)
+    # GNN = GCN2(5, 10).to(DEVICE)
 
     train_data = SimplicialComplexDataset('./data', dataset, superpixel_size, edgeFlow, train=True)
     train_dataset = DataLoader(train_data, batch_size=batch_size, collate_fn=GNN.batch, num_workers=4, shuffle=True)

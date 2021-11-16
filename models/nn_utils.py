@@ -9,6 +9,7 @@ def to_sparse_coo(matrix):
     values = matrix[2:3].squeeze()
     return torch.sparse_coo_tensor(indices, values)
 
+
 def chebyshev(L, X, k=3):
     dp = [X, torch.sparse.mm(L, X)]
     for i in range(2, k):
@@ -16,30 +17,42 @@ def chebyshev(L, X, k=3):
         dp.append(torch.sparse.FloatTensor.add(nxt, -(dp[i-2])))
     return torch.cat(dp, dim=1)
 
-def normalise(L):
+def torch_sparse_to_scipy_sparse(matrix):
+    i = matrix.coalesce().indices()
+    v = matrix.coalesce().values()
 
-    i = L.coalesce().indices()
-    v = L.coalesce().values()
-    M = L.shape[0]
-    L = coo_matrix((v, i), shape=(M, M))
-    topeig = spl.eigsh(L, k=1, which="LM", return_eigenvectors=False)[0]
-    ret = L.copy()
-    ret *= 2.0 / topeig
-    ret.setdiag(ret.diagonal(0) - np.ones(M), 0)
-    values = ret.data
-    indices = np.vstack((ret.row, ret.col))
+    (m, n) = matrix.shape[0], matrix.shape[1]
+    return coo_matrix((v, i), shape=(m, n))
+
+
+def scipy_sparse_to_torch_sparse(matrix):
+    values = matrix.data
+    indices = np.vstack((matrix.row, matrix.col))
 
     i = torch.LongTensor(indices)
     v = torch.FloatTensor(values)
     return torch.sparse.FloatTensor(i, v)
 
 
+def normalise(L):
+
+    M = L.shape[0]
+    L = torch_sparse_to_scipy_sparse(L)
+
+    topeig = spl.eigsh(L, k=1, which="LM", return_eigenvectors=False)[0]
+    ret = L.copy()
+    ret *= 2.0 / topeig
+    ret.setdiag(ret.diagonal(0) - np.ones(M), 0)
+
+    return scipy_sparse_to_torch_sparse(ret)
+
+
 def scData_to_simplicial0(scData):
 
-    sigma1, sigma2 = to_sparse_coo(scData.sigma1), to_sparse_coo(scData.sigma2)
+    b1, b2 = to_sparse_coo(scData.b1), to_sparse_coo(scData.b2)
 
     X0, X1, X2 = scData.X0, scData.X1, scData.X2
-    L0 = torch.sparse.mm(sigma1, sigma1.t())
+    L0 = torch.sparse.mm(b1, b1.t())
 
     # splitting the sparse tensor as pooling cannot return sparse and to make preparation for minibatching easier
     assert (X0.size()[0] == L0.size()[0])
@@ -47,12 +60,12 @@ def scData_to_simplicial0(scData):
 
 
 def scData_to_simplicial1(scData):
-    sigma1, sigma2 = to_sparse_coo(scData.sigma1), to_sparse_coo(scData.sigma2)
+    b1, b2 = to_sparse_coo(scData.b1), to_sparse_coo(scData.b2)
 
     X0, X1, X2 = scData.X0, scData.X1, scData.X2
-    L0 = torch.sparse.mm(sigma1, sigma1.t())
+    L0 = torch.sparse.mm(b1, b1.t())
 
-    L1 = torch.sparse.mm(sigma1.t(), sigma1)
+    L1 = torch.sparse.mm(b1.t(), b1)
 
     # splitting the sparse tensor as pooling cannot return sparse and to make preparation for minibatching easier
     assert (X0.size()[0] == L0.size()[0])
@@ -63,13 +76,13 @@ def scData_to_simplicial1(scData):
 
 def scData_to_simplicial2(scData):
 
-    sigma1, sigma2 = to_sparse_coo(scData.sigma1), to_sparse_coo(scData.sigma2)
+    b1, b2 = to_sparse_coo(scData.b1), to_sparse_coo(scData.b2)
 
     X0, X1, X2 = scData.X0, scData.X1, scData.X2
-    L0 = torch.sparse.mm(sigma1, sigma1.t())
+    L0 = torch.sparse.mm(b1, b1.t())
 
-    L1 = torch.sparse.FloatTensor.add(torch.sparse.mm(sigma1.t(), sigma1), torch.sparse.mm(sigma2, sigma2.t()))
-    L2 = torch.sparse.mm(sigma2.t(), sigma2)
+    L1 = torch.sparse.FloatTensor.add(torch.sparse.mm(b1.t(), b1), torch.sparse.mm(b2, b2.t()))
+    L2 = torch.sparse.mm(b2.t(), b2)
 
     # splitting the sparse tensor as pooling cannot return sparse and to make preparation for minibatching easier
     assert (X0.size()[0] == L0.size()[0])
@@ -118,21 +131,26 @@ def _make_batch(X, L_i, L_v):
     return features_dct
 
 
-def _individual_batch(x_list, L_i_list, l_v_list):
+def _individual_batch(x_list, L_i_list, L_v_list):
     feature_batch = torch.cat(x_list, dim=0)
-
     sizes = [*map(lambda x: x.size()[0], x_list)]
-    L_i_list = list(L_i_list)
-    mx = 0
-    for i in range(1, len(sizes)):
-        mx += sizes[i - 1]
-        L_i_list[i] += mx
-    I_cat = torch.cat(L_i_list, dim=1)
-    V_cat = torch.cat(l_v_list, dim=0)
+
+    I_cat, V_cat = _batch_sparse_matrix(L_i_list, L_v_list, sizes)
     # lapacian_batch = torch.sparse_coo_tensor(L_cat, V_cat)
     batch = [[i for _ in range(sizes[i])] for i in range(len(sizes))]
     batch = torch.tensor([i for sublist in batch for i in sublist])
     return feature_batch, I_cat, V_cat, batch
+
+
+def _batch_sparse_matrix(L_i_list, L_v_list, sizes):
+    L_i_list = list(L_i_list)
+    mx = 0
+    for i in range(1, len(L_i_list)):
+        mx += sizes[i - 1]
+        L_i_list[i] += mx
+    I_cat = torch.cat(L_i_list, dim=1)
+    V_cat = torch.cat(L_v_list, dim=0)
+    return I_cat, V_cat
 
 
 def convert_indices_and_values_to_sparse(feature_dct):

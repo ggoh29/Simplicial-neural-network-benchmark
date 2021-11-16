@@ -343,5 +343,18 @@ class MyTestCase(unittest.TestCase):
         self.assertTrue(all(results))
 
 
+    def test_bunch(self):
+        from models.SCN import SNN_Bunch
+        sp_size = 25
+        flow = PixelBasedEdgeFlow
+
+        image = TEST_MNIST_IMAGE_2
+        image = torch.tensor(image, dtype=torch.float, device=DEVICE)
+
+        PI = ProcessImage(sp_size, flow)
+        scData = PI.image_to_features((image, 0))
+        s = SNN_Bunch(5,10,15,10)
+        s._normalised_scData_to_Lapacian(scData)
+
 if __name__ == '__main__':
     unittest.main()
