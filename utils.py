@@ -1,5 +1,6 @@
 import torch
 from constants import DEVICE
+import numpy as np
 
 
 def rgb2gray(image):
@@ -12,7 +13,7 @@ def rgb2gray(image):
             r, g, b = image[i][j]
             gray_img[i][j] = 0.2125 * r + 0.7154 * g + 0.0721 * b
 
-    return gray_img
+    return np.array(gray_img)
 
 
 def dense_to_tensor(matrix):
