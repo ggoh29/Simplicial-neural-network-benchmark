@@ -4,12 +4,11 @@ from skimage.future import graph
 from skimage.segmentation import slic
 import numpy as np
 import networkx as nx
-from utils import triangle_to_edge_matrix, edge_to_node_matrix, tensor_to_dense, dense_to_tensor, rgb2gray
+from utils import triangle_to_edge_matrix, edge_to_node_matrix, tensor_to_dense, dense_to_tensor
 from constants import DEVICE, TEST_CIFAR10_IMAGE_1, TEST_MNIST_IMAGE_1, TEST_MNIST_IMAGE_2
 from dataset_processor.ImageProcessor import ProcessImage
 from dataset_processor.EdgeFlow import RAGBasedEdgeFlow, PixelBasedEdgeFlow
 from skimage import color
-from skimage.measure import regionprops
 
 class MyTestCase(unittest.TestCase):
 
@@ -323,7 +322,7 @@ class MyTestCase(unittest.TestCase):
 
         image_rgb = np.stack(image, axis=-1)
         # Has rgb pixel values, so grayscale it. Otherwise superpixeling will give errors
-        image = rgb2gray(image_rgb)
+        image = color.rgb2gray(image_rgb)
 
         superpixel = slic(image, n_segments=sp_size, compactness=1, start_label=1)
 

@@ -11,8 +11,8 @@ from models.nn_utils import normalise
 
 batch_size = 8
 superpixel_size = 100
-dataset = datasets.MNIST
-# dataset = datasets.CIFAR10
+# dataset = datasets.MNIST
+dataset = datasets.CIFAR10
 edgeFlow = PixelBasedEdgeFlow
 # edgeFlow = RAGBasedEdgeFlow
 

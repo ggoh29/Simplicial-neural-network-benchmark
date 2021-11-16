@@ -1,19 +1,5 @@
 import torch
 from constants import DEVICE
-import numpy as np
-
-
-def rgb2gray(image):
-    # image is a n by n by 3 matrix
-    height = len(image[0])
-    width = len(image[1])
-    gray_img = [[0 for _ in range(width)] for _ in range(height)]
-    for i in range(32):
-        for j in range(32):
-            r, g, b = image[i][j]
-            gray_img[i][j] = 0.2125 * r + 0.7154 * g + 0.0721 * b
-
-    return np.array(gray_img)
 
 
 def dense_to_tensor(matrix):
