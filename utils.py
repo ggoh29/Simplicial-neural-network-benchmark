@@ -2,6 +2,19 @@ import torch
 from constants import DEVICE
 
 
+def rgb2gray(image):
+    # image is a n by n by 3 matrix
+    height = len(image[0])
+    width = len(image[1])
+    gray_img = [[0 for _ in range(width)] for _ in range(height)]
+    for i in range(32):
+        for j in range(32):
+            r, g, b = image[i][j]
+            gray_img[i][j] = 0.2125 * r + 0.7154 * g + 0.0721 * b
+
+    return gray_img
+
+
 def dense_to_tensor(matrix):
     "Converts a dense matrix to a 3 x N matrix"
     indices = matrix.coalesce().indices()
@@ -25,6 +38,7 @@ def edge_to_node_matrix(edges, nodes):
         sigma1[y - 1][j] += 1
         j += 1
     return sigma1
+
 
 def triangle_to_edge_matrix(triangles, edges):
     sigma2 = torch.tensor([[0 for _ in triangles] for _ in edges], dtype=torch.float, device=DEVICE)

@@ -4,10 +4,12 @@ from skimage.future import graph
 from skimage.segmentation import slic
 import numpy as np
 import networkx as nx
-from utils import triangle_to_edge_matrix, edge_to_node_matrix, tensor_to_dense, dense_to_tensor
+from utils import triangle_to_edge_matrix, edge_to_node_matrix, tensor_to_dense, dense_to_tensor, rgb2gray
 from constants import DEVICE, TEST_CIFAR10_IMAGE_1, TEST_MNIST_IMAGE_1, TEST_MNIST_IMAGE_2
 from dataset_processor.ImageProcessor import ProcessImage
 from dataset_processor.EdgeFlow import RAGBasedEdgeFlow, PixelBasedEdgeFlow
+from skimage import color
+from skimage.measure import regionprops
 
 class MyTestCase(unittest.TestCase):
 
@@ -310,98 +312,36 @@ class MyTestCase(unittest.TestCase):
 
         self.assertTrue(torch.all(torch.eq(L1, L1_test)).item())
 
-
-    def test_edge_flow_Lapacian_1_generated_correctly(self):
+    def test_feature_vector_CIFAR10_generated_correctly(self):
+        image = np.array(TEST_CIFAR10_IMAGE_1)
         sp_size = 100
-        flow = PixelBasedEdgeFlow
 
-        image = TEST_MNIST_IMAGE_2
         image = torch.tensor(image, dtype=torch.float, device=DEVICE)
+        image = image.double().numpy()
 
-        PI = ProcessImage(sp_size, flow)
-        scData = PI.image_to_features((image, 0))
+        # Convert from (3, N, N) matrix to (N, N, 3)
 
-        image = np.array(image)
-
-        sigma1 = tensor_to_dense(scData.sigma1)
-        sigma2 = tensor_to_dense(scData.sigma2)
-        L1 = torch.sparse.FloatTensor.add(torch.sparse.mm(sigma1.t(), sigma1), torch.sparse.mm(sigma2, sigma2.t())).to_dense()
+        image_rgb = np.stack(image, axis=-1)
+        # Has rgb pixel values, so grayscale it. Otherwise superpixeling will give errors
+        image = rgb2gray(image_rgb)
 
         superpixel = slic(image, n_segments=sp_size, compactness=1, start_label=1)
-        nodes, edges, triangles, node_features = flow.convert_graph(image, superpixel)
 
-        I_1 = torch.eye(len(edges)) * 2
+        rag = graph.rag_mean_color(image_rgb, superpixel)
 
-        A_lower = [[0 for _ in range(len(edges))] for _ in range(len(edges))]
-        A_lower = torch.tensor(A_lower, dtype=torch.float, device=DEVICE)
+        test = {i : np.array([0.,0.,0.]) for i in rag._node}
+        for i in range(32):
+            for j in range(32):
+                test[superpixel[i][j]] += image_rgb[i][j]
 
-        edge_l = [e for e in edges]
-        edges = {edge_l[i]: i for i in range(len(edge_l))}
+        results = []
+        for i in rag._node:
+            left = rag._node[i]['total color']
+            right = test[i]
+            bl = left == right
+            results.append(bl.all())
 
-        for i in range(0, len(edges)):
-            for j in range(i + 1, len(edges)):
-                x_1, y_1 = edge_l[i]
-                x_2, y_2 = edge_l[j]
-                if x_1 == x_2 or y_1 == y_2:
-                    A_lower[edges[(x_1, y_1)]][edges[(x_2, y_2)]] += 1
-                    A_lower[edges[(x_2, y_2)]][edges[(x_1, y_1)]] += 1
-                elif x_1 == y_2 or y_1 == x_2:
-                    A_lower[edges[(x_1, y_1)]][edges[(x_2, y_2)]] -= 1
-                    A_lower[edges[(x_2, y_2)]][edges[(x_1, y_1)]] -= 1
-
-        D = [[0 for _ in range(len(edges))] for _ in range(len(edges))]
-        D = torch.tensor(D, dtype=torch.float, device=DEVICE)
-
-        A_upper = [[0 for _ in range(len(edges))] for _ in range(len(edges))]
-        A_upper = torch.tensor(A_upper, dtype=torch.float, device=DEVICE)
-
-        for i, j, k in triangles:
-
-            bl = [1, 1, 1]
-
-            if (i,j) in edges:
-                e1 = (i,j)
-            else:
-                e1 = (j,i)
-                bl[0] = -1
-
-            if (j,k) in edges:
-                e2 = (j,k)
-            else:
-                e2 = (k,j)
-                bl[1] = -1
-
-            if (k,i) in edges:
-                e3 = (k,i)
-            else:
-                e3 = (i,k)
-                bl[2] = -1
-
-            D[edges[e1]][edges[e1]] += 1
-            D[edges[e2]][edges[e2]] += 1
-            D[edges[e3]][edges[e3]] += 1
-
-            face_1 = (e1, e3, bl[0] * bl[2])
-            face_2 = (e3, e2, bl[1] * bl[2])
-            face_3 = (e1, e2, bl[0] * bl[1])
-            for i in range(3):
-                face1, face2, bl = [face_1, face_2, face_3][i]
-                if face1 in edges and face2 in edges:
-                    A_upper[edges[face1]][edges[face2]] -= 1 * bl
-                    A_upper[edges[face2]][edges[face1]] -= 1 * bl
-                elif face1 in edges and face2[::-1] in edges:
-                    A_upper[edges[face1]][edges[face2[::-1]]] += 1 * bl
-                    A_upper[edges[face2[::-1]]][edges[face1]] += 1 * bl
-                elif face2 in edges and face1[::-1] in edges:
-                    A_upper[edges[face2]][edges[face1[::-1]]] += 1 * bl
-                    A_upper[edges[face1[::-1]]][edges[face2]] += 1 * bl
-                else:
-                    A_upper[edges[face2[::-1]]][edges[face1[::-1]]] += 1 * bl
-                    A_upper[edges[face1[::-1]]][edges[face2[::-1]]] += 1 * bl
-
-        L1_test = D - A_upper + I_1 + A_lower
-
-        self.assertTrue(torch.all(torch.eq(L1, L1_test)).item())
+        self.assertTrue(all(results))
 
 
 if __name__ == '__main__':

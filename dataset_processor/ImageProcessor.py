@@ -1,7 +1,7 @@
 import torch
 from skimage.segmentation import slic
 from utils import triangle_to_edge_matrix, edge_to_node_matrix
-from utils import dense_to_tensor, tensor_to_dense
+from utils import dense_to_tensor, tensor_to_dense, rgb2gray
 from skimage import color
 import numpy as np
 from constants import DEVICE
@@ -67,7 +67,7 @@ class ProcessImage:
             # Convert from (3, N, N) matrix to (N, N, 3)
             image_rgb = np.stack(image, axis=-1)
             # Has rgb pixel values, so grayscale it. Otherwise superpixeling will give errors
-            image = color.rgb2gray(image)
+            image = rgb2gray(image_rgb)
         elif image.shape[0] == 1:
             image = image[0]
 
