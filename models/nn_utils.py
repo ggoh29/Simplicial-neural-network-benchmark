@@ -47,70 +47,6 @@ def normalise(L):
     return scipy_sparse_to_torch_sparse(ret)
 
 
-def scData_to_simplicial0(scData):
-
-    b1, b2 = to_sparse_coo(scData.b1), to_sparse_coo(scData.b2)
-
-    X0, X1, X2 = scData.X0, scData.X1, scData.X2
-    L0 = torch.sparse.mm(b1, b1.t())
-
-    # splitting the sparse tensor as pooling cannot return sparse and to make preparation for minibatching easier
-    assert (X0.size()[0] == L0.size()[0])
-    return [[X0], [L0.coalesce().indices()], [L0.coalesce().values()]], scData.label
-
-
-def scData_to_simplicial1(scData):
-    b1, b2 = to_sparse_coo(scData.b1), to_sparse_coo(scData.b2)
-
-    X0, X1, X2 = scData.X0, scData.X1, scData.X2
-    L0 = torch.sparse.mm(b1, b1.t())
-
-    L1 = torch.sparse.mm(b1.t(), b1)
-
-    # splitting the sparse tensor as pooling cannot return sparse and to make preparation for minibatching easier
-    assert (X0.size()[0] == L0.size()[0])
-    assert (X1.size()[0] == L1.size()[0])
-    return [[X0, X1], [L0.coalesce().indices(), L1.coalesce().indices()],
-            [L0.coalesce().values(), L1.coalesce().values()]], scData.label
-
-
-def scData_to_simplicial2(scData):
-
-    b1, b2 = to_sparse_coo(scData.b1), to_sparse_coo(scData.b2)
-
-    X0, X1, X2 = scData.X0, scData.X1, scData.X2
-    L0 = torch.sparse.mm(b1, b1.t())
-
-    L1 = torch.sparse.FloatTensor.add(torch.sparse.mm(b1.t(), b1), torch.sparse.mm(b2, b2.t()))
-    L2 = torch.sparse.mm(b2.t(), b2)
-
-    # splitting the sparse tensor as pooling cannot return sparse and to make preparation for minibatching easier
-    assert (X0.size()[0] == L0.size()[0])
-    assert (X1.size()[0] == L1.size()[0])
-    assert (X2.size()[0] == L2.size()[0])
-
-    return [[X0, X1, X2],
-            [L0.coalesce().indices(), L1.coalesce().indices(), L2.coalesce().indices()],
-            [L0.coalesce().values(), L1.coalesce().values(), L2.coalesce().values()]], scData.label
-
-
-def collated_data_to_batch(samples, fn = scData_to_simplicial0):
-    LapacianData = [fn(scData) for scData in samples]
-    Lapacians, labels = map(list, zip(*LapacianData))
-    labels = torch.cat(labels, dim=0)
-    feature_dct = _sanitize_input_for_batch(Lapacians)
-
-    return feature_dct, labels
-
-
-def _sanitize_input_for_batch(input_list):
-
-    X, L_i, L_v = [*zip(*input_list)]
-    X, L_i, L_v = [*zip(*X)], [*zip(*L_i)], [*zip(*L_v)]
-
-    return batch_all_feature_and_lapacian_pair(X, L_i, L_v)
-
-
 def batch_all_feature_and_lapacian_pair(X, L_i, L_v):
 
     X_batch, I_batch, V_batch, batch_index = [], [], [], []
@@ -135,14 +71,14 @@ def batch_feature_and_lapacian_pair(x_list, L_i_list, L_v_list):
     feature_batch = torch.cat(x_list, dim=0)
     sizes = [*map(lambda x: x.size()[0], x_list)]
 
-    I_cat, V_cat = _batch_sparse_matrix(L_i_list, L_v_list, sizes)
+    I_cat, V_cat = batch_sparse_matrix(L_i_list, L_v_list, sizes)
     # lapacian_batch = torch.sparse_coo_tensor(L_cat, V_cat)
     batch = [[i for _ in range(sizes[i])] for i in range(len(sizes))]
     batch = torch.tensor([i for sublist in batch for i in sublist])
     return feature_batch, I_cat, V_cat, batch
 
 
-def _batch_sparse_matrix(L_i_list, L_v_list, sizes):
+def batch_sparse_matrix(L_i_list, L_v_list, sizes):
     L_i_list = list(L_i_list)
     mx = 0
     for i in range(1, len(L_i_list)):
@@ -151,6 +87,7 @@ def _batch_sparse_matrix(L_i_list, L_v_list, sizes):
     I_cat = torch.cat(L_i_list, dim=1)
     V_cat = torch.cat(L_v_list, dim=0)
     return I_cat, V_cat
+
 
 def convert_indices_and_values_to_sparse(feature_dct, indices_key, value_key, output_key):
     lapacian = []

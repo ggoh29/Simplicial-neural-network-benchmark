@@ -11,7 +11,7 @@ from run_NN import test, train
 from torchvision import datasets
 
 batch_size = 8
-superpixel_size = 100
+superpixel_size = 50
 dataset = datasets.MNIST
 # dataset = datasets.CIFAR10
 edgeFlow = PixelBasedEdgeFlow
@@ -24,7 +24,7 @@ processor_type = GNNProcessor()
 if __name__ == "__main__":
 
     # GNN = SNN(5, 10, 15, 4).to(DEVICE)
-    GNN = GCN(5, 10).to(DEVICE)
+    GNN = GCN(5, 4).to(DEVICE)
     # GNN = GCN2(5, 10).to(DEVICE)
 
     train_data = SimplicialComplexDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=True)
