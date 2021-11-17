@@ -2,15 +2,15 @@ import torch
 from constants import DEVICE
 
 
-def dense_to_tensor(matrix):
-    "Converts a dense matrix to a 3 x N matrix"
+def sparse_to_tensor(matrix):
+    "Converts a sparse matrix to a 3 x N matrix"
     indices = matrix.coalesce().indices()
     values = matrix.coalesce().values().unsqueeze(0)
     return torch.cat([indices, values], dim=0)
 
 
-def tensor_to_dense(matrix):
-    "Converts a 3 x N matrix to a dense matrix"
+def tensor_to_sparse(matrix):
+    "Converts a 3 x N matrix to a sparse matrix"
     indices = matrix[0:2]
     values = matrix[2:3].squeeze()
     return torch.sparse_coo_tensor(indices, values)

@@ -2,14 +2,14 @@ import unittest
 from dataset_processor.ImageProcessor import ProcessImage
 import torch
 from constants import TEST_MNIST_IMAGE_1, DEVICE
-from utils import tensor_to_dense
+from utils import tensor_to_sparse
 import numpy as np
 from dataset_processor.EdgeFlow import PixelBasedEdgeFlow, RAGBasedEdgeFlow
 from run_NN import test, train
 from torchvision import datasets
 from dataset_processor.SuperpixelLoader import SimplicialComplexDataset
 from torch.utils.data import DataLoader
-from models.SNN import SNN
+from models.SNN_Stefanie.model_S import SNN
 from models.nn_utils import collated_data_to_batch, convert_indices_and_values_to_sparse, unpack_feature_dct_to_L_X_B
 
 class MyTestCase(unittest.TestCase):
@@ -33,7 +33,7 @@ class MyTestCase(unittest.TestCase):
 		features = torch.sparse.mm(lapacian, features)
 
 		features_test = scData.X0
-		sigma1 = tensor_to_dense(scData.sigma1)
+		sigma1 = tensor_to_sparse(scData.sigma1)
 		lapacian_test = torch.sparse.mm(sigma1, sigma1.t()).to_dense()
 
 		features_test = torch.sparse.mm(lapacian_test, features_test)
@@ -61,7 +61,7 @@ class MyTestCase(unittest.TestCase):
 		features_dct = convert_indices_and_values_to_sparse(features_dct)
 		features, lapacian, _ = unpack_feature_dct_to_L_X_B(features_dct)
 
-		sigma1 = tensor_to_dense(scData.sigma1)
+		sigma1 = tensor_to_sparse(scData.sigma1)
 		lapacian_test = torch.sparse.mm(sigma1, sigma1.t()).to_dense()
 
 		# Rounding to avoid floating point errors

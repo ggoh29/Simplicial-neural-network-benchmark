@@ -1,10 +1,8 @@
 import torch
 import torch.nn as nn
-from torch_geometric.nn import global_mean_pool, global_max_pool
+from torch_geometric.nn import global_mean_pool
 import torch.nn.functional as F
-from models.GNN_template import GCNTemplate
-from models.nn_utils import chebyshev, normalise, collated_data_to_batch,\
-    unpack_feature_dct_to_L_X_B, convert_indices_and_values_to_sparse
+from models.nn_utils import chebyshev, unpack_feature_dct_to_L_X_B
 
 
 class SCN(nn.Module):
@@ -31,7 +29,7 @@ class SCN1(nn.Module):
         return torch.mm(X, self.theta)
 
 
-class SNN(GCNTemplate):
+class SNN(nn.Module):
     def __init__(self, f1_size, f2_size, f3_size, output_size, bias = True):
         super().__init__(output_size)
 
@@ -79,35 +77,3 @@ class SNN(GCNTemplate):
         out = torch.cat([out0, out1, out2], dim = 1)
 
         return F.softmax(self.layer(out), dim = 1)
-
-
-    def _normalised_scData_to_Lapacian(self, scData):
-
-        def to_sparse_coo(matrix):
-            indices = matrix[0:2]
-            values = matrix[2:3].squeeze()
-            return torch.sparse_coo_tensor(indices, values)
-
-        b1, b2 = to_sparse_coo(scData.b1), to_sparse_coo(scData.b2)
-
-        X0, X1, X2 = scData.X0, scData.X1, scData.X2
-        L0 = normalise(torch.sparse.mm(b1, b1.t()))
-        L1 = normalise(torch.sparse.FloatTensor.add(torch.sparse.mm(b1.t(), b1), torch.sparse.mm(b2, b2.t())))
-        L2 = normalise(torch.sparse.mm(b2.t(), b2))
-
-        # splitting the sparse tensor as pooling cannot return sparse and to make preparation for minibatching easier
-        assert (X0.size()[0] == L0.size()[0])
-        assert (X1.size()[0] == L1.size()[0])
-        assert (X2.size()[0] == L2.size()[0])
-
-        return [[X0, X1, X2],
-                [L0.coalesce().indices(), L1.coalesce().indices(), L2.coalesce().indices()],
-                [L0.coalesce().values(), L1.coalesce().values(), L2.coalesce().values()]], scData.label
-
-
-    def batch(self, scDataList):
-        features_dct, label = collated_data_to_batch(scDataList, self._normalised_scData_to_Lapacian)
-        return features_dct, label
-
-    def clean_feature_dct(self, feature_dct):
-        return convert_indices_and_values_to_sparse(feature_dct)

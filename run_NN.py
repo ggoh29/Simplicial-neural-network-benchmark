@@ -4,7 +4,7 @@ from constants import DEVICE
 def convert_to_device(lst):
 	return [i.to(DEVICE) for i in lst]
 
-def train(NN, epoch_size, dataloader, optimizer, criterion):
+def train(NN, epoch_size, dataloader, optimizer, criterion, processor_type):
 	NN.train()
 	train_running_loss = 0
 	for epoch in range(epoch_size):
@@ -12,7 +12,7 @@ def train(NN, epoch_size, dataloader, optimizer, criterion):
 		train_acc = 0
 		i = 0
 		for features_dct, train_labels in dataloader:
-			features_dct = NN.clean_feature_dct(features_dct)
+			features_dct = processor_type.clean_feature_dct(features_dct)
 			features_dct = {key : convert_to_device(features_dct[key]) for key in features_dct}
 			train_labels = train_labels.to(DEVICE)
 			optimizer.zero_grad()
@@ -31,7 +31,7 @@ def train(NN, epoch_size, dataloader, optimizer, criterion):
 			f"| Loss {epoch_train_running_loss} | Train accuracy {train_acc / i}")
 
 
-def test(NN, dataloader):
+def test(NN, dataloader, processor_type):
 	NN.eval()
 
 	test_acc = 0
@@ -39,7 +39,7 @@ def test(NN, dataloader):
 	predictions = []
 	with torch.no_grad():
 		for features_dct, test_labels in dataloader:
-			features_dct = NN.clean_feature_dct(features_dct)
+			features_dct = processor_type.clean_feature_dct(features_dct)
 			features_dct = {key : convert_to_device(features_dct[key]) for key in features_dct}
 			test_labels = test_labels.to(DEVICE)
 			prediction = NN(features_dct)

@@ -108,14 +108,14 @@ def _sanitize_input_for_batch(input_list):
     X, L_i, L_v = [*zip(*input_list)]
     X, L_i, L_v = [*zip(*X)], [*zip(*L_i)], [*zip(*L_v)]
 
-    return _make_batch(X, L_i, L_v)
+    return batch_all_feature_and_lapacian_pair(X, L_i, L_v)
 
 
-def _make_batch(X, L_i, L_v):
+def batch_all_feature_and_lapacian_pair(X, L_i, L_v):
 
     X_batch, I_batch, V_batch, batch_index = [], [], [], []
     for i in range(len(X)):
-        x, i, v, batch = _individual_batch(X[i], L_i[i], L_v[i])
+        x, i, v, batch = batch_feature_and_lapacian_pair(X[i], L_i[i], L_v[i])
         X_batch.append(x)
         I_batch.append(i)
         V_batch.append(v)
@@ -131,7 +131,7 @@ def _make_batch(X, L_i, L_v):
     return features_dct
 
 
-def _individual_batch(x_list, L_i_list, L_v_list):
+def batch_feature_and_lapacian_pair(x_list, L_i_list, L_v_list):
     feature_batch = torch.cat(x_list, dim=0)
     sizes = [*map(lambda x: x.size()[0], x_list)]
 
@@ -152,19 +152,20 @@ def _batch_sparse_matrix(L_i_list, L_v_list, sizes):
     V_cat = torch.cat(L_v_list, dim=0)
     return I_cat, V_cat
 
-
-def convert_indices_and_values_to_sparse(feature_dct):
+def convert_indices_and_values_to_sparse(feature_dct, indices_key, value_key, output_key):
     lapacian = []
-    indices, values = feature_dct['lapacian_indices'], feature_dct['lapacian_values']
+    indices, values = feature_dct[indices_key], feature_dct[value_key]
     for i, v in zip(indices, values):
         lapacian.append(torch.sparse_coo_tensor(i, v))
-    feature_dct['lapacian'] = lapacian
-    feature_dct.pop('lapacian_indices')
-    feature_dct.pop('lapacian_values')
+    feature_dct[output_key] = lapacian
+    feature_dct.pop(indices_key)
+    feature_dct.pop(value_key)
     return feature_dct
 
 
 def unpack_feature_dct_to_L_X_B(dct):
     # unpack to lapacian, features and batch
     return dct['lapacian'], dct['features'], dct['batch_index']
+
+
 

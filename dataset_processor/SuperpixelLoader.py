@@ -26,7 +26,7 @@ def make_smaller_dataset_4_classes(data):
 
 class SimplicialComplexDataset(InMemoryDataset):
 
-	def __init__(self, root, dataset_name, superpix_size, edgeflow_type, n_jobs=8, train=True):
+	def __init__(self, root, dataset_name, superpix_size, edgeflow_type, processor_type, n_jobs=8, train=True):
 
 		self.dataset = dataset_name
 		self.n_jobs = n_jobs
@@ -34,11 +34,17 @@ class SimplicialComplexDataset(InMemoryDataset):
 		self.train_str = {True : "train", False : "test"}[train]
 		self.train = train
 
-		name = f"{dataset_dct[dataset_name]}_{superpix_size}_{edgeflow_type.__name__}/{self.train_str}"
+		name = f"{dataset_dct[dataset_name]}_{superpix_size}_{edgeflow_type.__name__}_{processor_type.__class__.__name__}/{self.train_str}"
 		folder = f"{root}/{name}"
 
+		self.processor_type = processor_type
 		self.ImageProcessor = ProcessImage(superpix_size, edgeflow_type)
-		self.pre_transform = self.ImageProcessor.image_to_features
+
+		def transform(image):
+				scData = self.ImageProcessor.image_to_features(image)
+				return processor_type.process(scData)
+
+		self.pre_transform = transform
 
 		super().__init__(folder, pre_transform=self.pre_transform)
 		self.data, self.slices = torch.load(self.processed_paths[0])
@@ -68,85 +74,15 @@ class SimplicialComplexDataset(InMemoryDataset):
 		return ["features.pt"]
 
 	def process(self):
-		# Read data into huge `Data` list.
-		if self.pre_transform is not None:
-			print(f"Pre-transforming {self.train_str} dataset..")
-			data_list = Parallel(n_jobs=self.n_jobs, prefer="threads") \
-				(delayed(self.pre_transform)(image) for image in tqdm(self.data_download))
+
+		print(f"Pre-transforming {self.train_str} dataset..")
+		data_list = Parallel(n_jobs=self.n_jobs, prefer="threads") \
+			(delayed(self.pre_transform)(image) for image in tqdm(self.data_download))
 
 		print(f"Finished pre-transforming {self.train_str} dataset.")
-		data, slices = self.collate(data_list)
+		data, slices = self.processor_type.collate(data_list)
 		torch.save((data, slices), self.processed_paths[0])
 
-	def collate(self, data_list):
-		X0, X1, X2 = [], [], []
-		b1, b2 = [], []
-		label = []
-
-		x0_total, x1_total, x2_total = 0, 0, 0
-		s1_total, s2_total = 0, 0
-
-		slices = {"X0": [0],
-				  "X1": [0],
-				  "X2": [0],
-				  "b1": [0],
-				  "b2": [0]}
-
-		for data in data_list:
-			x0, x1, x2 = data.X0, data.X1, data.X2
-			s1, s2 = data.b1, data.b2
-			l = data.label
-			x0_s, x1_s, x2_s = x0.shape[0], x1.shape[0], x2.shape[0]
-			s1_s, s2_s = s1.shape[1], s2.shape[1]
-
-			X0.append(x0)
-			X1.append(x1)
-			X2.append(x2)
-			b1.append(s1)
-			b2.append(s2)
-			label.append(l)
-
-			x0_total += x0_s
-			x1_total += x1_s
-			x2_total += x2_s
-			s1_total += s1_s
-			s2_total += s2_s
-
-			slices["X0"].append(x0_total)
-			slices["X1"].append(x1_total)
-			slices["X2"].append(x2_total)
-			slices["b1"].append(s1_total)
-			slices["b2"].append(s2_total)
-
-		X0 = torch.cat(X0, dim=0).to('cpu')
-		X1 = torch.cat(X1, dim=0).to('cpu')
-		X2 = torch.cat(X2, dim=0).to('cpu')
-		b1 = torch.cat(b1, dim=-1).to('cpu')
-		b2 = torch.cat(b2, dim=-1).to('cpu')
-		label = torch.cat(label, dim=-1).to('cpu')
-
-		data = SCData(X0, X1, X2, b1, b2, label)
-
-		return data, slices
-
 	def __getitem__(self, idx):
-		return self.get(idx)
+		return self.processor_type.get(self.data, self.slices, idx)
 
-	def get(self, idx):
-		x0_slice = self.slices["X0"][idx:idx + 2]
-		x1_slice = self.slices["X1"][idx:idx + 2]
-		x2_slice = self.slices["X2"][idx:idx + 2]
-		s1_slice = self.slices["b1"][idx:idx + 2]
-		s2_slice = self.slices["b2"][idx:idx + 2]
-		label_slice = [idx, idx + 1]
-
-		X0 = self.data.X0[x0_slice[0]: x0_slice[1]]
-		X1 = self.data.X1[x1_slice[0]: x1_slice[1]]
-		X2 = self.data.X2[x2_slice[0]: x2_slice[1]]
-
-		b1 = self.data.b1[:, s1_slice[0]: s1_slice[1]]
-		b2 = self.data.b2[:, s2_slice[0]: s2_slice[1]]
-
-		label = self.data.label[label_slice[0]: label_slice[1]]
-
-		return SCData(X0, X1, X2, b1, b2, label)

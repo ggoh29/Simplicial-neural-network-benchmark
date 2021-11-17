@@ -1,7 +1,7 @@
 import torch
 from skimage.segmentation import slic
 from utils import triangle_to_edge_matrix, edge_to_node_matrix
-from utils import dense_to_tensor, tensor_to_dense
+from utils import sparse_to_tensor, tensor_to_sparse
 from skimage import color
 import numpy as np
 from constants import DEVICE
@@ -18,11 +18,11 @@ class SCData:
         self.X2 = X2
         # b1 and b2 can either be sparse or dense but since python doesn't really have overloading, doing this instead
         if b1.is_sparse:
-            b1 = dense_to_tensor(b1)
+            b1 = sparse_to_tensor(b1)
         self.b1 = b1
 
         if b2.is_sparse:
-            b2 = dense_to_tensor(b2)
+            b2 = sparse_to_tensor(b2)
         self.b2 = b2
 
         self.label = label
