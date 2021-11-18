@@ -1,5 +1,5 @@
 from dataset_processor.SuperpixelLoader import SimplicialComplexDataset
-from dataset_processor.EdgeFlow import PixelBasedEdgeFlow
+from dataset_processor.EdgeFlow import PixelBasedEdgeFlow, RandomBasedEdgeFlow, RAGBasedEdgeFlow
 from torch.utils.data import DataLoader
 from models.GNN.model import GCN, GAT
 from models.GNN.GNNProcessor import GNNProcessor
@@ -17,8 +17,9 @@ batch_size = 8
 superpixel_size = 50
 # dataset = datasets.MNIST
 dataset = datasets.CIFAR10
-edgeFlow = PixelBasedEdgeFlow
+# edgeFlow = PixelBasedEdgeFlow
 # edgeFlow = RAGBasedEdgeFlow
+edgeFlow = RandomBasedEdgeFlow
 
 # processor_type = GNNProcessor()
 # processor_type = SNNEbliProcessor()

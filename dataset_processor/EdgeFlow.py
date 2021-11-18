@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 import networkx as nx
 from skimage.future import graph
 from skimage.measure import regionprops
+from random import shuffle
 
 
 def unpack_node(rag, region):
@@ -68,5 +69,18 @@ class RandomBasedEdgeFlow(EdgeFlow):
 	"Class to test permutation invariance. Edges are randomly permuted"
 
 	@staticmethod
-	def convert_graph(rag, regions):
-		raise NotImplementedError()
+	def convert_graph(image, superpixel):
+		rag = graph.rag_mean_color(image, superpixel)
+		regions = regionprops(superpixel)
+		node_features = [unpack_node(rag, region) for region in regions]
+		edges = []
+		for item in rag.edges:
+			i = list(item)
+			shuffle(i)
+			edges.append(tuple(i))
+
+		triangles = [*filter(lambda x: len(x) == 3, nx.enumerate_all_cliques(rag))]
+		for i in range(len(triangles)):
+			shuffle(triangles[i])
+
+		return rag.nodes(), edges, triangles, node_features
