@@ -134,8 +134,8 @@ class SNNStefProcessor(NNProcessor):
 			L0, L1, L2 = SimplicialObject.L0, SimplicialObject.L1, SimplicialObject.L2
 
 			L0_i, L0_v = L0[0:2], L0[2:3].squeeze()
-			L1_i, L1_v = L0[0:2], L0[2:3].squeeze()
-			L2_i, L2_v = L0[0:2], L0[2:3].squeeze()
+			L1_i, L1_v = L1[0:2], L1[2:3].squeeze()
+			L2_i, L2_v = L2[0:2], L2[2:3].squeeze()
 
 			label = SimplicialObject.label
 			return [X0, X1, X2], [L0_i, L1_i, L2_i], [L0_v, L1_v, L2_v], label

@@ -2,8 +2,8 @@ from utils import sparse_to_tensor
 import torch
 import numpy as np
 from models.ProcessorTemplate import NNProcessor
-from models.nn_utils import batch_feature_and_lapacian_pair, convert_indices_and_values_to_sparse, normalise,\
-	batch_sparse_matrix
+from models.nn_utils import convert_indices_and_values_to_sparse, normalise,\
+	batch_sparse_matrix, batch_all_feature_and_lapacian_pair
 
 class SimplicialObject:
 
@@ -85,7 +85,7 @@ class SNNBunchProcessor(NNProcessor):
 
 		A_2d = torch.eye(n=B2.shape[1]) + B2.T @ D5inv @ B2
 		A_2d_norm = (2 * torch.eye(n=B2.shape[1])) @ (A_2d + torch.eye(n=A_2d.shape[0]))
-		L2 = A_2d_norm  # normalized adjacency
+		L2 = A_2d_norm
 
 		B2D3 = B2 @ D3
 		D2B1TD1inv = (1 / np.sqrt(2.)) * D2 @ B1.T @ D1_inv
@@ -171,9 +171,9 @@ class SNNBunchProcessor(NNProcessor):
 		L0 = torch.cat(L0, dim=-1).to('cpu')
 		L1 = torch.cat(L1, dim=-1).to('cpu')
 		L2 = torch.cat(L2, dim=-1).to('cpu')
-		D1 = torch.cat(D1, dim=0).to('cpu')
-		D2 = torch.cat(D2, dim=0).to('cpu')
-		D3 = torch.cat(D3, dim=0).to('cpu')
+		D1 = torch.cat(D1, dim=-1).to('cpu')
+		D2 = torch.cat(D2, dim=-1).to('cpu')
+		D3 = torch.cat(D3, dim=-1).to('cpu')
 		D4 = torch.cat(D4, dim=-1).to('cpu')
 		label = torch.cat(label, dim=-1).to('cpu')
 		# D1, D2, D3, D4 = B2D3, D2B1TD1inv, D1invB1, B2TD2inv
@@ -218,8 +218,8 @@ class SNNBunchProcessor(NNProcessor):
 			L0, L1, L2 = SimplicialObject.L0, SimplicialObject.L1, SimplicialObject.L2
 
 			L0_i, L0_v = L0[0:2], L0[2:3].squeeze()
-			L1_i, L1_v = L0[0:2], L0[2:3].squeeze()
-			L2_i, L2_v = L0[0:2], L0[2:3].squeeze()
+			L1_i, L1_v = L1[0:2], L1[2:3].squeeze()
+			L2_i, L2_v = L2[0:2], L2[2:3].squeeze()
 
 			D1, D2, D3, D4 = SimplicialObject.B2D3, SimplicialObject.D2B1TD1inv, \
 											 SimplicialObject.D1invB1, SimplicialObject.B2TD2inv
@@ -228,32 +228,28 @@ class SNNBunchProcessor(NNProcessor):
 			D2_i, D2_v = D2[0:2], D2[2:3].squeeze()
 			D3_i, D3_v = D3[0:2], D3[2:3].squeeze()
 			D4_i, D4_v = D4[0:2], D4[2:3].squeeze()
-
+			# D1, D2, D3, D4 = B2D3, D2B1TD1inv, D1invB1, B2TD2inv
 			label = SimplicialObject.label
 			return [X0, X1, X2], [L0_i, L1_i, L2_i], [L0_v, L1_v, L2_v],\
 				[D1_i, D2_i, D3_i, D4_i], [D1_v, D2_v, D3_v, D4_v], label
 
 		unpacked_SimplicialObject = [unpack_SimplicialObject(g) for g in objectList]
 		X, L_i, L_v, D_i, D_v, labels = [*zip(*unpacked_SimplicialObject)]
-		X, L_i, L_v, D_i, D_v = list(X), list(L_i), list(L_v), list(D_i), list(D_v)
-		X_batch, L_i_batch, L_v_batch, batch_index = batch_feature_and_lapacian_pair(X, L_i, L_v)
+		X, L_i, L_v, D_i, D_v = [*zip(*X)], [*zip(*L_i)], [*zip(*L_v)], [*zip(*D_i)], [*zip(*D_v)]
+		features_dct = batch_all_feature_and_lapacian_pair(X, L_i, L_v)
 		D_i_batch, D_v_batch = [], []
 		for i, v in zip(D_i, D_v):
-			sizes = [torch.max(matrix) for matrix in i]
-			d_i_batch, d_v_batch = batch_sparse_matrix(i, v, sizes)
+			sizes_x = [1 + int(torch.max(matrix[0]).item()) for matrix in i]
+			sizes_y = [1 + int(torch.max(matrix[1]).item()) for matrix in i]
+			d_i_batch, d_v_batch = batch_sparse_matrix(i, v, sizes_x, sizes_y)
 			D_i_batch.append(d_i_batch)
 			D_v_batch.append(d_v_batch)
-
-		features_dct = {'features': [X_batch],
-										'lapacian_indices': [L_i_batch],
-										'lapacian_values': [L_v_batch],
-										'd_indices' : D_i_batch,
-										'd_values' : D_v_batch,
-										'batch_index': [batch_index]}
+		features_dct['d_indices'] = D_i_batch
+		features_dct['d_values'] = D_v_batch
 
 		labels = torch.cat(labels, dim=0)
 		return features_dct, labels
 
 	def clean_feature_dct(self, feature_dct):
 		feature_dct = convert_indices_and_values_to_sparse(feature_dct, 'lapacian_indices', 'lapacian_values', 'lapacian')
-		return convert_indices_and_values_to_sparse(feature_dct, 'd_indices', 'd_values', 'd')
+		return convert_indices_and_values_to_sparse(feature_dct, 'd_indices', 'd_values', 'others')

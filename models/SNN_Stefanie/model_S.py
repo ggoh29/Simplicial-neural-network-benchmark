@@ -6,51 +6,38 @@ from models.nn_utils import chebyshev, unpack_feature_dct_to_L_X_B
 
 
 class SCN(nn.Module):
-    def __init__(self, feature_size, output_size, enable_bias = True, k = 3):
+    def __init__(self, feature_size, output_size, enable_bias = True, k = 1):
         super().__init__()
         self.k = k
-        self.conv = nn.Linear(feature_size, output_size, bias = enable_bias)
+        self.conv = nn.Linear(k * feature_size, output_size, bias = enable_bias)
 
     def forward(self, L, x):
-        # X = chebyshev(L, x, self.k)
-        X = torch.sparse.mm(L, x)
+        X = chebyshev(L, x, self.k)
         return self.conv(X)
 
 
-class SCN1(nn.Module):
-    def __init__(self, feature_size, output_size, enable_bias = True, k = 3):
+class SNN_Stef(nn.Module):
+    def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_dim, bias = True):
         super().__init__()
-        self.k = k
-        self.theta = nn.parameter.Parameter(0.01 * torch.randn((feature_size, output_size)))
-
-    def forward(self, L, x):
-        # X = chebyshev(L, x, self.k)
-        X = torch.sparse.mm(L, x)
-        return torch.mm(X, self.theta)
-
-
-class SNN(nn.Module):
-    def __init__(self, f1_size, f2_size, f3_size, output_size, bias = True):
-        super().__init__(output_size)
 
         conv_size = 32
 
         # Degree 0 convolutions.
-        self.C0_1 = SCN(f1_size, conv_size, enable_bias = bias)
+        self.C0_1 = SCN(num_node_feats, conv_size, enable_bias = bias)
         self.C0_2 = SCN(conv_size, conv_size, enable_bias = bias)
-        self.C0_3 = SCN(conv_size, output_size, enable_bias = bias)
+        self.C0_3 = SCN(conv_size, output_dim, enable_bias = bias)
 
         # Degree 1 convolutions.
-        self.C1_1 = SCN(f2_size, conv_size, enable_bias = bias)
+        self.C1_1 = SCN(num_edge_feats, conv_size, enable_bias = bias)
         self.C1_2 = SCN(conv_size, conv_size, enable_bias = bias)
-        self.C1_3 = SCN(conv_size, output_size, enable_bias = bias)
+        self.C1_3 = SCN(conv_size, output_dim, enable_bias = bias)
 
         # Degree 2 convolutions.
-        self.C2_1 = SCN(f3_size, conv_size, enable_bias = bias)
+        self.C2_1 = SCN(num_triangle_feats, conv_size, enable_bias = bias)
         self.C2_2 = SCN(conv_size, conv_size, enable_bias = bias)
-        self.C2_3 = SCN(conv_size, output_size, enable_bias = bias)
+        self.C2_3 = SCN(conv_size, output_dim, enable_bias = bias)
 
-        self.layer = nn.Linear(output_size * 3, output_size)
+        self.layer = nn.Linear(output_dim * 3, output_dim)
 
 
     def forward(self, features_dct):

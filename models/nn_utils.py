@@ -11,6 +11,8 @@ def to_sparse_coo(matrix):
 
 
 def chebyshev(L, X, k=3):
+    if k == 1:
+        return torch.sparse.mm(L, X)
     dp = [X, torch.sparse.mm(L, X)]
     for i in range(2, k):
         nxt = 2*(torch.sparse.mm(L, dp[i-1]))
@@ -71,19 +73,21 @@ def batch_feature_and_lapacian_pair(x_list, L_i_list, L_v_list):
     feature_batch = torch.cat(x_list, dim=0)
     sizes = [*map(lambda x: x.size()[0], x_list)]
 
-    I_cat, V_cat = batch_sparse_matrix(L_i_list, L_v_list, sizes)
+    I_cat, V_cat = batch_sparse_matrix(L_i_list, L_v_list, sizes, sizes)
     # lapacian_batch = torch.sparse_coo_tensor(L_cat, V_cat)
     batch = [[i for _ in range(sizes[i])] for i in range(len(sizes))]
     batch = torch.tensor([i for sublist in batch for i in sublist])
     return feature_batch, I_cat, V_cat, batch
 
 
-def batch_sparse_matrix(L_i_list, L_v_list, sizes):
+def batch_sparse_matrix(L_i_list, L_v_list, size_x, size_y):
     L_i_list = list(L_i_list)
-    mx = 0
+    mx_x, mx_y = 0, 0
     for i in range(1, len(L_i_list)):
-        mx += sizes[i - 1]
-        L_i_list[i] += mx
+        mx_x += size_x[i - 1]
+        mx_y += size_y[i - 1]
+        L_i_list[i][0] += mx_x
+        L_i_list[i][1] += mx_y
     I_cat = torch.cat(L_i_list, dim=1)
     V_cat = torch.cat(L_v_list, dim=0)
     return I_cat, V_cat
