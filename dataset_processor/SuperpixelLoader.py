@@ -40,11 +40,7 @@ class SimplicialComplexDataset(InMemoryDataset):
 		self.processor_type = processor_type
 		self.ImageProcessor = ProcessImage(superpix_size, edgeflow_type)
 
-		def transform(image):
-				scData = self.ImageProcessor.image_to_features(image)
-				return processor_type.process(scData)
-
-		self.pre_transform = transform
+		self.pre_transform = lambda image : processor_type.process(self.ImageProcessor.image_to_features(image))
 
 		super().__init__(folder, pre_transform=self.pre_transform)
 		self.data, self.slices = torch.load(self.processed_paths[0])
