@@ -27,16 +27,16 @@ class SimplicialObject:
 		self.label = label
 
 
-class SNNStefProcessor(NNProcessor):
+class SNNEbliProcessor(NNProcessor):
 
 	def process(self, scData):
 		b1, b2 = to_sparse_coo(scData.b1), to_sparse_coo(scData.b2)
 
 		X0, X1, X2 = scData.X0, scData.X1, scData.X2
 
-		L0 = torch.sparse.mm(b1, b1.t())
-		L1 = torch.sparse.FloatTensor.add(torch.sparse.mm(b1.t(), b1), torch.sparse.mm(b2, b2.t()))
-		L2 = torch.sparse.mm(b2.t(), b2)
+		L0 = torch.sparse.mm(b1, b1.t()).to('cpu')
+		L1 = torch.sparse.FloatTensor.add(torch.sparse.mm(b1.t(), b1), torch.sparse.mm(b2, b2.t())).to('cpu')
+		L2 = torch.sparse.mm(b2.t(), b2).to('cpu')
 
 		L0 = normalise(L0)
 		L1 = normalise(L1)

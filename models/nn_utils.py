@@ -2,6 +2,7 @@ import torch
 import scipy.sparse.linalg as spl
 import numpy as np
 from scipy.sparse import coo_matrix
+from constants import DEVICE
 
 
 def to_sparse_coo(matrix):

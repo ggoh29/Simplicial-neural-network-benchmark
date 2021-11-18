@@ -5,7 +5,8 @@ from torch_geometric.nn import global_mean_pool
 from models.nn_utils import chebyshev, unpack_feature_dct_to_L_X_B
 
 class SNN_Bunch_Layer(nn.Module):
-
+  # This model is based on model described by Eric Bunch et al. in Simplicial 2-Complex Convolutional Neural Networks
+  # Github here https://github.com/AmFamMLTeam/simplicial-2-complex-cnns
   def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_dim, bias=True):
 
     super().__init__()

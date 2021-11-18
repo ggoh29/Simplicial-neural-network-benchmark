@@ -9,14 +9,20 @@ from run_NN import test, train
 from torchvision import datasets
 from dataset_processor.SuperpixelLoader import SimplicialComplexDataset
 from torch.utils.data import DataLoader
-from models.SNN_Stefanie.model_S import SNN
-from models.nn_utils import collated_data_to_batch, convert_indices_and_values_to_sparse, unpack_feature_dct_to_L_X_B
+from models.GNN.model import GCN, GAT
+from models.GNN.GNNProcessor import GNNProcessor
+from models.SNN_Ebli.model_E import SNN_Ebli
+from models.SNN_Ebli.SNNEbliProcessor import SNNEbliProcessor
+from models.SNN_Bunch.model_B import SNN_Bunch
+from models.SNN_Bunch.SNNBunchProcessor import SNNBunchProcessor
+from models.nn_utils import normalise, unpack_feature_dct_to_L_X_B
 
 class MyTestCase(unittest.TestCase):
 
 	def test_batching_gives_correct_result_1(self):
 		sp_size = 100
 		flow = PixelBasedEdgeFlow
+		processor = GNNProcessor()
 
 		image = TEST_MNIST_IMAGE_1
 		image = torch.tensor(image, dtype=torch.float, device=DEVICE)
@@ -25,29 +31,31 @@ class MyTestCase(unittest.TestCase):
 		scData = PI.image_to_features((image, 0))
 
 		batch = [scData, scData, scData, scData]
+		batch = [processor.process(i) for i in batch]
 
-		features_dct, _  = collated_data_to_batch(batch)
-		features_dct = convert_indices_and_values_to_sparse(features_dct)
-		features, lapacian, _ = unpack_feature_dct_to_L_X_B(features_dct)
+		features_dct, _ = processor.batch(batch)
+		features_dct = processor.clean_feature_dct(features_dct)
+		lapacian, features, _ = unpack_feature_dct_to_L_X_B(features_dct)
+		lapacian, features = lapacian[0], features[0]
 
 		features = torch.sparse.mm(lapacian, features)
 
 		features_test = scData.X0
-		sigma1 = tensor_to_sparse(scData.sigma1)
-		lapacian_test = torch.sparse.mm(sigma1, sigma1.t()).to_dense()
+		b1 = tensor_to_sparse(scData.b1)
+		lapacian_test = normalise(torch.sparse.mm(b1, b1.t())).to_dense()
 
 		features_test = torch.sparse.mm(lapacian_test, features_test)
 		features_test = torch.cat([features_test, features_test, features_test, features_test], dim = 0)
 
-		# Convert to np so I can change to 4dp.
-		results = np.around(features - features_test, decimals=4) == 0
+		results = torch.allclose(features, features_test, atol = 1e-5)
 
-		self.assertTrue(results.all().item())
+		self.assertTrue(results)
 
 	def test_batching_gives_correct_result_2(self):
 		sp_size = 100
 		flow = PixelBasedEdgeFlow
 		mulitplier = 5
+		processor = GNNProcessor()
 
 		image = TEST_MNIST_IMAGE_1
 		image = torch.tensor(image, dtype=torch.float, device=DEVICE)
@@ -56,17 +64,19 @@ class MyTestCase(unittest.TestCase):
 		scData = PI.image_to_features((image, 0))
 
 		batch = [scData, scData, scData, scData]
+		batch = [processor.process(i) for i in batch]
 
-		features_dct, _ = collated_data_to_batch(batch)
-		features_dct = convert_indices_and_values_to_sparse(features_dct)
-		features, lapacian, _ = unpack_feature_dct_to_L_X_B(features_dct)
+		features_dct, _ = processor.batch(batch)
+		features_dct = processor.clean_feature_dct(features_dct)
+		lapacian, features, _ = unpack_feature_dct_to_L_X_B(features_dct)
+		lapacian, features = lapacian[0], features[0]
 
-		sigma1 = tensor_to_sparse(scData.sigma1)
-		lapacian_test = torch.sparse.mm(sigma1, sigma1.t()).to_dense()
+		b1 = tensor_to_sparse(scData.b1)
+		lapacian_test = normalise(torch.sparse.mm(b1, b1.t())).to_dense()
 
 		# Rounding to avoid floating point errors
-		features = features[0].round()
-		features_test = scData.X0.round()
+
+		features_test = scData.X0
 
 		for _ in range(mulitplier):
 			features_test = torch.sparse.mm(lapacian_test, features_test)
@@ -74,34 +84,85 @@ class MyTestCase(unittest.TestCase):
 
 		features_test = torch.cat([features_test, features_test, features_test, features_test], dim = 0)
 
-		# Convert to np array so I can change to 4dp.
-		results = np.around(features - features_test, decimals=4) == 0
+		results = torch.allclose(features, features_test, atol = 1e-5)
 
-		self.assertTrue(results.all().item())
+		self.assertTrue(results)
 
-
-	def test_batching_gives_same_result_as_individual(self):
+	def test_gnn_batching_gives_same_result_as_individual(self):
 		batch_size = 8
 		superpixel_size = 50
 		dataset = datasets.MNIST
-		edgeFlow = RAGBasedEdgeFlow
-		GNN = SNN(5, 10, 15, 4).to(DEVICE)
-		# GNN = GCN(5, 4).to(DEVICE)
+		edgeFlow = PixelBasedEdgeFlow
 
-		data = SimplicialComplexDataset('./data', dataset, superpixel_size, edgeFlow, train=True)
-		batched_data = DataLoader(data, batch_size=8, collate_fn=GNN.batch, num_workers=1, shuffle=False)
-		individual_data = DataLoader(data, batch_size=1, collate_fn=GNN.batch, num_workers=1, shuffle=False)
+		GNN = GCN(5, 4).to(DEVICE)
+		processor_type = GNNProcessor()
 
-		optimizer = torch.optim.Adam(GNN.parameters(), lr=0.001, weight_decay=5e-4)
-		criterion = torch.nn.CrossEntropyLoss()
+		data = SimplicialComplexDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=True)
+		batched_dataset = DataLoader(data, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=4,
+															 shuffle=False)
+		individual_dataset = DataLoader(data, batch_size=1, collate_fn=processor_type.batch, num_workers=4,
+															 shuffle=False)
 
-		train(GNN, 1, individual_data, optimizer, criterion)
-
-		batched_predictions = test(GNN, batched_data)
+		batched_predictions = test(GNN, batched_dataset, processor_type)
 		batched_predictions = torch.cat(batched_predictions, dim = 0)
 
-		individual_predictions = test(GNN, individual_data)
+		individual_predictions = test(GNN, individual_dataset, processor_type)
 		individual_predictions = torch.cat(individual_predictions, dim = 0)
+
+		result = torch.allclose(individual_predictions, batched_predictions, atol = 1e-5)
+
+		self.assertTrue(result)
+
+
+	def test_ebli_batching_gives_same_result_as_individual(self):
+		batch_size = 8
+		superpixel_size = 50
+		dataset = datasets.MNIST
+		edgeFlow = PixelBasedEdgeFlow
+
+		GNN = SNN_Ebli(5, 10, 15, 4).to(DEVICE)
+		processor_type = SNNEbliProcessor()
+
+		data = SimplicialComplexDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=True)
+		batched_dataset = DataLoader(data, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=4,
+															 shuffle=False)
+		individual_dataset = DataLoader(data, batch_size=1, collate_fn=processor_type.batch, num_workers=4,
+															 shuffle=False)
+
+		batched_predictions = test(GNN, batched_dataset, processor_type)
+		batched_predictions = torch.cat(batched_predictions, dim = 0)
+
+		individual_predictions = test(GNN, individual_dataset, processor_type)
+		individual_predictions = torch.cat(individual_predictions, dim = 0)
+
+		result = torch.allclose(individual_predictions, batched_predictions, atol = 1e-5)
+
+		self.assertTrue(result)
+
+	def test_bunch_batching_gives_same_result_as_individual(self):
+		batch_size = 8
+		superpixel_size = 50
+		dataset = datasets.MNIST
+		edgeFlow = PixelBasedEdgeFlow
+
+		GNN = SNN_Bunch(5, 10, 15, 4).to(DEVICE)
+		processor_type = SNNBunchProcessor()
+
+		data = SimplicialComplexDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=True)
+		batched_dataset = DataLoader(data, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=4,
+															 shuffle=False)
+		individual_dataset = DataLoader(data, batch_size=1, collate_fn=processor_type.batch, num_workers=4,
+															 shuffle=False)
+
+		batched_predictions = test(GNN, batched_dataset, processor_type)
+		batched_predictions = torch.cat(batched_predictions, dim = 0)
+
+		individual_predictions = test(GNN, individual_dataset, processor_type)
+		individual_predictions = torch.cat(individual_predictions, dim = 0)
+
+		print(batched_predictions)
+
+		print(individual_predictions)
 
 		result = torch.allclose(individual_predictions, batched_predictions, atol = 1e-5)
 

@@ -51,8 +51,8 @@ class SNNBunchProcessor(NNProcessor):
 			values = matrix[2:3].squeeze()
 			return torch.sparse_coo_tensor(indices, values).to_dense()
 
-		B1, B2 = to_dense(scData.b1), to_dense(scData.b2)
-		X0, X1, X2 = scData.X0, scData.X1, scData.X2
+		B1, B2 = to_dense(scData.b1).to('cpu'), to_dense(scData.b2).to('cpu')
+		X0, X1, X2 = scData.X0.to('cpu'), scData.X1.to('cpu'), scData.X2.to('cpu')
 		label = scData.label
 
 		L0 = B1 @ B1.T
