@@ -43,6 +43,21 @@ class SimplicialObject:
 		self.label = label
 
 
+	def __eq__(self, other):
+		x0 = torch.allclose(self.X0, other.X0, atol = 1e-5)
+		x1 = torch.allclose(self.X1, other.X1, atol = 1e-5)
+		x2 = torch.allclose(self.X2, other.X2, atol = 1e-5)
+		l0 = torch.allclose(self.L0, other.L0, atol = 1e-5)
+		l1 = torch.allclose(self.L1, other.L1, atol = 1e-5)
+		l2 = torch.allclose(self.L2, other.L2, atol = 1e-5)
+		d1 = torch.allclose(self.B2D3, other.B2D3, atol = 1e-5)
+		d2 = torch.allclose(self.D2B1TD1inv, other.D2B1TD1inv, atol = 1e-5)
+		d3 = torch.allclose(self.D1invB1, other.D1invB1, atol = 1e-5)
+		d4 = torch.allclose(self.B2TD2inv, other.B2TD2inv, atol = 1e-5)
+		label = torch.allclose(self.label, other.label, atol = 1e-5)
+		return all([x0, x1, x2, l0, l1, l2, d1, d2, d3, d4, label])
+
+
 class SNNBunchProcessor(NNProcessor):
 
 	def process(self, scData):

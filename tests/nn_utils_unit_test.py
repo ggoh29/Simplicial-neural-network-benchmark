@@ -3,7 +3,6 @@ from dataset_processor.ImageProcessor import ProcessImage
 import torch
 from constants import TEST_MNIST_IMAGE_1, DEVICE
 from utils import tensor_to_sparse
-import numpy as np
 from dataset_processor.EdgeFlow import PixelBasedEdgeFlow, RAGBasedEdgeFlow
 from run_NN import test, train
 from torchvision import datasets

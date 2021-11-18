@@ -5,38 +5,67 @@ from dataset_processor.ImageProcessor import ProcessImage
 import torchvision.transforms as transforms
 from torchvision import datasets
 from tqdm import tqdm
+from models.GNN.GNNProcessor import GNNProcessor
+from models.SNN_Ebli.SNNEbliProcessor import SNNEbliProcessor
+from models.SNN_Bunch.SNNBunchProcessor import SNNBunchProcessor
 
 class MyTestCase(unittest.TestCase):
 
-    def test_collate_and_get_return_correct_scData_MNIST(self):
-        superpixel_size = 75
+    def test_collate_and_get_return_correct_graphObject_MNIST(self):
+        superpixel_size = 35
         range_size = 10000
+        dataset = datasets.MNIST
+        edgeFlow = PixelBasedEdgeFlow
+        train = False
+        processor_type = GNNProcessor()
 
-        train_data = SimplicialComplexDataset('./data', datasets.MNIST, superpixel_size, PixelBasedEdgeFlow, train=True)
-        mnist_images = datasets.MNIST(root='./data', train=True, download=True, transform=transforms.ToTensor())
+        train_data = SimplicialComplexDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=train)
+        mnist_images = datasets.MNIST(root='./data', train=train, download=True, transform=transforms.ToTensor())
         PI = ProcessImage(superpixel_size, PixelBasedEdgeFlow)
 
         for i in tqdm(range(range_size)):
-            scData_1 = train_data[i]
-            scData_2 = PI.image_to_features(mnist_images[i])
+            graphObject_1 = train_data[i]
+            graphObject_2 = processor_type.process(PI.image_to_features(mnist_images[i]))
 
-            self.assertTrue(scData_1 == scData_2)
+            self.assertTrue(graphObject_1 == graphObject_2)
 
 
-    def test_collate_and_get_return_correct_scData_CIFAR10(self):
-        superpixel_size = 75
-        range_size = 1000
+    def test_collate_and_get_return_correct_SimplicialObject_Ebli_MNIST(self):
+        superpixel_size = 35
+        range_size = 10000
+        dataset = datasets.MNIST
+        edgeFlow = PixelBasedEdgeFlow
+        train = False
+        processor_type = SNNEbliProcessor()
 
-        train_data = SimplicialComplexDataset('./data', datasets.CIFAR10, superpixel_size, PixelBasedEdgeFlow, train=True)
-        mnist_images = datasets.MNIST(root='./data', train=True, download=True, transform=transforms.ToTensor())
+        train_data = SimplicialComplexDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=train)
+        mnist_images = datasets.MNIST(root='./data', train=train, download=True, transform=transforms.ToTensor())
         PI = ProcessImage(superpixel_size, PixelBasedEdgeFlow)
 
         for i in tqdm(range(range_size)):
-            scData_1 = train_data[i]
-            scData_2 = PI.image_to_features(mnist_images[i])
+            simplicialObject_1 = train_data[i]
+            simplicialObject_2 = processor_type.process(PI.image_to_features(mnist_images[i]))
 
-            self.assertTrue(scData_1 == scData_2)
+            self.assertTrue(simplicialObject_1 == simplicialObject_2)
 
+
+    def test_collate_and_get_return_correct_SimplicialObject_Bunch_MNIST(self):
+        superpixel_size = 35
+        range_size = 10000
+        dataset = datasets.MNIST
+        edgeFlow = PixelBasedEdgeFlow
+        train = False
+        processor_type = SNNBunchProcessor()
+
+        train_data = SimplicialComplexDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=train)
+        mnist_images = datasets.MNIST(root='./data', train=train, download=True, transform=transforms.ToTensor())
+        PI = ProcessImage(superpixel_size, PixelBasedEdgeFlow)
+
+        for i in tqdm(range(range_size)):
+            simplicialObject_1 = train_data[i]
+            simplicialObject_2 = processor_type.process(PI.image_to_features(mnist_images[i]))
+
+            self.assertTrue(simplicialObject_1 == simplicialObject_2)
 
 
 if __name__ == '__main__':

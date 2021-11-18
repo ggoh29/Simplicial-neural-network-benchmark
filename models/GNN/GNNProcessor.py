@@ -15,6 +15,12 @@ class GraphObject:
 
 		self.label = label
 
+	def __eq__(self, other):
+		x0 = torch.allclose(self.X0, other.X0, atol = 1e-5)
+		L0 = torch.allclose(self.L0, other.L0, atol = 1e-5)
+		l0 = torch.allclose(self.label, other.label, atol = 1e-5)
+		return all([x0, L0, l0])
+
 
 class GNNProcessor(NNProcessor):
 
@@ -26,6 +32,7 @@ class GNNProcessor(NNProcessor):
 		label = scData.label
 
 		return GraphObject(X0, L0, label)
+
 
 	def collate(self, data_list):
 		X0 = []

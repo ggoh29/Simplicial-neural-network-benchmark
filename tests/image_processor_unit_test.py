@@ -4,7 +4,7 @@ from skimage.future import graph
 from skimage.segmentation import slic
 import numpy as np
 import networkx as nx
-from utils import triangle_to_edge_matrix, edge_to_node_matrix, tensor_to_dense
+from utils import triangle_to_edge_matrix, edge_to_node_matrix, tensor_to_sparse
 from constants import DEVICE, TEST_CIFAR10_IMAGE_1, TEST_MNIST_IMAGE_1, TEST_MNIST_IMAGE_2
 from dataset_processor.ImageProcessor import ProcessImage
 from dataset_processor.EdgeFlow import PixelBasedEdgeFlow
@@ -18,8 +18,8 @@ class MyTestCase(unittest.TestCase):
         nodes = [1, 2, 3, 4, 5]
         edges = [(1, 2), (1, 3), (2, 3), (2, 4), (3, 4), (3, 5), (4, 5)]
         triangles = [(2, 3, 4)]
-        sigma1 = edge_to_node_matrix(edges, nodes)
-        sigma2 = triangle_to_edge_matrix(triangles, edges)
+        b1 = edge_to_node_matrix(edges, nodes)
+        b2 = triangle_to_edge_matrix(triangles, edges)
 
         L0_actual = [[2, -1, -1, 0, 0],
                      [-1, 3, -1, -1, 0],
@@ -38,9 +38,9 @@ class MyTestCase(unittest.TestCase):
         L1_actual = torch.tensor(L1_actual, dtype=torch.float, device=DEVICE)
         L2_actual = torch.tensor([[3]], dtype=torch.float, device=DEVICE)
 
-        L0 = torch.matmul(sigma1, sigma1.t())
-        L1 = torch.matmul(sigma1.t(), sigma1) + torch.matmul(sigma2, sigma2.t())
-        L2 = torch.matmul(sigma2.t(), sigma2)
+        L0 = torch.matmul(b1, b1.t())
+        L1 = torch.matmul(b1.t(), b1) + torch.matmul(b2, b2.t())
+        L2 = torch.matmul(b2.t(), b2)
 
         self.assertTrue(torch.all(torch.eq(L0, L0_actual)).item())
         self.assertTrue(torch.all(torch.eq(L1, L1_actual)).item())
@@ -55,11 +55,11 @@ class MyTestCase(unittest.TestCase):
         image = np.array(image)
         superpixel = slic(image, n_segments=100, compactness=0.75, start_label=1)
         rag = graph.rag_mean_color(image, superpixel)
-        sigma1 = edge_to_node_matrix(rag.edges(), rag.nodes)
+        b1 = edge_to_node_matrix(rag.edges(), rag.nodes)
 
-        L0 = torch.matmul(sigma1, sigma1.T)
-        sigma1_coo = sigma1.to_sparse()
-        L0_coo = torch.sparse.mm(sigma1_coo, sigma1_coo.t())
+        L0 = torch.matmul(b1, b1.T)
+        b1_coo = b1.to_sparse()
+        L0_coo = torch.sparse.mm(b1_coo, b1_coo.t())
         L0_coo = L0_coo.to_dense()
         self.assertTrue(torch.all(torch.eq(L0, L0_coo)).item())
 
@@ -72,14 +72,14 @@ class MyTestCase(unittest.TestCase):
         rag = graph.rag_mean_color(image, superpixel)
         triangles = [*filter(lambda x: len(x) == 3, nx.enumerate_all_cliques(rag))]
 
-        sigma1 = edge_to_node_matrix(rag.edges(), rag.nodes)
-        sigma2 = triangle_to_edge_matrix(triangles, rag.edges)
+        b1 = edge_to_node_matrix(rag.edges(), rag.nodes)
+        b2 = triangle_to_edge_matrix(triangles, rag.edges)
 
-        sigma1_coo, sigma2_coo = sigma1.to_sparse(), sigma2.to_sparse()
+        b1_coo, b2_coo = b1.to_sparse(), b2.to_sparse()
 
-        L1= torch.matmul(sigma1.T, sigma1) + torch.matmul(sigma2, sigma2.T)
-        L1_coo = torch.sparse.FloatTensor.add(torch.sparse.mm(sigma1_coo.t(), sigma1_coo),
-                                                torch.sparse.mm(sigma2_coo, sigma2_coo.t()))
+        L1= torch.matmul(b1.T, b1) + torch.matmul(b2, b2.T)
+        L1_coo = torch.sparse.FloatTensor.add(torch.sparse.mm(b1_coo.t(), b1_coo),
+                                                torch.sparse.mm(b2_coo, b2_coo.t()))
 
         L1_coo = L1_coo.to_dense()
         self.assertTrue(torch.all(torch.eq(L1, L1_coo)).item())
@@ -93,9 +93,9 @@ class MyTestCase(unittest.TestCase):
         rag = graph.rag_mean_color(image, superpixel)
 
         # Ensuring this function works correctly
-        sigma1 = edge_to_node_matrix(rag.edges(), rag.nodes)
+        b1 = edge_to_node_matrix(rag.edges(), rag.nodes)
 
-        L0 = torch.matmul(sigma1, sigma1.T)
+        L0 = torch.matmul(b1, b1.T)
 
         D = [[0 for _ in range(len(rag.nodes))] for _ in range(len(rag.nodes))]
         D = torch.tensor(D, dtype=torch.float, device=DEVICE)
@@ -119,12 +119,12 @@ class MyTestCase(unittest.TestCase):
         superpixel = slic(image, n_segments=150, compactness=0.75, start_label=1)
         rag = graph.rag_mean_color(image, superpixel)
         triangles = [*filter(lambda x: len(x) == 3, nx.enumerate_all_cliques(rag))]
-        sigma1 = edge_to_node_matrix(rag.edges(), rag.nodes)
+        b1 = edge_to_node_matrix(rag.edges(), rag.nodes)
 
         # Ensuring this function works correctly
-        sigma2 = triangle_to_edge_matrix(triangles, rag.edges)
+        b2 = triangle_to_edge_matrix(triangles, rag.edges)
 
-        L1 = torch.matmul(sigma1.T, sigma1) + torch.matmul(sigma2, sigma2.T)
+        L1 = torch.matmul(b1.T, b1) + torch.matmul(b2, b2.T)
 
         I_1 = torch.eye(len(rag.edges)) * 2
 
@@ -189,8 +189,8 @@ class MyTestCase(unittest.TestCase):
 
         image = np.array(image)
 
-        sigma1 = tensor_to_dense(scData.sigma1)
-        L0 = torch.sparse.mm(sigma1, sigma1.t()).to_dense()
+        b1 = tensor_to_sparse(scData.b1)
+        L0 = torch.sparse.mm(b1, b1.t()).to_dense()
 
         superpixel = slic(image, n_segments=sp_size, compactness=1, start_label=1)
         nodes, edges, triangles, node_features = flow.convert_graph(image, superpixel)
@@ -231,9 +231,9 @@ class MyTestCase(unittest.TestCase):
 
         image = np.array(image)
 
-        sigma1 = tensor_to_dense(scData.sigma1)
-        sigma2 = tensor_to_dense(scData.sigma2)
-        L1 = torch.sparse.FloatTensor.add(torch.sparse.mm(sigma1.t(), sigma1), torch.sparse.mm(sigma2, sigma2.t())).to_dense()
+        b1 = tensor_to_sparse(scData.b1)
+        b2 = tensor_to_sparse(scData.b2)
+        L1 = torch.sparse.FloatTensor.add(torch.sparse.mm(b1.t(), b1), torch.sparse.mm(b2, b2.t())).to_dense()
 
         superpixel = slic(image, n_segments=sp_size, compactness=1, start_label=1)
         nodes, edges, triangles, node_features = flow.convert_graph(image, superpixel)
@@ -342,19 +342,6 @@ class MyTestCase(unittest.TestCase):
 
         self.assertTrue(all(results))
 
-
-    def test_bunch(self):
-        from models.SNN_Bunch.model_B import SNN_Bunch
-        sp_size = 25
-        flow = PixelBasedEdgeFlow
-
-        image = TEST_MNIST_IMAGE_2
-        image = torch.tensor(image, dtype=torch.float, device=DEVICE)
-
-        PI = ProcessImage(sp_size, flow)
-        scData = PI.image_to_features((image, 0))
-        s = SNN_Bunch(5,10,15,10)
-        s._normalised_scData_to_Lapacian(scData)
 
 if __name__ == '__main__':
     unittest.main()
