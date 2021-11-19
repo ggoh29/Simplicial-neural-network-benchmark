@@ -34,8 +34,8 @@ class SimplicialComplexDataset(InMemoryDataset):
 		self.train_str = {True : "train", False : "test"}[train]
 		self.train = train
 
-		name = f"{dataset_dct[dataset_name]}_{superpix_size}_{edgeflow_type.__name__}_{processor_type.__class__.__name__}/{self.train_str}"
-		folder = f"{root}/{name}"
+		self.name = f"{dataset_dct[dataset_name]}_{superpix_size}_{edgeflow_type.__name__}_{processor_type.__class__.__name__}"
+		folder = f"{root}/{self.name}/{self.train_str}"
 
 		self.processor_type = processor_type
 		self.ImageProcessor = ProcessImage(superpix_size, edgeflow_type)
@@ -62,8 +62,8 @@ class SimplicialComplexDataset(InMemoryDataset):
 		# Instantiating this will download and process the graph dataset_processor.
 		self.data_download = self.dataset(root='./data', train=self.train, download=True,
 										  transform=transforms.ToTensor())
-		self.data_download = [*sorted(self.data_download, key=lambda i: i[1])][:2 * (len(self.data_download) // 5)]
-		self.data_download = make_smaller_dataset_4_classes(self.data_download)
+		# self.data_download = [*sorted(self.data_download, key=lambda i: i[1])][:2 * (len(self.data_download) // 5)]
+		# self.data_download = make_smaller_dataset_4_classes(self.data_download)
 
 	@property
 	def processed_file_names(self):
@@ -81,4 +81,7 @@ class SimplicialComplexDataset(InMemoryDataset):
 
 	def __getitem__(self, idx):
 		return self.processor_type.get(self.data, self.slices, idx)
+
+	def get_name(self):
+		return self.name
 

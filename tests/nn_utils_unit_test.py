@@ -102,10 +102,10 @@ class MyTestCase(unittest.TestCase):
 		individual_dataset = DataLoader(data, batch_size=1, collate_fn=processor_type.batch, num_workers=4,
 															 shuffle=False)
 
-		batched_predictions = test(GNN, batched_dataset, processor_type)
+		batched_predictions, _ = test(GNN, batched_dataset, processor_type)
 		batched_predictions = torch.cat(batched_predictions, dim = 0)
 
-		individual_predictions = test(GNN, individual_dataset, processor_type)
+		individual_predictions, _ = test(GNN, individual_dataset, processor_type)
 		individual_predictions = torch.cat(individual_predictions, dim = 0)
 
 		result = torch.allclose(individual_predictions, batched_predictions, atol = 1e-5)
@@ -128,10 +128,10 @@ class MyTestCase(unittest.TestCase):
 		individual_dataset = DataLoader(data, batch_size=1, collate_fn=processor_type.batch, num_workers=4,
 															 shuffle=False)
 
-		batched_predictions = test(GNN, batched_dataset, processor_type)
+		batched_predictions, _ = test(GNN, batched_dataset, processor_type)
 		batched_predictions = torch.cat(batched_predictions, dim = 0)
 
-		individual_predictions = test(GNN, individual_dataset, processor_type)
+		individual_predictions, _ = test(GNN, individual_dataset, processor_type)
 		individual_predictions = torch.cat(individual_predictions, dim = 0)
 
 		result = torch.allclose(individual_predictions, batched_predictions, atol = 1e-5)
@@ -153,15 +153,11 @@ class MyTestCase(unittest.TestCase):
 		individual_dataset = DataLoader(data, batch_size=1, collate_fn=processor_type.batch, num_workers=4,
 															 shuffle=False)
 
-		batched_predictions = test(GNN, batched_dataset, processor_type)
+		batched_predictions, _ = test(GNN, batched_dataset, processor_type)
 		batched_predictions = torch.cat(batched_predictions, dim = 0)
 
-		individual_predictions = test(GNN, individual_dataset, processor_type)
+		individual_predictions, _ = test(GNN, individual_dataset, processor_type)
 		individual_predictions = torch.cat(individual_predictions, dim = 0)
-
-		print(batched_predictions)
-
-		print(individual_predictions)
 
 		result = torch.allclose(individual_predictions, batched_predictions, atol = 1e-5)
 

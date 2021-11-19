@@ -1,3 +1,5 @@
+import time
+
 import torch
 from constants import DEVICE
 
@@ -7,7 +9,9 @@ def convert_to_device(lst):
 def train(NN, epoch_size, dataloader, optimizer, criterion, processor_type):
 	NN.train()
 	train_running_loss = 0
+	t = 0
 	for epoch in range(epoch_size):
+		t1 = time.perf_counter()
 		epoch_train_running_loss = 0
 		train_acc = 0
 		i = 0
@@ -23,12 +27,16 @@ def train(NN, epoch_size, dataloader, optimizer, criterion, processor_type):
 			epoch_train_running_loss += loss.detach().item()
 			train_acc += (torch.argmax(prediction, 1).flatten() == train_labels).type(torch.float).mean().item()
 			i += 1
-
+		t2 = time.perf_counter()
+		t = (t * epoch + (t2 - t1)) / (epoch + 1)
 		epoch_train_running_loss /= i
 		train_running_loss = (train_running_loss * epoch + epoch_train_running_loss) / (epoch + 1)
 		print(
 			f"Epoch {epoch} | Train running loss {train_running_loss} "
 			f"| Loss {epoch_train_running_loss} | Train accuracy {train_acc / i}")
+		epoch_loss = epoch_train_running_loss
+		acc = train_acc / i
+	return t, train_running_loss, epoch_loss, acc
 
 
 def test(NN, dataloader, processor_type):
@@ -48,4 +56,4 @@ def test(NN, dataloader, processor_type):
 			i += 1
 
 	print(f"Test accuracy of {test_acc / i}")
-	return predictions
+	return predictions, (test_acc / i)
