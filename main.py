@@ -22,6 +22,8 @@ edgeFlow = PixelBasedEdgeFlow
 # edgeFlow = RAGBasedEdgeFlow
 # edgeFlow = RandomBasedEdgeFlow
 
+print(DEVICE)
+
 # processor_type = GNNProcessor()
 # processor_type = SNNEbliProcessor()
 processor_type = SNNBunchProcessor()
