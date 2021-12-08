@@ -2,6 +2,7 @@ import unittest
 from dataset_processor.ImageProcessor import ProcessImage
 import torch
 from constants import TEST_MNIST_IMAGE_1, DEVICE
+DEVICE = 'cpu'
 from utils import tensor_to_sparse
 from dataset_processor.EdgeFlow import PixelBasedEdgeFlow, RAGBasedEdgeFlow
 from run_NN import test, train

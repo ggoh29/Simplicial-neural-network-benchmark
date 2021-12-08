@@ -14,7 +14,10 @@ class GCN(nn.Module):
         self.conv1 = GCNConv(input_size, f_size)
         self.conv2 = GCNConv(f_size, f_size)
         self.conv3 = GCNConv(f_size, f_size)
-        self.layer = nn.Linear(f_size, output_size)
+        self.layer1 = nn.Linear(f_size, output_size)
+        self.layer2 = nn.Linear(f_size, output_size)
+        self.layer3 = nn.Linear(f_size, output_size)
+        self.layer_final = nn.Linear(3 * output_size, output_size)
 
     def forward(self, feature_dct):
         L, X, batch = unpack_feature_dct_to_L_X_B(feature_dct)
@@ -28,8 +31,13 @@ class GCN(nn.Module):
         x2 = F.relu(self.conv2(x1, adjacency, weights))
         x3 = F.relu(self.conv3(x2, adjacency, weights))
 
-        x = global_mean_pool((x1 + x2 + x3)/3, batch[0])
-        return F.softmax(self.layer(x), dim = 1)
+        x1 = self.layer1(global_mean_pool(x1, batch[0]))
+        x2 = self.layer2(global_mean_pool(x2, batch[0]))
+        x3 = self.layer3(global_mean_pool(x3, batch[0]))
+
+        x = torch.cat([x1, x2, x3], dim = 1)
+
+        return F.softmax(self.layer_final(x), dim = 1)
 
 
 

@@ -21,8 +21,8 @@ def chebyshev(L, X, k=3):
     return torch.cat(dp, dim=1)
 
 def torch_sparse_to_scipy_sparse(matrix):
-    i = matrix.coalesce().indices()
-    v = matrix.coalesce().values()
+    i = matrix.coalesce().indices().cpu()
+    v = matrix.coalesce().values().cpu()
 
     (m, n) = matrix.shape[0], matrix.shape[1]
     return coo_matrix((v, i), shape=(m, n))

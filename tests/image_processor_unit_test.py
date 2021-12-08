@@ -5,7 +5,8 @@ from skimage.segmentation import slic
 import numpy as np
 import networkx as nx
 from utils import triangle_to_edge_matrix, edge_to_node_matrix, tensor_to_sparse
-from constants import DEVICE, TEST_CIFAR10_IMAGE_1, TEST_MNIST_IMAGE_1, TEST_MNIST_IMAGE_2
+from constants import TEST_CIFAR10_IMAGE_1, TEST_MNIST_IMAGE_1, TEST_MNIST_IMAGE_2
+DEVICE = torch.device('cpu')
 from dataset_processor.ImageProcessor import ProcessImage
 from dataset_processor.EdgeFlow import PixelBasedEdgeFlow
 from skimage import color
@@ -38,9 +39,9 @@ class MyTestCase(unittest.TestCase):
         L1_actual = torch.tensor(L1_actual, dtype=torch.float, device=DEVICE)
         L2_actual = torch.tensor([[3]], dtype=torch.float, device=DEVICE)
 
-        L0 = torch.matmul(b1, b1.t())
-        L1 = torch.matmul(b1.t(), b1) + torch.matmul(b2, b2.t())
-        L2 = torch.matmul(b2.t(), b2)
+        L0 = torch.matmul(b1, b1.t()).cpu()
+        L1 = torch.matmul(b1.t(), b1).cpu() + torch.matmul(b2, b2.t()).cpu()
+        L2 = torch.matmul(b2.t(), b2).cpu()
 
         self.assertTrue(torch.all(torch.eq(L0, L0_actual)).item())
         self.assertTrue(torch.all(torch.eq(L1, L1_actual)).item())
