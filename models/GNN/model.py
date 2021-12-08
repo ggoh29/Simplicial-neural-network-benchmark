@@ -23,13 +23,13 @@ class GCN(nn.Module):
         L, X, batch = unpack_feature_dct_to_L_X_B(feature_dct)
 
         adjacency = L[0].coalesce().indices()
-        weights = torch.abs(L[0].coalesce().values())
+        # weights = torch.abs(L[0].coalesce().values())
         # features = chebyshev(L[0], X[0])
         features = X[0]
 
-        x1 = F.relu(self.conv1(features, adjacency, weights))
-        x2 = F.relu(self.conv2(x1, adjacency, weights))
-        x3 = F.relu(self.conv3(x2, adjacency, weights))
+        x1 = F.relu(self.conv1(features, adjacency))
+        x2 = F.relu(self.conv2(x1, adjacency))
+        x3 = F.relu(self.conv3(x2, adjacency))
 
         x1 = self.layer1(global_mean_pool(x1, batch[0]))
         x2 = self.layer2(global_mean_pool(x2, batch[0]))
