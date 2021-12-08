@@ -15,7 +15,7 @@ import numpy as np
 from datetime import timedelta
 
 batch_size = 8
-superpixel_size = 25
+superpixel_size = 50
 dataset = datasets.MNIST
 # dataset = datasets.CIFAR10
 edgeFlow = PixelBasedEdgeFlow
@@ -24,27 +24,29 @@ edgeFlow = PixelBasedEdgeFlow
 
 print(DEVICE)
 
-# processor_type = GNNProcessor()
+processor_type = GNNProcessor()
 # processor_type = SNNEbliProcessor()
-processor_type = SNNBunchProcessor()
-output_size = 2
+# processor_type = SNNBunchProcessor()
+output_size = 4
+output_suffix = 0
 if __name__ == "__main__":
 
-    GNN = SNN_Bunch(5, 10, 15, output_size).to(DEVICE)
+    # GNN = SNN_Bunch(5, 10, 15, output_size).to(DEVICE)
     # GNN = SNN_Ebli(5, 10, 15, output_size).to(DEVICE)
     # GNN = GCN(5, output_size).to(DEVICE)
-    # GNN = GAT(5, output_size).to(DEVICE)
+    GNN = GAT(5, output_size).to(DEVICE)
     model_parameters = filter(lambda p: p.requires_grad, GNN.parameters())
     params = sum([np.prod(p.size()) for p in model_parameters])
+    # print(params)
 
     train_data = SimplicialComplexDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=True)
     train_dataset = DataLoader(train_data, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=4, shuffle=True)
-    write_file_name = f"./results/{train_data.get_name()}"
+    write_file_name = f"./results/{train_data.get_name()}_{output_suffix}"
 
     optimizer = torch.optim.Adam(GNN.parameters(), lr=0.001, weight_decay=5e-4)
     criterion = torch.nn.CrossEntropyLoss()
 
-    average_time, loss, final_loss, train_acc = train(GNN, 10, train_dataset, optimizer, criterion, processor_type)
+    average_time, loss, final_loss, train_acc = train(GNN, 100, train_dataset, optimizer, criterion, processor_type)
     del train_data
     del train_dataset
 
