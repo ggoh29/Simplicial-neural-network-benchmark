@@ -68,21 +68,21 @@ class GATLayer(nn.Module):
 
     def __init__(self, input_size, output_size):
         super().__init__()
-        self.a = nn.Linear(2 * output_size, 1)
+        self.a_1 = nn.Linear(output_size, 1)
+        self.a_2 = nn.Linear(output_size, 1)
         self.layer = nn.Linear(input_size, output_size)
 
-    def forward(self, features, edgelist):
-        features = self.layer(features)
-        n = torch.max(edgelist).item() + 1
+    def forward(self, features, adj):
+        features = self.layer(features).detach()
 
-        src = features.unsqueeze(0).expand(n, -1, -1)
-        tgt = features.unsqueeze(1).expand(-1, n, -1)
-        h = torch.cat([src,tgt],dim=2)
+        a_1 = self.a_1(features)
+        a_2 = self.a_2(features)
+        e = (a_1 + a_2.T)
 
-        attention = self.a(h).squeeze(2)
-        # attention = F.normalize(attention, dim = 1)
-        attention = F.softmin(attention, dim = 1)
-        print(attention)
+        zero_vec = -1e16 * torch.ones_like(e)
+        attention = torch.where(adj > 0, e, zero_vec)
+
+        attention = F.softmax(attention, dim = 1)
         return torch.matmul(attention, features)
 
 
@@ -90,7 +90,7 @@ class GAT1(nn.Module):
     def __init__(self, input_size, output_size):
         super().__init__()
 
-        f_size = 6
+        f_size = 64
         self.gat1 = GATLayer(input_size, f_size)
         self.gat2 = GATLayer(f_size, f_size)
         self.gat3 = GATLayer(f_size, f_size)
@@ -99,9 +99,12 @@ class GAT1(nn.Module):
     def forward(self, features_dct):
         L, X, batch = unpack_feature_dct_to_L_X_B(features_dct)
 
-        adjacency = L[0].coalesce().indices()
+        edgelist = L[0].coalesce().indices()
         # weights = torch.abs(L[0].coalesce().values())
         features = X[0]
+
+        n = edgelist.shape[1]
+        adjacency = torch.sparse_coo_tensor(edgelist, torch.ones(n)).to_dense()
 
         x1 = F.relu(self.gat1(features, adjacency))
         x2 = F.relu(self.gat2(x1, adjacency))

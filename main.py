@@ -15,7 +15,7 @@ import numpy as np
 from datetime import timedelta
 
 batch_size = 8
-superpixel_size = 25
+superpixel_size = 50
 dataset = datasets.MNIST
 # dataset = datasets.CIFAR10
 edgeFlow = PixelBasedEdgeFlow
@@ -25,7 +25,7 @@ edgeFlow = PixelBasedEdgeFlow
 processor_type = GNNProcessor()
 # processor_type = SNNEbliProcessor()
 # processor_type = SNNBunchProcessor()
-output_size = 2
+output_size = 4
 output_suffix = 0
 if __name__ == "__main__":
 
