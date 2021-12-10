@@ -16,6 +16,12 @@ def tensor_to_sparse(matrix):
     return torch.sparse_coo_tensor(indices, values)
 
 
+def ensure_input_is_tensor(input):
+    if input.is_sparse:
+        input = sparse_to_tensor(input)
+    return input
+
+
 def edge_to_node_matrix(edges, nodes):
     sigma1 = torch.tensor([[0 for _ in edges] for _ in nodes], dtype=torch.float, device=DEVICE)
     j = 0

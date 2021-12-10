@@ -62,8 +62,8 @@ class SimplicialComplexDataset(InMemoryDataset):
 		# Instantiating this will download and process the graph dataset_processor.
 		self.data_download = self.dataset(root='./data', train=self.train, download=True,
 										  transform=transforms.ToTensor())
-		self.data_download = [*sorted(self.data_download, key=lambda i: i[1])][:(len(self.data_download) // 5)]
-		self.data_download = make_smaller_dataset_2_classes(self.data_download)
+		# self.data_download = [*sorted(self.data_download, key=lambda i: i[1])][:2 * (len(self.data_download) // 5)]
+		# self.data_download = make_smaller_dataset_4_classes(self.data_download)
 
 	@property
 	def processed_file_names(self):

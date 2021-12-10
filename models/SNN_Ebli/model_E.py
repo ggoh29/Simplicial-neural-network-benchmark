@@ -19,7 +19,7 @@ class SCNLayer(nn.Module):
 class SNN_Ebli(nn.Module):
     # This model is based on model described by Stefanie Ebli et al. in Simplicial Neural Networks
     # Github here https://github.com/stefaniaebli/simplicial_neural_networks?utm_source=catalyzex.com
-    def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_dim, bias = True):
+    def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size, bias = True):
         super().__init__()
 
         conv_size = 32
@@ -27,19 +27,19 @@ class SNN_Ebli(nn.Module):
         # Degree 0 convolutions.
         self.C0_1 = SCNLayer(num_node_feats, conv_size, enable_bias = bias)
         self.C0_2 = SCNLayer(conv_size, conv_size, enable_bias = bias)
-        self.C0_3 = SCNLayer(conv_size, output_dim, enable_bias = bias)
+        self.C0_3 = SCNLayer(conv_size, output_size, enable_bias = bias)
 
         # Degree 1 convolutions.
         self.C1_1 = SCNLayer(num_edge_feats, conv_size, enable_bias = bias)
         self.C1_2 = SCNLayer(conv_size, conv_size, enable_bias = bias)
-        self.C1_3 = SCNLayer(conv_size, output_dim, enable_bias = bias)
+        self.C1_3 = SCNLayer(conv_size, output_size, enable_bias = bias)
 
         # Degree 2 convolutions.
         self.C2_1 = SCNLayer(num_triangle_feats, conv_size, enable_bias = bias)
         self.C2_2 = SCNLayer(conv_size, conv_size, enable_bias = bias)
-        self.C2_3 = SCNLayer(conv_size, output_dim, enable_bias = bias)
+        self.C2_3 = SCNLayer(conv_size, output_size, enable_bias = bias)
 
-        self.layer = nn.Linear(output_dim * 3, output_dim)
+        self.layer = nn.Linear(output_size * 3, output_size)
 
 
     def forward(self, features_dct):

@@ -3,8 +3,7 @@ import torch.nn as nn
 from torch_geometric.nn import GCNConv, GATConv
 from torch_geometric.nn import global_mean_pool
 import torch.nn.functional as F
-from models.nn_utils import chebyshev, unpack_feature_dct_to_L_X_B
-from constants import DEVICE
+from models.nn_utils import unpack_feature_dct_to_L_X_B
 
 class GCNLayer(nn.Module):
     def __init__(self, feature_size, output_size, enable_bias = True):
@@ -104,7 +103,6 @@ class GATLayer(nn.Module):
         super().__init__()
         self.a_1 = nn.Linear(output_size, 1)
         self.a_2 = nn.Linear(output_size, 1)
-        # self.a = nn.Linear(2 * input_size, 1)
         self.layer = nn.Linear(input_size, output_size)
 
     def forward(self, features, adj):

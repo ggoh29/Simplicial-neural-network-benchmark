@@ -1,4 +1,4 @@
-from utils import sparse_to_tensor
+from utils import sparse_to_tensor, ensure_input_is_tensor
 import torch
 from models.nn_utils import to_sparse_coo
 from models.ProcessorTemplate import NNProcessor
@@ -9,9 +9,7 @@ class GraphObject:
 	def __init__(self, X0, L0, label):
 		self.X0 = X0
 
-		if L0.is_sparse:
-			L0 = sparse_to_tensor(L0)
-		self.L0 = L0
+		self.L0 = ensure_input_is_tensor(L0)
 
 		self.label = label
 
