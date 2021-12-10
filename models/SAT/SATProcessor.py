@@ -113,6 +113,10 @@ class SATProcessor(NNProcessor):
             slices["L1_down"].append(l1_d_total)
             slices["L2"].append(l2_total)
 
+            del data
+
+        del data_list
+
         X0 = torch.cat(X0, dim=0).to('cpu')
         X1 = torch.cat(X1, dim=0).to('cpu')
         X2 = torch.cat(X2, dim=0).to('cpu')

@@ -4,6 +4,7 @@ from torch_geometric.nn import global_mean_pool
 import torch.nn.functional as F
 from models.nn_utils import unpack_feature_dct_to_L_X_B
 import functools
+from constants import DEVICE
 
 
 class SATLayer(nn.Module):
@@ -19,18 +20,23 @@ class SATLayer(nn.Module):
         n = features.size()[0]
         features = self.layer(features)
 
+        indices = adj.coalesce().indices()
+        values = adj.coalesce().values()
+
         a_1 = self.a_1(features)
         a_2 = self.a_2(features)
 
-        e = (a_1 + a_2.T)
+        v = torch.tensor([a_1[i.item()] + a_2[j.item()] for i,j in zip(indices[0], indices[1])], dtype=torch.float, device=DEVICE)
+        v = nn.LeakyReLU()(v)
+        e1 = torch.sparse_coo_tensor(indices, v)
+        attention = torch.sparse.softmax(e1, dim = 1)
+        attr = torch.stack([features for _ in range(n)], dim=0)
 
-        zero_vec = -1e16 * torch.ones_like(e)
-        attention = torch.where(adj > 0, e, zero_vec)
-        attention = F.softmax(nn.LeakyReLU()(attention), dim = 1).unsqueeze(2)
+        attr_sparse = attr[indices[0, :], indices[1, :]]
+        attr_sparse = attention.coalesce().values().unsqueeze(dim = 1) * attr_sparse
+        attr_sparse = torch.sparse_coo_tensor(indices, attr_sparse)
+        output = torch.sparse.sum(attr_sparse, dim = 1).to_dense()
 
-        attr = torch.stack([features for _ in range(n)], dim = 0)
-        output = attr * attention
-        output = output.sum(dim = 1)
         return output
 
 
@@ -60,7 +66,7 @@ class SAT(nn.Module):
         X0, X1, _, X2 = X
         L0, L1_u, L1_d, L2 = L
         batch0, batch1, _, batch2 = batch
-        L0, L1_u, L1_d, L2 = L0.to_dense(), L1_u.to_dense(), L1_d.to_dense(), L2.to_dense()
+        # L0, L1_u, L1_d, L2 = L0.to_dense(), L1_u.to_dense(), L1_d.to_dense(), L2.to_dense()
         l1 = [L1_u, L1_d]
 
         x0_1 = F.relu(torch.cat([sat(X0, L0) for sat in self.layer0_1], dim = 1))

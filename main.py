@@ -62,9 +62,12 @@ def run(processor_type, NN, output_suffix):
 
 if __name__ == "__main__":
     NN_list = [gnn, Ebli_nn, Bunch_nn, sat_nn]
-    for output_suffix in range(10):
-        for processor_type, NN in NN_list:
-            run(processor_type, NN, output_suffix)
+    processor_type, NN = NN_list[3]
+    output_suffix = 0
+    run(processor_type, NN.to(DEVICE), output_suffix)
+    # for output_suffix in range(5):
+    #     for processor_type, NN in NN_list:
+    #         run(processor_type, NN.to(DEVICE), output_suffix)
 
 
 
