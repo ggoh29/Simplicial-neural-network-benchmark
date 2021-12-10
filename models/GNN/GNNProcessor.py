@@ -42,8 +42,7 @@ class GNNProcessor(NNProcessor):
 		X0_total = 0
 		L0_total = 0
 
-		slices = {"X0": [0],
-							"L0": [0]}
+		slices = {"X0": [0], "L0": [0]}
 
 		for data in data_list:
 			x0 = data.X0

@@ -5,8 +5,8 @@ import torch.nn.functional as F
 from models.nn_utils import chebyshev, unpack_feature_dct_to_L_X_B
 
 
-class SCN(nn.Module):
-    def __init__(self, feature_size, output_size, enable_bias = True, k = 1):
+class SCNLayer(nn.Module):
+    def __init__(self, feature_size, output_size, enable_bias = True, k = 2):
         super().__init__()
         self.k = k
         self.conv = nn.Linear(k * feature_size, output_size, bias = enable_bias)
@@ -25,19 +25,19 @@ class SNN_Ebli(nn.Module):
         conv_size = 32
 
         # Degree 0 convolutions.
-        self.C0_1 = SCN(num_node_feats, conv_size, enable_bias = bias)
-        self.C0_2 = SCN(conv_size, conv_size, enable_bias = bias)
-        self.C0_3 = SCN(conv_size, output_dim, enable_bias = bias)
+        self.C0_1 = SCNLayer(num_node_feats, conv_size, enable_bias = bias)
+        self.C0_2 = SCNLayer(conv_size, conv_size, enable_bias = bias)
+        self.C0_3 = SCNLayer(conv_size, output_dim, enable_bias = bias)
 
         # Degree 1 convolutions.
-        self.C1_1 = SCN(num_edge_feats, conv_size, enable_bias = bias)
-        self.C1_2 = SCN(conv_size, conv_size, enable_bias = bias)
-        self.C1_3 = SCN(conv_size, output_dim, enable_bias = bias)
+        self.C1_1 = SCNLayer(num_edge_feats, conv_size, enable_bias = bias)
+        self.C1_2 = SCNLayer(conv_size, conv_size, enable_bias = bias)
+        self.C1_3 = SCNLayer(conv_size, output_dim, enable_bias = bias)
 
         # Degree 2 convolutions.
-        self.C2_1 = SCN(num_triangle_feats, conv_size, enable_bias = bias)
-        self.C2_2 = SCN(conv_size, conv_size, enable_bias = bias)
-        self.C2_3 = SCN(conv_size, output_dim, enable_bias = bias)
+        self.C2_1 = SCNLayer(num_triangle_feats, conv_size, enable_bias = bias)
+        self.C2_2 = SCNLayer(conv_size, conv_size, enable_bias = bias)
+        self.C2_3 = SCNLayer(conv_size, output_dim, enable_bias = bias)
 
         self.layer = nn.Linear(output_dim * 3, output_dim)
 

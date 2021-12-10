@@ -1,7 +1,7 @@
 from dataset_processor.SuperpixelLoader import SimplicialComplexDataset
 from dataset_processor.EdgeFlow import PixelBasedEdgeFlow, RandomBasedEdgeFlow, RAGBasedEdgeFlow
 from torch.utils.data import DataLoader
-from models.GNN.model import GCN, GAT, GAT1
+from models.GNN.model import GCN, GCN1, GAT, GAT1
 from models.GNN.GNNProcessor import GNNProcessor
 from models.SNN_Ebli.model_E import SNN_Ebli
 from models.SNN_Ebli.SNNEbliProcessor import SNNEbliProcessor
@@ -31,7 +31,7 @@ if __name__ == "__main__":
 
     # GNN = SNN_Bunch(5, 10, 15, output_size).to(DEVICE)
     # GNN = SNN_Ebli(5, 10, 15, output_size).to(DEVICE)
-    # GNN = GCN(5, output_size).to(DEVICE)
+    # GNN = GCN1(5, output_size).to(DEVICE)
     GNN = GAT1(5, output_size).to(DEVICE)
     model_parameters = filter(lambda p: p.requires_grad, GNN.parameters())
     params = sum([np.prod(p.size()) for p in model_parameters])
@@ -44,7 +44,7 @@ if __name__ == "__main__":
     optimizer = torch.optim.Adam(GNN.parameters(), lr=0.001, weight_decay=5e-4)
     criterion = torch.nn.CrossEntropyLoss()
 
-    average_time, loss, final_loss, train_acc = train(GNN, 100, train_dataset, optimizer, criterion, processor_type)
+    average_time, loss, final_loss, train_acc = train(GNN, 10, train_dataset, optimizer, criterion, processor_type)
     del train_data
     del train_dataset
 
