@@ -1,6 +1,6 @@
 import torch
 from models.ProcessorTemplate import NNProcessor
-from utils import sparse_to_tensor
+from utils import sparse_to_tensor, ensure_input_is_tensor
 from models.nn_utils import to_sparse_coo
 from models.nn_utils import batch_all_feature_and_lapacian_pair, convert_indices_and_values_to_sparse, normalise
 
@@ -12,17 +12,9 @@ class SimplicialObject:
 		self.X2 = X2
 
 		# L0, L1 and L2 can either be sparse or dense but since python doesn't really have overloading, doing this instead
-		if L0.is_sparse:
-			L0 = sparse_to_tensor(L0)
-		self.L0 = L0
-
-		if L1.is_sparse:
-			L1 = sparse_to_tensor(L1)
-		self.L1 = L1
-
-		if L2.is_sparse:
-			L2 = sparse_to_tensor(L2)
-		self.L2 = L2
+		self.L0 = ensure_input_is_tensor(L0)
+		self.L1 = ensure_input_is_tensor(L1)
+		self.L2 = ensure_input_is_tensor(L2)
 
 		self.label = label
 

@@ -6,10 +6,10 @@ import numpy as np
 import networkx as nx
 from utils import triangle_to_edge_matrix, edge_to_node_matrix, tensor_to_sparse
 from constants import TEST_CIFAR10_IMAGE_1, TEST_MNIST_IMAGE_1, TEST_MNIST_IMAGE_2
-DEVICE = torch.device('cpu')
 from dataset_processor.ImageProcessor import ProcessImage
 from dataset_processor.EdgeFlow import PixelBasedEdgeFlow
 from skimage import color
+from constants import DEVICE
 
 class MyTestCase(unittest.TestCase):
 
@@ -39,9 +39,9 @@ class MyTestCase(unittest.TestCase):
         L1_actual = torch.tensor(L1_actual, dtype=torch.float, device=DEVICE)
         L2_actual = torch.tensor([[3]], dtype=torch.float, device=DEVICE)
 
-        L0 = torch.matmul(b1, b1.t()).cpu()
-        L1 = torch.matmul(b1.t(), b1).cpu() + torch.matmul(b2, b2.t()).cpu()
-        L2 = torch.matmul(b2.t(), b2).cpu()
+        L0 = torch.matmul(b1, b1.t())
+        L1 = torch.matmul(b1.t(), b1) + torch.matmul(b2, b2.t())
+        L2 = torch.matmul(b2.t(), b2)
 
         self.assertTrue(torch.all(torch.eq(L0, L0_actual)).item())
         self.assertTrue(torch.all(torch.eq(L1, L1_actual)).item())
@@ -107,6 +107,7 @@ class MyTestCase(unittest.TestCase):
         G = nx.Graph()
         G.add_edges_from(rag.edges)
         A = nx.adjacency_matrix(G, nodelist=range(1, len(rag.nodes)+1)).todense()
+        A = torch.tensor(A, dtype=torch.float, device=DEVICE)
 
         L0_test = D - A
 
@@ -126,8 +127,9 @@ class MyTestCase(unittest.TestCase):
         b2 = triangle_to_edge_matrix(triangles, rag.edges)
 
         L1 = torch.matmul(b1.T, b1) + torch.matmul(b2, b2.T)
+        L1 = L1.to(DEVICE)
 
-        I_1 = torch.eye(len(rag.edges)) * 2
+        I_1 = (torch.eye(len(rag.edges)) * 2).to(DEVICE)
 
         A_lower = [[0 for _ in range(len(rag.edges))] for _ in range(len(rag.edges))]
         A_lower = torch.tensor(A_lower, dtype=torch.float, device=DEVICE)
@@ -175,6 +177,7 @@ class MyTestCase(unittest.TestCase):
                     A_upper[edges[face1[::-1]]][edges[face2[::-1]]] += 1
 
         L1_test = D - A_upper + I_1 + A_lower
+        L1_test = L1_test.to(DEVICE)
 
         self.assertTrue(torch.all(torch.eq(L1, L1_test)).item())
 
@@ -185,7 +188,7 @@ class MyTestCase(unittest.TestCase):
 
         PI = ProcessImage(sp_size, flow)
         image = TEST_MNIST_IMAGE_2
-        image = torch.tensor(image, dtype=torch.float, device=DEVICE)
+        image = torch.tensor(image, dtype=torch.float, device='cpu')
         scData = PI.image_to_features((image, 0))
 
         image = np.array(image)
@@ -215,6 +218,7 @@ class MyTestCase(unittest.TestCase):
         G = nx.Graph()
         G.add_edges_from(edges)
         A = nx.adjacency_matrix(G, nodelist=range(1, len(nodes)+1)).todense()
+        A = torch.tensor(A, dtype=torch.float, device=DEVICE)
 
         L0_test = D - A
 
@@ -225,7 +229,7 @@ class MyTestCase(unittest.TestCase):
         flow = PixelBasedEdgeFlow
 
         image = TEST_MNIST_IMAGE_2
-        image = torch.tensor(image, dtype=torch.float, device=DEVICE)
+        image = torch.tensor(image, dtype=torch.float, device='cpu')
 
         PI = ProcessImage(sp_size, flow)
         scData = PI.image_to_features((image, 0))
@@ -239,7 +243,7 @@ class MyTestCase(unittest.TestCase):
         superpixel = slic(image, n_segments=sp_size, compactness=1, start_label=1)
         nodes, edges, triangles, node_features = flow.convert_graph(image, superpixel)
 
-        I_1 = torch.eye(len(edges)) * 2
+        I_1 = (torch.eye(len(edges)) * 2).to(DEVICE)
 
         A_lower = [[0 for _ in range(len(edges))] for _ in range(len(edges))]
         A_lower = torch.tensor(A_lower, dtype=torch.float, device=DEVICE)
@@ -316,7 +320,7 @@ class MyTestCase(unittest.TestCase):
         image = np.array(TEST_CIFAR10_IMAGE_1)
         sp_size = 100
 
-        image = torch.tensor(image, dtype=torch.float, device=DEVICE)
+        image = torch.tensor(image, dtype=torch.float, device='cpu')
         image = image.double().numpy()
 
         # Convert from (3, N, N) matrix to (N, N, 3)

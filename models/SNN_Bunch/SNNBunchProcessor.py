@@ -1,4 +1,4 @@
-from utils import sparse_to_tensor
+from utils import sparse_to_tensor, ensure_input_is_tensor
 import torch
 import numpy as np
 from models.ProcessorTemplate import NNProcessor
@@ -12,33 +12,14 @@ class SimplicialObject:
 		self.X1 = X1
 		self.X2 = X2
 
-		if L0.is_sparse:
-			L0 = sparse_to_tensor(L0)
-		self.L0 = L0
+		self.L0 = ensure_input_is_tensor(L0)
+		self.L1 = ensure_input_is_tensor(L1)
+		self.L2 = ensure_input_is_tensor(L2)
 
-		if L1.is_sparse:
-			L1 = sparse_to_tensor(L1)
-		self.L1 = L1
-
-		if L2.is_sparse:
-			L2 = sparse_to_tensor(L2)
-		self.L2 = L2
-
-		if B2D3.is_sparse:
-			B2D3 = sparse_to_tensor(B2D3)
-		self.B2D3 = B2D3
-
-		if D2B1TD1inv.is_sparse:
-			D2B1TD1inv = sparse_to_tensor(D2B1TD1inv)
-		self.D2B1TD1inv = D2B1TD1inv
-
-		if D1invB1.is_sparse:
-			D1invB1 = sparse_to_tensor(D1invB1)
-		self.D1invB1 = D1invB1
-
-		if B2TD2inv.is_sparse:
-			B2TD2inv = sparse_to_tensor(B2TD2inv)
-		self.B2TD2inv = B2TD2inv
+		self.B2D3 = ensure_input_is_tensor(B2D3)
+		self.D2B1TD1inv = ensure_input_is_tensor(D2B1TD1inv)
+		self.D1invB1 = ensure_input_is_tensor(D1invB1)
+		self.B2TD2inv = ensure_input_is_tensor(B2TD2inv)
 
 		self.label = label
 

@@ -2,7 +2,6 @@ import torch
 import scipy.sparse.linalg as spl
 import numpy as np
 from scipy.sparse import coo_matrix
-from constants import DEVICE
 
 
 def to_sparse_coo(matrix):
@@ -19,6 +18,7 @@ def chebyshev(L, X, k=3):
         nxt = 2*(torch.sparse.mm(L, dp[i-1]))
         dp.append(torch.sparse.FloatTensor.add(nxt, -(dp[i-2])))
     return torch.cat(dp, dim=1)
+
 
 def torch_sparse_to_scipy_sparse(matrix):
     i = matrix.coalesce().indices().cpu()
@@ -47,7 +47,7 @@ def normalise(L):
     ret *= 2.0 / topeig
     ret.setdiag(ret.diagonal(0) - np.ones(M), 0)
 
-    return scipy_sparse_to_torch_sparse(ret)
+    return -scipy_sparse_to_torch_sparse(ret)
 
 
 def batch_all_feature_and_lapacian_pair(X, L_i, L_v):

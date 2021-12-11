@@ -7,16 +7,16 @@ from models.nn_utils import chebyshev, unpack_feature_dct_to_L_X_B
 class SNN_Bunch_Layer(nn.Module):
   # This model is based on model described by Eric Bunch et al. in Simplicial 2-Complex Convolutional Neural Networks
   # Github here https://github.com/AmFamMLTeam/simplicial-2-complex-cnns
-  def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_dim, bias=True):
+  def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size, bias=True):
 
     super().__init__()
-    self.n2n_weights = nn.Linear(num_node_feats, output_dim, bias=bias)
-    self.n2e_weights = nn.Linear(num_node_feats, output_dim, bias=bias)
-    self.e2e_weights = nn.Linear(num_edge_feats, output_dim, bias=bias)
-    self.e2n_weights = nn.Linear(num_edge_feats, output_dim, bias=bias)
-    self.e2t_weights = nn.Linear(num_edge_feats, output_dim, bias=bias)
-    self.t2e_weights = nn.Linear(num_triangle_feats, output_dim, bias=bias)
-    self.t2t_weights = nn.Linear(num_triangle_feats, output_dim, bias=bias)
+    self.n2n_weights = nn.Linear(num_node_feats, output_size, bias=bias)
+    self.n2e_weights = nn.Linear(num_node_feats, output_size, bias=bias)
+    self.e2e_weights = nn.Linear(num_edge_feats, output_size, bias=bias)
+    self.e2n_weights = nn.Linear(num_edge_feats, output_size, bias=bias)
+    self.e2t_weights = nn.Linear(num_edge_feats, output_size, bias=bias)
+    self.t2e_weights = nn.Linear(num_triangle_feats, output_size, bias=bias)
+    self.t2t_weights = nn.Linear(num_triangle_feats, output_size, bias=bias)
 
 
   def forward(self, X0, X1, X2, L0, L1, L2, B2D3, D2B1TD1inv, D1invB1, B2TD2inv):
@@ -58,15 +58,15 @@ class SNN_Bunch_Layer(nn.Module):
 
 class SNN_Bunch(nn.Module):
 
-  def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_dim, bias=True):
+  def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size, bias=True):
 
     super().__init__()
     f_size = 32
     self.layer1 = SNN_Bunch_Layer(num_node_feats, num_edge_feats, num_triangle_feats, f_size, bias)
     self.layer2 = SNN_Bunch_Layer(f_size, f_size, f_size, f_size, bias)
-    self.layer3 = SNN_Bunch_Layer(f_size, f_size, f_size, output_dim, bias)
+    self.layer3 = SNN_Bunch_Layer(f_size, f_size, f_size, output_size, bias)
 
-    self.output = nn.Linear(output_dim * 3, output_dim, bias)
+    self.output = nn.Linear(output_size * 3, output_size, bias)
 
 
   def forward(self, feature_dct):
