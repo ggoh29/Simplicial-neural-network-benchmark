@@ -23,6 +23,13 @@ def make_smaller_dataset_4_classes(data):
 		   + data[(l // 2):(5 * l // 8)] + data[(3 * l // 4):(7 * l // 8)]
 	return data
 
+def make_smaller_dataset_10_classes(data):
+	l = len(data)
+	data_out = []
+	for i in range(10):
+		data_out += data[i * l//10 : (i * 4 + 1) * l//40]
+	return data_out
+
 
 class SimplicialComplexDataset(InMemoryDataset):
 
@@ -62,8 +69,9 @@ class SimplicialComplexDataset(InMemoryDataset):
 		# Instantiating this will download and process the graph dataset_processor.
 		self.data_download = self.dataset(root='./data', train=self.train, download=True,
 										  transform=transforms.ToTensor())
-		self.data_download = [*sorted(self.data_download, key=lambda i: i[1])][:(len(self.data_download) // 5)]
-		self.data_download = make_smaller_dataset_2_classes(self.data_download)
+		self.data_download = [*sorted(self.data_download, key=lambda i: i[1])]
+		# self.data_download = [*sorted(self.data_download, key=lambda i: i[1])][:(len(self.data_download) // 5)]
+		self.data_download = make_smaller_dataset_10_classes(self.data_download)
 
 	@property
 	def processed_file_names(self):
