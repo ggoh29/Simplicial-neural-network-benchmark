@@ -21,12 +21,11 @@ class SATLayer(nn.Module):
         features = self.layer(features)
 
         indices = adj.coalesce().indices()
-        values = adj.coalesce().values()
 
         a_1 = self.a_1(features)
         a_2 = self.a_2(features)
 
-        v = torch.tensor([a_1[i.item()] + a_2[j.item()] for i,j in zip(indices[0], indices[1])], dtype=torch.float, device=DEVICE)
+        v = (a_1 + a_2.T)[indices[0, :], indices[1, :]]
         v = nn.LeakyReLU()(v)
         e1 = torch.sparse_coo_tensor(indices, v)
         attention = torch.sparse.softmax(e1, dim = 1)
@@ -44,9 +43,9 @@ class SAT(nn.Module):
     def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size):
         super().__init__()
 
-        f_size = 48
+        f_size = 32
         k_heads = 2
-        self.layer0_1 = torch.nn.ModuleList([SATLayer(num_node_feats, f_size//k_heads) for _ in range(k_heads)])
+        self.layer0_1 = torch.nn.ModuleList([SATLayer(num_node_feats, f_size // k_heads) for _ in range(k_heads)])
         self.layer0_2 = torch.nn.ModuleList([SATLayer(f_size, f_size // k_heads) for _ in range(k_heads)])
         self.layer0_3 = torch.nn.ModuleList([SATLayer(f_size, output_size) for _ in range(k_heads)])
 
@@ -66,11 +65,10 @@ class SAT(nn.Module):
         X0, X1, _, X2 = X
         L0, L1_u, L1_d, L2 = L
         batch0, batch1, _, batch2 = batch
-        # L0, L1_u, L1_d, L2 = L0.to_dense(), L1_u.to_dense(), L1_d.to_dense(), L2.to_dense()
         l1 = [L1_u, L1_d]
 
-        x0_1 = F.relu(torch.cat([sat(X0, L0) for sat in self.layer0_1], dim = 1))
-        x0_2 = F.relu(torch.cat([sat(x0_1, L0) for sat in self.layer0_2], dim = 1))
+        x0_1 = F.relu(torch.cat([sat(X0, L0) for sat in self.layer0_1], dim=1))
+        x0_2 = F.relu(torch.cat([sat(x0_1, L0) for sat in self.layer0_2], dim=1))
         x0_3 = functools.reduce(lambda a, b: a + b, [sat(x0_2, L0) for sat in self.layer0_3])/2
         x0 = global_mean_pool(x0_3, batch0)
 

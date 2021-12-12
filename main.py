@@ -17,7 +17,7 @@ import numpy as np
 from datetime import timedelta
 
 batch_size = 8
-superpixel_size = 75
+superpixel_size = 50
 dataset = datasets.MNIST
 # dataset = datasets.CIFAR10
 edgeFlow = PixelBasedEdgeFlow
@@ -44,7 +44,7 @@ def run(processor_type, NN, output_suffix):
     optimizer = torch.optim.Adam(NN.parameters(), lr=0.001, weight_decay=5e-4)
     criterion = torch.nn.CrossEntropyLoss()
 
-    average_time, loss, final_loss, train_acc = train(NN, 100, train_dataset, optimizer, criterion, processor_type)
+    average_time, loss, final_loss, train_acc = train(NN, 25, train_dataset, optimizer, criterion, processor_type)
     del train_data
     del train_dataset
 
@@ -61,13 +61,11 @@ def run(processor_type, NN, output_suffix):
 
 
 if __name__ == "__main__":
-    NN_list = [gnn, Ebli_nn, Bunch_nn, sat_nn]
-    processor_type, NN = NN_list[3]
-    output_suffix = 0
-    run(processor_type, NN.to(DEVICE), output_suffix)
-    # for output_suffix in range(5):
-    #     for processor_type, NN in NN_list:
-    #         run(processor_type, NN.to(DEVICE), output_suffix)
+    # NN_list = [sat_nn, Ebli_nn, Bunch_nn]
+    NN_list = [sat_nn]
+    for output_suffix in range(1):
+        for processor_type, NN in NN_list:
+            run(processor_type, NN.to(DEVICE), output_suffix)
 
 
 
