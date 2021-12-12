@@ -16,7 +16,11 @@ class SATLayer(nn.Module):
         self.layer = nn.Linear(input_size, output_size)
 
     def forward(self, features, adj):
-
+        """
+        features : n * m dense matrix of feature vectors
+        adj : n * n sparse matrix
+        output : n * k dense matrix of new feature vectors
+        """
         n = features.size()[0]
         features = self.layer(features)
 
