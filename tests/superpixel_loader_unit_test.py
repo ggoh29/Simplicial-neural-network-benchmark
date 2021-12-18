@@ -8,6 +8,8 @@ from tqdm import tqdm
 from models.GNN.GNNProcessor import GNNProcessor
 from models.SNN_Ebli.SNNEbliProcessor import SNNEbliProcessor
 from models.SNN_Bunch.SNNBunchProcessor import SNNBunchProcessor
+from models.SAT.model import SAT
+from models.SAT.SATProcessor import SATProcessor
 
 class MyTestCase(unittest.TestCase):
 
@@ -66,6 +68,26 @@ class MyTestCase(unittest.TestCase):
             simplicialObject_2 = processor_type.process(PI.image_to_features(mnist_images[i]))
 
             self.assertTrue(simplicialObject_1 == simplicialObject_2)
+
+
+    def test_collate_and_get_return_correct_SimplicialObject_SAT_MNIST(self):
+        superpixel_size = 25
+        range_size = 10000
+        dataset = datasets.MNIST
+        edgeFlow = PixelBasedEdgeFlow
+        train = False
+        processor_type = SATProcessor()
+
+        train_data = SimplicialComplexDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=train)
+        mnist_images = datasets.MNIST(root='./data', train=train, download=True, transform=transforms.ToTensor())
+        PI = ProcessImage(superpixel_size, PixelBasedEdgeFlow)
+
+        for i in tqdm(range(range_size)):
+            simplicialObject_1 = train_data[i]
+            simplicialObject_2 = processor_type.process(PI.image_to_features(mnist_images[i]))
+
+            self.assertTrue(simplicialObject_1 == simplicialObject_2)
+
 
 
 if __name__ == '__main__':

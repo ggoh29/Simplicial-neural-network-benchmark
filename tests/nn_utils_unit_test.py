@@ -1,8 +1,8 @@
 import unittest
 from dataset_processor.ImageProcessor import ProcessImage
 import torch
-from constants import TEST_MNIST_IMAGE_1
-DEVICE = torch.device('cpu')
+from constants import TEST_MNIST_IMAGE_1, DEVICE
+# DEVICE = torch.device('cpu')
 from utils import tensor_to_sparse
 from dataset_processor.EdgeFlow import PixelBasedEdgeFlow, RAGBasedEdgeFlow
 from run_NN import test, train
@@ -16,6 +16,8 @@ from models.SNN_Ebli.SNNEbliProcessor import SNNEbliProcessor
 from models.SNN_Bunch.model_B import SNN_Bunch
 from models.SNN_Bunch.SNNBunchProcessor import SNNBunchProcessor
 from models.nn_utils import normalise, unpack_feature_dct_to_L_X_B
+from models.SAT.model import SAT
+from models.SAT.SATProcessor import SATProcessor
 
 class MyTestCase(unittest.TestCase):
 
@@ -120,7 +122,7 @@ class MyTestCase(unittest.TestCase):
 		dataset = datasets.MNIST
 		edgeFlow = PixelBasedEdgeFlow
 
-		GNN = SNN_Ebli(5, 10, 15, 4).to(DEVICE)
+		GNN = SNN_Ebli(5, 10, 15, 10).to(DEVICE)
 		processor_type = SNNEbliProcessor()
 
 		data = SimplicialComplexDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=True)
@@ -145,7 +147,7 @@ class MyTestCase(unittest.TestCase):
 		dataset = datasets.MNIST
 		edgeFlow = PixelBasedEdgeFlow
 
-		GNN = SNN_Bunch(5, 10, 15, 4).to(DEVICE)
+		GNN = SNN_Bunch(5, 10, 15, 10).to(DEVICE)
 		processor_type = SNNBunchProcessor()
 
 		data = SimplicialComplexDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=True)
@@ -153,6 +155,37 @@ class MyTestCase(unittest.TestCase):
 															 shuffle=False)
 		individual_dataset = DataLoader(data, batch_size=1, collate_fn=processor_type.batch, num_workers=4,
 															 shuffle=False)
+
+		batched_predictions, _ = test(GNN, batched_dataset, processor_type)
+		batched_predictions = torch.cat(batched_predictions, dim = 0)
+
+		individual_predictions, _ = test(GNN, individual_dataset, processor_type)
+		individual_predictions = torch.cat(individual_predictions, dim = 0)
+
+		result = torch.allclose(individual_predictions, batched_predictions, atol = 1e-5)
+
+		self.assertTrue(result)
+
+
+	def test_SAT_batching_gives_same_result_as_individual(self):
+		batch_size = 8
+		superpixel_size = 50
+		dataset = datasets.MNIST
+		edgeFlow = PixelBasedEdgeFlow
+
+		GNN = SAT(5, 10, 15, 10).to(DEVICE)
+		processor_type = SATProcessor()
+
+		data = SimplicialComplexDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=True)
+		batched_dataset = DataLoader(data, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=4,
+															 shuffle=False)
+		individual_dataset = DataLoader(data, batch_size=1, collate_fn=processor_type.batch, num_workers=4,
+															 shuffle=False)
+
+		optimizer = torch.optim.Adam(GNN.parameters(), lr=0.001, weight_decay=5e-4)
+		criterion = torch.nn.CrossEntropyLoss()
+
+		_ = train(GNN, 1, batched_dataset, optimizer, criterion, processor_type)
 
 		batched_predictions, _ = test(GNN, batched_dataset, processor_type)
 		batched_predictions = torch.cat(batched_predictions, dim = 0)

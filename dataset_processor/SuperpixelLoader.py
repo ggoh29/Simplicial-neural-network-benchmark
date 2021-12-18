@@ -13,18 +13,21 @@ dataset_dct = {datasets.MNIST : "MNIST",
 # functions to make a smaller dataset_processor for testing
 def make_smaller_dataset_2_classes(data):
 	l = len(data)
+	data = [*sorted(data, key=lambda i: i[1])][:(len(data) // 5)]
 	data = data[:l // 4] + data[(l // 2):(3 * l // 4)]
 	return data
 
 
 def make_smaller_dataset_4_classes(data):
 	l = len(data)
+	data = [*sorted(data, key=lambda i: i[1])][:2 * (len(data) // 5)]
 	data = data[:l // 8] + data[(l // 4):(3 * l // 8)] \
 		   + data[(l // 2):(5 * l // 8)] + data[(3 * l // 4):(7 * l // 8)]
 	return data
 
 def make_smaller_dataset_10_classes(data):
 	l = len(data)
+	data = [*sorted(data, key=lambda i: i[1])]
 	data_out = []
 	for i in range(10):
 		data_out += data[i * l//10 : (i * 4 + 1) * l//40]
@@ -69,9 +72,7 @@ class SimplicialComplexDataset(InMemoryDataset):
 		# Instantiating this will download and process the graph dataset_processor.
 		self.data_download = self.dataset(root='./data', train=self.train, download=True,
 										  transform=transforms.ToTensor())
-		self.data_download = [*sorted(self.data_download, key=lambda i: i[1])]
-		# self.data_download = [*sorted(self.data_download, key=lambda i: i[1])][:(len(self.data_download) // 5)]
-		self.data_download = make_smaller_dataset_10_classes(self.data_download)
+		# self.data_download = make_smaller_dataset_10_classes(self.data_download)
 
 	@property
 	def processed_file_names(self):
