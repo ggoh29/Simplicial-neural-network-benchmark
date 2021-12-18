@@ -17,7 +17,7 @@ import numpy as np
 from datetime import timedelta
 
 batch_size = 8
-superpixel_size = 50
+superpixel_size = 75
 dataset = datasets.MNIST
 # dataset = datasets.CIFAR10
 edgeFlow = PixelBasedEdgeFlow
@@ -44,7 +44,7 @@ def run(processor_type, NN, output_suffix):
     optimizer = torch.optim.Adam(NN.parameters(), lr=0.001, weight_decay=5e-4)
     criterion = torch.nn.CrossEntropyLoss()
 
-    average_time, loss, final_loss, train_acc = train(NN, 25, train_dataset, optimizer, criterion, processor_type)
+    average_time, loss, final_loss, train_acc = train(NN, 100, train_dataset, optimizer, criterion, processor_type)
     del train_data
     del train_dataset
 
@@ -53,17 +53,21 @@ def run(processor_type, NN, output_suffix):
 
     _, test_acc = test(NN, test_dataset, processor_type)
 
-    with open(write_file_name + '.txt', 'w') as f:
-        f.write(f"""Dataset: {dataset},\nModel: {NN.__class__.__name__}\n\nparams={params}\n\n
+    s = f"""Dataset: {dataset},\nModel: {NN.__class__.__name__}\n\nparams={params}\n\n
     FINAL RESULTS\nTEST ACCURACY: {test_acc:.4f}\nTRAIN ACCURACY: {train_acc:.4f}\n\n
-    Average Time Taken: {timedelta(seconds = average_time)}\nAverage Loss: {loss:.4f}\n\n\n""")
+    Average Time Taken: {timedelta(seconds = average_time)}\nAverage Loss: {loss:.4f}\n\n\n"""
+
+    print(s)
+
+    with open(write_file_name + '.txt', 'w') as f:
+        f.write(s)
 
 
 
 if __name__ == "__main__":
-    # NN_list = [sat_nn, Ebli_nn, Bunch_nn]
+    # NN_list = [gnn, Ebli_nn, Bunch_nn, sat_nn]
     NN_list = [sat_nn]
-    for output_suffix in range(1):
+    for output_suffix in range(5):
         for processor_type, NN in NN_list:
             run(processor_type, NN.to(DEVICE), output_suffix)
 
