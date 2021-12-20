@@ -21,7 +21,6 @@ class SATLayer(nn.Module):
         adj : n * n sparse matrix
         output : n * k dense matrix of new feature vectors
         """
-        n = features.size()[0]
         features = self.layer(features)
 
         indices = adj.coalesce().indices()
@@ -31,14 +30,10 @@ class SATLayer(nn.Module):
 
         v = (a_1 + a_2.T)[indices[0, :], indices[1, :]]
         v = nn.LeakyReLU()(v)
-        e1 = torch.sparse_coo_tensor(indices, v)
-        attention = torch.sparse.softmax(e1, dim = 1)
-        attr = torch.stack([features for _ in range(n)], dim=0)
+        e = torch.sparse_coo_tensor(indices, v)
+        attention = torch.sparse.softmax(e, dim = 1)
 
-        attr_sparse = attr[indices[0, :], indices[1, :]]
-        attr_sparse = attention.coalesce().values().unsqueeze(dim = 1) * attr_sparse
-        attr_sparse = torch.sparse_coo_tensor(indices, attr_sparse)
-        output = torch.sparse.sum(attr_sparse, dim = 1).to_dense()
+        output = torch.sparse.mm(attention, features)
 
         return output
 
@@ -47,7 +42,7 @@ class SAT(nn.Module):
     def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size):
         super().__init__()
 
-        f_size = 32
+        f_size = 40
         k_heads = 2
         self.layer0_1 = torch.nn.ModuleList([SATLayer(num_node_feats, f_size // k_heads) for _ in range(k_heads)])
         self.layer0_2 = torch.nn.ModuleList([SATLayer(f_size, f_size // k_heads) for _ in range(k_heads)])
