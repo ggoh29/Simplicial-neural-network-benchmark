@@ -1,7 +1,7 @@
 from dataset_processor.SuperpixelLoader import SimplicialComplexDataset
 from dataset_processor.EdgeFlow import PixelBasedEdgeFlow, RandomBasedEdgeFlow, RAGBasedEdgeFlow
 from torch.utils.data import DataLoader
-from models.GNN.model import GCN, GCN1, GAT
+from models.GNN.model import GCN, GAT
 from models.GNN.GNNProcessor import GNNProcessor
 from models.SNN_Ebli.model_E import SNN_Ebli
 from models.SNN_Ebli.SNNEbliProcessor import SNNEbliProcessor
@@ -30,6 +30,7 @@ Ebli_nn = [SNNEbliProcessor(), SNN_Ebli(5, 10, 15, output_size)]
 Bunch_nn = [SNNBunchProcessor(), SNN_Bunch(5, 10, 15, output_size)]
 sat_nn = [SATProcessor(), SAT(5, 10, 15, output_size)]
 gnn = [GNNProcessor(), GCN(5, output_size)]
+gat = [GNNProcessor(), GAT(5, output_size)]
 
 
 def run(processor_type, NN, output_suffix):
@@ -65,8 +66,8 @@ def run(processor_type, NN, output_suffix):
 
 
 if __name__ == "__main__":
-    # NN_list = [gnn, Ebli_nn, Bunch_nn, sat_nn]
-    NN_list = [sat_nn]
+    NN_list = [gnn, gat, Ebli_nn, Bunch_nn]
+    # NN_list = [sat_nn]
     for output_suffix in range(5):
         for processor_type, NN in NN_list:
             run(processor_type, NN.to(DEVICE), output_suffix)
