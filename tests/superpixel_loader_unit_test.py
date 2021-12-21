@@ -1,14 +1,13 @@
 import unittest
-from dataset_processor.SuperpixelLoader import SimplicialComplexDataset
-from dataset_processor.EdgeFlow import PixelBasedEdgeFlow
-from dataset_processor.ImageProcessor import ProcessImage
+from dataset_processor.SuperpixelDataset.SuperpixelLoader import SimplicialComplexDataset
+from dataset_processor.SuperpixelDataset.EdgeFlow import PixelBasedEdgeFlow
+from dataset_processor.SuperpixelDataset.ImageProcessor import ProcessImage
 import torchvision.transforms as transforms
 from torchvision import datasets
 from tqdm import tqdm
 from models.GNN.GNNProcessor import GNNProcessor
 from models.SNN_Ebli.SNNEbliProcessor import SNNEbliProcessor
 from models.SNN_Bunch.SNNBunchProcessor import SNNBunchProcessor
-from models.SAT.model import SAT
 from models.SAT.SATProcessor import SATProcessor
 
 class MyTestCase(unittest.TestCase):
