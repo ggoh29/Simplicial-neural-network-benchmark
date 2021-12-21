@@ -1,5 +1,5 @@
 from abc import abstractmethod, ABC
-from dataset_processor.ImageProcessor import SCData
+from dataset_processor.SuperpixelDataset.ImageProcessor import SCData
 
 
 class NNProcessor(ABC):

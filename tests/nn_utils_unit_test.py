@@ -1,15 +1,15 @@
 import unittest
-from dataset_processor.ImageProcessor import ProcessImage
+from dataset_processor.SuperpixelDataset.ImageProcessor import ProcessImage
 import torch
 from constants import TEST_MNIST_IMAGE_1, DEVICE
 # DEVICE = torch.device('cpu')
 from utils import tensor_to_sparse
-from dataset_processor.EdgeFlow import PixelBasedEdgeFlow, RAGBasedEdgeFlow
+from dataset_processor.SuperpixelDataset.EdgeFlow import PixelBasedEdgeFlow
 from run_NN import test, train
 from torchvision import datasets
-from dataset_processor.SuperpixelLoader import SimplicialComplexDataset
+from dataset_processor.SuperpixelDataset.SuperpixelLoader import SimplicialComplexDataset
 from torch.utils.data import DataLoader
-from models.GNN.model import GCN, GAT
+from models.GNN.model import GCN
 from models.GNN.GNNProcessor import GNNProcessor
 from models.SNN_Ebli.model_E import SNN_Ebli
 from models.SNN_Ebli.SNNEbliProcessor import SNNEbliProcessor

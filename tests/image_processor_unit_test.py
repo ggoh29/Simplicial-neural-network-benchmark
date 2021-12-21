@@ -6,8 +6,8 @@ import numpy as np
 import networkx as nx
 from utils import triangle_to_edge_matrix, edge_to_node_matrix, tensor_to_sparse
 from constants import TEST_CIFAR10_IMAGE_1, TEST_MNIST_IMAGE_1, TEST_MNIST_IMAGE_2
-from dataset_processor.ImageProcessor import ProcessImage
-from dataset_processor.EdgeFlow import PixelBasedEdgeFlow
+from dataset_processor.SuperpixelDataset.ImageProcessor import ProcessImage
+from dataset_processor.SuperpixelDataset.EdgeFlow import PixelBasedEdgeFlow
 from skimage import color
 from constants import DEVICE
 
@@ -15,7 +15,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_generating_utils_works_correctly(self):
         # This test is a toy example based on Control Using Higher Order Laplacians in Network Topologies (2006)
-        # by Abubakr Muhammad , Magnus Egerstedt
+        # by Abubakr Muhammad, Magnus Egerstedt
         nodes = [1, 2, 3, 4, 5]
         edges = [(1, 2), (1, 3), (2, 3), (2, 4), (3, 4), (3, 5), (4, 5)]
         triangles = [(2, 3, 4)]

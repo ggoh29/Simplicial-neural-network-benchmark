@@ -1,5 +1,5 @@
 import torch
-from dataset_processor.ImageProcessor import ProcessImage, SCData
+from dataset_processor.SuperpixelDataset.ImageProcessor import ProcessImage
 import torchvision.transforms as transforms
 from torch_geometric.data import InMemoryDataset
 from joblib import Parallel, delayed
