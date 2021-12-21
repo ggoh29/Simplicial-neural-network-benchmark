@@ -42,15 +42,14 @@ def run(processor_type, NN, output_suffix):
     train_dataset = DataLoader(train_data, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=4, shuffle=True, pin_memory=True)
     write_file_name = f"./results/{train_data.get_name()}_{output_suffix}"
 
+    test_data = SimplicialComplexDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=False)
+    test_dataset = DataLoader(test_data, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=4, shuffle=True, pin_memory=True)
+
+
     optimizer = torch.optim.Adam(NN.parameters(), lr=0.001, weight_decay=5e-4)
     criterion = torch.nn.CrossEntropyLoss()
 
     average_time, loss, final_loss, train_acc = train(NN, 100, train_dataset, optimizer, criterion, processor_type)
-    del train_data
-    del train_dataset
-
-    test_data = SimplicialComplexDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=False)
-    test_dataset = DataLoader(test_data, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=4, shuffle=True, pin_memory=True)
 
     _, test_acc = test(NN, test_dataset, processor_type)
 
