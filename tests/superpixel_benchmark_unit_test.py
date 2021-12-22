@@ -2,10 +2,9 @@ import unittest
 from dataset_processor.SuperpixelDataset.ImageProcessor import ProcessImage
 import torch
 from constants import TEST_MNIST_IMAGE_1, DEVICE
-# DEVICE = torch.device('cpu')
 from utils import tensor_to_sparse
 from dataset_processor.SuperpixelDataset.EdgeFlow import PixelBasedEdgeFlow
-from run_NN import test, train
+from superpixel_benchmark import test, train
 from torchvision import datasets
 from dataset_processor.SuperpixelDataset.SuperpixelLoader import SimplicialComplexDataset
 from torch.utils.data import DataLoader
