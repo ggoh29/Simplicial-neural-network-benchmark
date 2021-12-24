@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from models.nn_utils import unpack_feature_dct_to_L_X_B
 
 
-class GCN(nn.Module):
+class SuperpixelGCN(nn.Module):
     def __init__(self, input_size, output_size):
         super().__init__()
 
@@ -56,7 +56,7 @@ class GATLayer(nn.Module):
         return output
 
 
-class GAT(nn.Module):
+class SuperpixelGAT(nn.Module):
     def __init__(self, input_size, output_size, k_heads = 2):
         super().__init__()
 

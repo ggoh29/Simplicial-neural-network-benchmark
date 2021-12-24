@@ -41,6 +41,9 @@ class SimplicialObject:
 
 class SNNBunchProcessor(NNProcessor):
 
+    # This model is based on model described by Eric Bunch et al. in Simplicial 2-Complex Convolutional Neural Networks
+    # Github here https://github.com/AmFamMLTeam/simplicial-2-complex-cnns
+
     def process(self, scData):
         def to_dense(matrix):
             indices = matrix[0:2]

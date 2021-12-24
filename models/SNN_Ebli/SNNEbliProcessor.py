@@ -32,6 +32,9 @@ class SimplicialObject:
 
 class SNNEbliProcessor(NNProcessor):
 
+    # This model is based on model described by Stefanie Ebli et al. in Simplicial Neural Networks
+    # Github here https://github.com/stefaniaebli/simplicial_neural_networks?utm_source=catalyzex.com
+
     def process(self, scData):
         b1, b2 = to_sparse_coo(scData.b1), to_sparse_coo(scData.b2)
 

@@ -57,7 +57,7 @@ class PlanetoidSCDataset(InMemoryDataset):
         self.val_split = 0.20
         self.test_split = 0.35
 
-        folder = f"{root}/{self.dataset_name}/SC"
+        folder = f"{root}/{self.dataset_name}"
 
         super().__init__(folder)
         self.data, self.slices = torch.load(self.processed_paths[0])

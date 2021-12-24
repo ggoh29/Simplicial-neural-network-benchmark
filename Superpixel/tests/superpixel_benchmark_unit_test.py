@@ -10,9 +10,9 @@ from Superpixel.SuperpixelDataset.SuperpixelLoader import SuperpixelSCDataset
 from torch.utils.data import DataLoader
 from models.GNN.model import GCN
 from models.GNN.GNNProcessor import GNNProcessor
-from models.SNN_Ebli.model_E import SNN_Ebli
+from models.SNN_Ebli.model_Ebli import SNN_Ebli
 from models.SNN_Ebli.SNNEbliProcessor import SNNEbliProcessor
-from models.SNN_Bunch.model_B import SNN_Bunch
+from models.SNN_Bunch.model_Bunch import SNN_Bunch
 from models.SNN_Bunch.SNNBunchProcessor import SNNBunchProcessor
 from models.nn_utils import normalise, unpack_feature_dct_to_L_X_B
 from models.SAT.model import SAT

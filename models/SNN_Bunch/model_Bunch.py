@@ -56,7 +56,7 @@ class SNN_Bunch_Layer(nn.Module):
     return X0, X1, X2
 
 
-class SNN_Bunch(nn.Module):
+class Superpixel_Bunch(nn.Module):
 
   def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size, bias=True):
 
