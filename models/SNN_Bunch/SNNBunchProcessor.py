@@ -51,6 +51,7 @@ class SNNBunchProcessor(NNProcessor):
             return torch.sparse_coo_tensor(indices, values).to_dense()
 
         B1, B2 = to_dense(scData.b1).to('cpu'), to_dense(scData.b2).to('cpu')
+        print(B1.shape, B2.shape)
         X0, X1, X2 = scData.X0.to('cpu'), scData.X1.to('cpu'), scData.X2.to('cpu')
         label = scData.label
 

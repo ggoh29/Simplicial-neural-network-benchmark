@@ -8,7 +8,7 @@ from constants import DEVICE
 def convert_to_device(lst):
     return [i.to(DEVICE) for i in lst]
 
-def corruption_function(feature_dct, processor_type, p = 0.001):
+def corruption_function(feature_dct, processor_type, p = 0.000):
     L, X, batch = unpack_feature_dct_to_L_X_B(feature_dct)
     X0 = X[0]
 
@@ -27,10 +27,17 @@ def corruption_function(feature_dct, processor_type, p = 0.001):
     ones = torch.ones(C_L0_i.shape[1])
 
     fake_labels = torch.tensor([0 for _ in range(nb_nodes)])
-    scData = convert_to_SC(ones, C_L0_i, C_X0, fake_labels)
+    scData = convert_to_SC(ones, C_L0_i, C_X0, fake_labels, False)
     corrupted_train = processor_type.process(scData)
     corrupted_train = processor_type.batch([corrupted_train])[0]
     corrupted_train = processor_type.clean_feature_dct(corrupted_train)
+
+    # Might be missing nodes from adjacency matrix, add padding here
+    L0_diag = torch.diag(L0, 0)
+    L0_diag = torch.diag(L0_diag)
+    adj = corrupted_train['lapacian'][0].to_dense()
+    L0_diag[: adj.shape[0], : adj.shape[1]] = adj
+    corrupted_train['lapacian'][0] = L0_diag.to_sparse()
     return corrupted_train
 
 ######################################################################################################
@@ -55,7 +62,7 @@ class Discriminator(nn.Module):
         self.f_k = nn.Bilinear(n_h, n_h, 1)
 
         for m in self.modules():
-            self.weights_init(m)
+            self.weights_init(m.to(DEVICE))
 
     def weights_init(self, m):
         if isinstance(m, nn.Bilinear):
@@ -67,8 +74,8 @@ class Discriminator(nn.Module):
         c_x = torch.unsqueeze(c, 1)
         c_x = c_x.expand_as(h_pl)
 
-        sc_1 = torch.squeeze(self.f_k(h_pl, c_x), 2)
-        sc_2 = torch.squeeze(self.f_k(h_mi, c_x), 2)
+        sc_1 = torch.squeeze(self.f_k(h_pl, c_x), 1).unsqueeze(0)
+        sc_2 = torch.squeeze(self.f_k(h_mi, c_x), 1).unsqueeze(0)
 
         if s_bias1 is not None:
             sc_1 += s_bias1
@@ -80,17 +87,17 @@ class Discriminator(nn.Module):
         return logits
 
 class DGI(nn.Module):
-    def __init__(self, n_h, model):
+    def __init__(self, input_size, output_size, model):
         super(DGI, self).__init__()
-        self.model = model
+        self.model = model(input_size, output_size).to(DEVICE)
         self.read = AvgReadout()
 
         self.sigm = nn.Sigmoid()
 
-        self.disc = Discriminator(n_h)
+        self.disc = Discriminator(output_size)
 
-    def forward(self, feature_dct):
-        corrupted_dct = corruption_function(feature_dct)
+    def forward(self, feature_dct, processor_type):
+        corrupted_dct = corruption_function(feature_dct, processor_type)
 
         feature_dct = {key: convert_to_device(feature_dct[key]) for key in feature_dct}
         h_1 = self.model(feature_dct)
@@ -99,15 +106,15 @@ class DGI(nn.Module):
         c = self.sigm(c)
 
         corrupted_dct = {key: convert_to_device(corrupted_dct[key]) for key in corrupted_dct}
-        h_2 = self.gcn(corrupted_dct)
+        h_2 = self.model(corrupted_dct)
 
         ret = self.disc(c, h_1, h_2, None, None)
 
         return ret
 
     # Detach the return variables
-    def embed(self, seq, adj, sparse, msk):
-        h_1 = self.gcn(seq, adj, sparse)
-        c = self.read(h_1, msk)
+    def embed(self, feature_dct):
+        h_1 = self.model(feature_dct)
+        c = self.read(h_1, None)
 
         return h_1.detach(), c.detach()

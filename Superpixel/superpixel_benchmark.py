@@ -2,7 +2,7 @@ from Superpixel.SuperpixelDataset.SuperpixelLoader import SuperpixelSCDataset
 from Superpixel.SuperpixelDataset.EdgeFlow import PixelBasedEdgeFlow
 from torch.utils.data import DataLoader
 from constants import DEVICE
-from models.all_models import sat_nn
+from models.all_models import superpixel_sat_nn, superpixel_gat, superpixel_gnn, superpixel_Bunch_nn, superpixel_Ebli_nn
 import torch
 from torchvision import datasets
 import numpy as np
@@ -108,8 +108,8 @@ def run(processor_type, NN, output_suffix):
 
 
 if __name__ == "__main__":
-    # NN_list = [gnn, gat, Ebli_nn, Bunch_nn]
-    NN_list = [sat_nn]
+    # NN_list = [superpixel_gnn, superpixel_gat, superpixel_Ebli_nn, superpixel_Bunch_nn]
+    NN_list = [superpixel_sat_nn]
     for output_suffix in range(5):
         for processor_type, NN in NN_list:
             NN = NN(5, 10, 15, output_size)

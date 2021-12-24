@@ -6,6 +6,9 @@ import numpy as np
 from utils import edge_to_node_matrix, triangle_to_edge_matrix
 import functools
 from models.SCData import SCData
+from utils import sparse_to_tensor, ensure_input_is_tensor
+import torch
+from models.nn_utils import to_sparse_coo
 
 
 def get_features(features, sc_list):
@@ -13,18 +16,22 @@ def get_features(features, sc_list):
         f = [features[i] for i in sc]
         return functools.reduce(lambda a, b: a + b, f)
 
-    return [_get_features(features, sc) for sc in sc_list]
+    return torch.stack([_get_features(features, sc) for sc in sc_list], dim = 1)
 
 
-def convert_to_SC(ones, edges, features, labels):
+def convert_to_SC(ones, edges, features, labels, reduce = True):
     n = features.shape[0]
     full_adj = torch.empty((n, n), dtype=torch.float)
     adj = torch.sparse_coo_tensor(edges, ones).to_dense()
     full_adj[: adj.shape[0], : adj.shape[1]] = adj
     valid_features = torch.tensor(np.unique(edges), dtype=torch.int)
-    X0 = torch.index_select(features, 0, valid_features)
-    adj = torch.index_select(full_adj, 0, valid_features)
-    adj = torch.index_select(adj, 1, valid_features)
+    if reduce:
+        X0 = torch.index_select(features, 0, valid_features)
+        adj = torch.index_select(full_adj, 0, valid_features)
+        adj = torch.index_select(adj, 1, valid_features)
+    else:
+        X0 = features
+        adj = full_adj
     adj = torch.triu(adj, diagonal=1)
     nodes = [i for i in range(X0.shape[0])]
     edges = adj.to_sparse().coalesce().indices().tolist()
@@ -37,7 +44,6 @@ def convert_to_SC(ones, edges, features, labels):
 
     b1 = edge_to_node_matrix(edges, nodes).to_sparse()
     b2 = triangle_to_edge_matrix(triangles, edges).to_sparse()
-
     X1 = get_features(features, edges)
     X2 = get_features(features, triangles)
 
@@ -58,7 +64,7 @@ class PlanetoidSCDataset(InMemoryDataset):
         self.val_split = 0.20
         self.test_split = 0.35
 
-        folder = f"{root}/{self.dataset_name}/SC"
+        folder = f"{root}/{self.dataset_name}/{processor_type.__class__.__name__}"
 
         super().__init__(folder)
         self.data, self.slices = torch.load(self.processed_paths[0])

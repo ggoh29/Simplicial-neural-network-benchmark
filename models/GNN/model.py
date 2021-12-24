@@ -36,7 +36,7 @@ class PLanetoidGCN(nn.Module):
     def __init__(self, input_size, output_size):
         super().__init__()
 
-        f_size = 32
+        f_size = 64
         self.conv1 = GCNConv(input_size, f_size)
         self.conv2 = GCNConv(f_size, output_size)
 
@@ -108,10 +108,10 @@ class PlanetoidGAT(nn.Module):
     def __init__(self, input_size, output_size, k_heads = 2):
         super().__init__()
 
-        f_size = 32
+        f_size = 64
         assert f_size % k_heads == 0, f"k_heads needs to be a factor of feature size which is currently {f_size}."
         self.gat1 = torch.nn.ModuleList([GATLayer(input_size, f_size//k_heads) for _ in range(k_heads)])
-        self.gat2 = torch.nn.ModuleList([GATLayer(f_size, output_size) for _ in range(k_heads)])
+        self.gat2 = torch.nn.ModuleList([GATLayer(f_size, output_size//k_heads) for _ in range(k_heads)])
 
     def forward(self, features_dct):
         L, X, batch = unpack_feature_dct_to_L_X_B(features_dct)

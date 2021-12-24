@@ -71,10 +71,10 @@ class SuperpixelEbli(nn.Module):
 class PlanetoidEbli(nn.Module):
     # This model is based on model described by Stefanie Ebli et al. in Simplicial Neural Networks
     # Github here https://github.com/stefaniaebli/simplicial_neural_networks?utm_source=catalyzex.com
-    def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size, bias = True):
+    def __init__(self, num_node_feats, output_size, bias = True):
         super().__init__()
 
-        conv_size = 32
+        conv_size = 64
 
         # Degree 0 convolutions.
         self.C0_1 = SCNLayer(num_node_feats, conv_size, enable_bias = bias)

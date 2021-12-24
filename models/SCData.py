@@ -1,5 +1,6 @@
 import torch
 from utils import sparse_to_tensor, tensor_to_sparse
+from models.nn_utils import to_sparse_coo
 
 def stl(t):
     "Shape to list"
@@ -17,6 +18,7 @@ class SCData:
         if b1.is_sparse:
             b1 = sparse_to_tensor(b1)
         self.b1 = b1
+        b_5 = to_sparse_coo(b1)
 
         if b2.is_sparse:
             b2 = sparse_to_tensor(b2)
