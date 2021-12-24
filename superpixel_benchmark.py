@@ -1,5 +1,5 @@
 from dataset_processor.SuperpixelDataset.SuperpixelLoader import SuperpixelSCDataset
-from dataset_processor.SuperpixelDataset.EdgeFlow import PixelBasedEdgeFlow
+from dataset_processor.SuperpixelDataset.EdgeFlow import PixelBasedEdgeFlow, RandomBasedEdgeFlow
 from torch.utils.data import DataLoader
 from constants import DEVICE
 from models.all_models import Ebli_nn, Bunch_nn, sat_nn, gnn, gat
@@ -14,7 +14,6 @@ superpixel_size = 75
 dataset = datasets.MNIST
 # dataset = datasets.CIFAR10
 edgeFlow = PixelBasedEdgeFlow
-# edgeFlow = RAGBasedEdgeFlow
 # edgeFlow = RandomBasedEdgeFlow
 
 output_size = 10

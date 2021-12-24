@@ -39,15 +39,18 @@ class GNNProcessor(NNProcessor):
 
 		X0_total = 0
 		L0_total = 0
+		label_total = 0
 
-		slices = {"X0": [0], "L0": [0]}
+		slices = {"X0": [0], "L0": [0], "label" : [0]}
 
 		for data in data_list:
 			x0 = data.X0
 			l0 = data.L0
 			l = data.label
+
 			x0_s = x0.shape[0]
 			l0_s = l0.shape[1]
+			label_s = l.shape[0]
 
 			X0.append(x0)
 			L0.append(l0)
@@ -55,9 +58,11 @@ class GNNProcessor(NNProcessor):
 
 			X0_total += x0_s
 			L0_total += l0_s
+			label_total += label_s
 
 			slices["X0"].append(X0_total)
 			slices["L0"].append(L0_total)
+			slices["label"].append(label_total)
 
 		X0 = torch.cat(X0, dim=0).to('cpu')
 		L0 = torch.cat(L0, dim=-1).to('cpu')
@@ -70,7 +75,7 @@ class GNNProcessor(NNProcessor):
 	def get(self, data, slices, idx):
 		x0_slice = slices["X0"][idx:idx + 2]
 		l0_slice = slices["L0"][idx:idx + 2]
-		label_slice = [idx, idx + 1]
+		label_slice = slices["label"][idx: idx + 2]
 
 		X0 = data.X0[x0_slice[0]: x0_slice[1]]
 		L0 = data.L0[:, l0_slice[0]: l0_slice[1]]

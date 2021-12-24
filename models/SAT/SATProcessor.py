@@ -61,6 +61,7 @@ class SATProcessor(NNProcessor):
 
         x0_total, x1_total, x2_total = 0, 0, 0
         l0_total, l1_u_total, l1_d_total, l2_total = 0, 0, 0, 0
+        label_total = 0
 
         slices = {"X0": [0],
                   "X1": [0],
@@ -68,14 +69,17 @@ class SATProcessor(NNProcessor):
                   "L0": [0],
                   "L1_up": [0],
                   "L1_down" : [0],
-                  "L2": [0]}
+                  "L2": [0],
+                  "label" : [0]}
 
         for data in data_list:
             x0, x1, x2 = data.X0, data.X1, data.X2
             l0, l1_up, l1_dn, l2 = data.L0, data.L1_up, data.L1_down, data.L2
             l = data.label
+
             x0_s, x1_s, x2_s = x0.shape[0], x1.shape[0], x2.shape[0]
             l0_s, l1_u_s, l1_d_s, l2_s = l0.shape[1], l1_up.shape[1], l1_dn.shape[1], l2.shape[1]
+            l_s = l.shape[0]
 
             X0.append(x0)
             X1.append(x1)
@@ -93,6 +97,7 @@ class SATProcessor(NNProcessor):
             l1_u_total += l1_u_s
             l1_d_total += l1_d_s
             l2_total += l2_s
+            label_total += l_s
 
             slices["X0"].append(x0_total)
             slices["X1"].append(x1_total)
@@ -101,6 +106,7 @@ class SATProcessor(NNProcessor):
             slices["L1_up"].append(l1_u_total)
             slices["L1_down"].append(l1_d_total)
             slices["L2"].append(l2_total)
+            slices["label"].append(label_total)
 
             del data
 
@@ -127,7 +133,7 @@ class SATProcessor(NNProcessor):
         l1_u_slice = slices["L1_up"][idx:idx + 2]
         l1_d_slice = slices["L1_down"][idx:idx + 2]
         l2_slice = slices["L2"][idx:idx + 2]
-        label_slice = [idx, idx + 1]
+        label_slice = slices["label"][idx: idx + 2]
 
         X0 = data.X0[x0_slice[0]: x0_slice[1]]
         X1 = data.X1[x1_slice[0]: x1_slice[1]]
