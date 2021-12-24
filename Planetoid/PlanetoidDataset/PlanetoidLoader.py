@@ -25,6 +25,7 @@ def convert_to_SC(ones, edges, features, labels):
     X0 = torch.index_select(features, 0, valid_features)
     adj = torch.index_select(full_adj, 0, valid_features)
     adj = torch.index_select(adj, 1, valid_features)
+    adj = torch.triu(adj, diagonal=1)
     nodes = [i for i in range(X0.shape[0])]
     edges = adj.to_sparse().coalesce().indices().tolist()
 
@@ -57,7 +58,7 @@ class PlanetoidSCDataset(InMemoryDataset):
         self.val_split = 0.20
         self.test_split = 0.35
 
-        folder = f"{root}/{self.dataset_name}"
+        folder = f"{root}/{self.dataset_name}/SC"
 
         super().__init__(folder)
         self.data, self.slices = torch.load(self.processed_paths[0])

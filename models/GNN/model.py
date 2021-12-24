@@ -32,6 +32,26 @@ class SuperpixelGCN(nn.Module):
         return F.softmax(self.layer_final(x), dim = 1)
 
 
+class PLanetoidGCN(nn.Module):
+    def __init__(self, input_size, output_size):
+        super().__init__()
+
+        f_size = 32
+        self.conv1 = GCNConv(input_size, f_size)
+        self.conv2 = GCNConv(f_size, output_size)
+
+    def forward(self, feature_dct):
+        L, X, batch = unpack_feature_dct_to_L_X_B(feature_dct)
+
+        adjacency = L[0].coalesce().indices()
+        features = X[0]
+
+        x = F.relu(self.conv1(features, adjacency))
+        x = F.relu(self.conv2(x, adjacency))
+
+        return x
+
+
 class GATLayer(nn.Module):
 
     def __init__(self, input_size, output_size):
@@ -82,4 +102,25 @@ class SuperpixelGAT(nn.Module):
 
         return F.softmax(self.layer(x), dim=1)
 
+
+class PlanetoidGAT(nn.Module):
+
+    def __init__(self, input_size, output_size, k_heads = 2):
+        super().__init__()
+
+        f_size = 32
+        assert f_size % k_heads == 0, f"k_heads needs to be a factor of feature size which is currently {f_size}."
+        self.gat1 = torch.nn.ModuleList([GATLayer(input_size, f_size//k_heads) for _ in range(k_heads)])
+        self.gat2 = torch.nn.ModuleList([GATLayer(f_size, output_size) for _ in range(k_heads)])
+
+    def forward(self, features_dct):
+        L, X, batch = unpack_feature_dct_to_L_X_B(features_dct)
+
+        adjacency = L[0].coalesce().indices()
+        x = X[0]
+
+        x = F.relu(torch.cat([gat(x, adjacency) for gat in self.gat1], dim = 1))
+        x = F.relu(torch.cat([gat(x, adjacency) for gat in self.gat2], dim = 1))
+
+        return x
 

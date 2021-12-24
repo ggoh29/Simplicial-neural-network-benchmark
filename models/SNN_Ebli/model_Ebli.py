@@ -16,7 +16,7 @@ class SCNLayer(nn.Module):
         return self.conv(X)
 
 
-class Superpixel_Ebli(nn.Module):
+class SuperpixelEbli(nn.Module):
     # This model is based on model described by Stefanie Ebli et al. in Simplicial Neural Networks
     # Github here https://github.com/stefaniaebli/simplicial_neural_networks?utm_source=catalyzex.com
     def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size, bias = True):
@@ -66,3 +66,25 @@ class Superpixel_Ebli(nn.Module):
         out = torch.cat([out0, out1, out2], dim = 1)
 
         return F.softmax(self.layer(out), dim = 1)
+
+
+class PlanetoidEbli(nn.Module):
+    # This model is based on model described by Stefanie Ebli et al. in Simplicial Neural Networks
+    # Github here https://github.com/stefaniaebli/simplicial_neural_networks?utm_source=catalyzex.com
+    def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size, bias = True):
+        super().__init__()
+
+        conv_size = 32
+
+        # Degree 0 convolutions.
+        self.C0_1 = SCNLayer(num_node_feats, conv_size, enable_bias = bias)
+        self.C0_2 = SCNLayer(conv_size, output_size, enable_bias = bias)
+
+
+    def forward(self, features_dct):
+        L, X, batch = unpack_feature_dct_to_L_X_B(features_dct)
+
+        out0_1 = self.C0_1(L[0], X[0])
+        out0_2 = self.C0_2(L[0], nn.LeakyReLU()(out0_1))
+
+        return out0_2

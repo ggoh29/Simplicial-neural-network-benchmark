@@ -38,7 +38,7 @@ class SATLayer(nn.Module):
         return output
 
 
-class Superpixel_SAT(nn.Module):
+class SuperpixelSAT(nn.Module):
     def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size):
         super().__init__()
 

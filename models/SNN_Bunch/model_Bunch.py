@@ -56,7 +56,7 @@ class SNN_Bunch_Layer(nn.Module):
     return X0, X1, X2
 
 
-class Superpixel_Bunch(nn.Module):
+class SuperpixelBunch(nn.Module):
 
   def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size, bias=True):
 
@@ -87,5 +87,28 @@ class Superpixel_Bunch(nn.Module):
     out = torch.cat([X0, X1, X2], dim=1)
 
     return F.softmax(self.output(out), dim=1)
+
+
+class PlanetoidlBunch(nn.Module):
+
+  def __init__(self, num_node_feats, output_size, bias=True):
+
+    super().__init__()
+    f_size = 32
+    self.layer1 = SNN_Bunch_Layer(num_node_feats, num_node_feats, num_node_feats, f_size, bias)
+    self.layer2 = SNN_Bunch_Layer(f_size, f_size, f_size, output_size, bias)
+
+
+  def forward(self, feature_dct):
+    L, X, batch = unpack_feature_dct_to_L_X_B(feature_dct)
+    B2D3, D2B1TD1inv, D1invB1, B2TD2inv = feature_dct['others']
+
+    X0, X1, X2 = X
+    L0, L1, L2 = L
+
+    X0, X1, X2 = self.layer1(X0, X1, X2, L0, L1, L2, B2D3, D2B1TD1inv, D1invB1, B2TD2inv)
+    X0, X1, X2 = self.layer2(X0, X1, X2, L0, L1, L2, B2D3, D2B1TD1inv, D1invB1, B2TD2inv)
+
+    return X0
 
 
