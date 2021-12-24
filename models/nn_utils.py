@@ -4,6 +4,19 @@ import numpy as np
 from scipy.sparse import coo_matrix
 
 
+def repair_sparse(matrix, ideal_shape):
+    i_x, i_y = ideal_shape
+    m_x, m_y = matrix.shape[0], matrix.shape[1]
+    indices = matrix.coalesce().indices()
+    values = matrix.coalesce().values()
+    if i_x > m_x or i_y > m_y:
+        additional_i = torch.tensor([[i_x - 1], [i_y - 1]], dtype=torch.float)
+        additional_v = torch.tensor([0], dtype=torch.float)
+        indices = torch.cat([indices, additional_i], dim=1)
+        values = torch.cat([values, additional_v], dim=0)
+    return torch.sparse_coo_tensor(indices, values)
+
+
 def to_sparse_coo(matrix):
     indices = matrix[0:2]
     values = matrix[2:3].squeeze()

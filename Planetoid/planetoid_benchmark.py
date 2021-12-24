@@ -6,7 +6,9 @@ import torch
 from Planetoid.DGI.DGI import DGI
 from constants import DEVICE
 
-input_size = 1433
+dataset = 'CiteSeer'
+dataset_dct = {'Cora' : 1433, 'CiteSeer' : 3703}
+input_size = dataset_dct[dataset]
 output_size = 128
 nb_epochs = 5000
 lr = 0.001
@@ -18,13 +20,12 @@ nn_mod = planetoid_Bunch_nn
 processor_type = nn_mod[0]
 model = nn_mod[1]
 
-
 model = DGI(input_size, output_size, model)
 optimiser = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=l2_coef)
 
 if __name__ == "__main__":
 
-    data = PlanetoidSCDataset('./data', 'Cora', processor_type)
+    data = PlanetoidSCDataset('./data', dataset, processor_type)
     train_dct = processor_type.batch([data[0]])[0]
     train_dct = processor_type.clean_feature_dct(train_dct)
     train_dct = processor_type.repair(train_dct)

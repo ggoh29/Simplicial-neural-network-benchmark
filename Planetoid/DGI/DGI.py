@@ -107,6 +107,7 @@ class DGI(nn.Module):
 
         corrupted_dct = {key: convert_to_device(corrupted_dct[key]) for key in corrupted_dct}
         h_2 = self.model(corrupted_dct)
+
         ret = self.disc(c, h_1, h_2, None, None)
 
         return ret

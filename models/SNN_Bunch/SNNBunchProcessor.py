@@ -4,7 +4,7 @@ import numpy as np
 from models.ProcessorTemplate import NNProcessor
 from models.nn_utils import convert_indices_and_values_to_sparse,\
     batch_sparse_matrix, batch_all_feature_and_lapacian_pair
-from models.nn_utils import chebyshev, unpack_feature_dct_to_L_X_B
+from models.nn_utils import chebyshev, unpack_feature_dct_to_L_X_B, repair_sparse
 
 
 class SimplicialObject:
@@ -50,16 +50,14 @@ class SNNBunchProcessor(NNProcessor):
         def to_dense(matrix):
             indices = matrix[0:2]
             values = matrix[2:3].squeeze()
-            return torch.sparse_coo_tensor(indices, values).to_dense()
+            return torch.sparse_coo_tensor(indices, values)
 
-        B1, B2 = to_dense(scData.b1).to('cpu'), to_dense(scData.b2, ).to('cpu')
-        if B1.shape[1] > B2.shape[0]:
-            ideal_B2 = torch.empty((B1.shape[1], B2.shape[1]), dtype=torch.float)
-            ideal_B2[: B2.shape[0], : B2.shape[1]] = B2
-            B2 = ideal_B2
-
+        B1, B2 = to_dense(scData.b1).to('cpu'), to_dense(scData.b2).to('cpu')
         X0, X1, X2 = scData.X0.to('cpu'), scData.X1.to('cpu'), scData.X2.to('cpu')
         label = scData.label
+
+        B1 = repair_sparse(B1, (X0.shape[0], X1.shape[0])).to_dense()
+        B2 = repair_sparse(B2, (X1.shape[0], X2.shape[0])).to_dense()
 
         L0 = B1 @ B1.T
         B1_sum = torch.sum(torch.abs(B1), 1)
@@ -275,18 +273,7 @@ class SNNBunchProcessor(NNProcessor):
 
         n, e, t = X0.shape[0], X1.shape[0], X2.shape[0]
 
-        def _repair(matrix, ideal_shape):
-            i_x, i_y = ideal_shape
-            m_x, m_y = matrix.shape[0], matrix.shape[1]
-            indices = matrix.coalesce().indices()
-            values = matrix.coalesce().values()
-            if i_x > m_x or i_y > m_y:
-                additional_i = torch.tensor([[i_x-1], [i_y-1]], dtype=torch.float)
-                additional_v = torch.tensor([0], dtype=torch.float)
-                indices = torch.cat([indices, additional_i], dim = 1)
-                values = torch.cat([values, additional_v], dim = 0)
-            return torch.sparse_coo_tensor(indices, values)
-
         ideal_shape = [(e, t), (e, n), (n, e), (t, e)]
-        feature_dct['others'] = [_repair(m, s) for m, s in zip(feature_dct['others'], ideal_shape)]
+        feature_dct['others'] = [repair_sparse(m, s) for m, s in zip(feature_dct['others'], ideal_shape)]
+
         return feature_dct

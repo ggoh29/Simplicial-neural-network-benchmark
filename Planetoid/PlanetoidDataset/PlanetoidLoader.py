@@ -45,7 +45,6 @@ def convert_to_SC(ones, edges, features, labels, reduce = True):
     X2 = get_features(features, triangles)
 
     labels = torch.index_select(labels, 0, valid_features)
-
     return SCData(X0, X1, X2, b1, b2, labels)
 
 
