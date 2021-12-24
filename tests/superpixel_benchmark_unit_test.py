@@ -6,7 +6,7 @@ from utils import tensor_to_sparse
 from dataset_processor.SuperpixelDataset.EdgeFlow import PixelBasedEdgeFlow
 from superpixel_benchmark import test, train
 from torchvision import datasets
-from dataset_processor.SuperpixelDataset.SuperpixelLoader import SimplicialComplexDataset
+from dataset_processor.SuperpixelDataset.SuperpixelLoader import SuperpixelSCDataset
 from torch.utils.data import DataLoader
 from models.GNN.model import GCN
 from models.GNN.GNNProcessor import GNNProcessor
@@ -98,7 +98,7 @@ class MyTestCase(unittest.TestCase):
 		GNN = GCN(5, 4).to(DEVICE)
 		processor_type = GNNProcessor()
 
-		data = SimplicialComplexDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=True)
+		data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=True)
 		batched_dataset = DataLoader(data, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=4,
 															 shuffle=False)
 		individual_dataset = DataLoader(data, batch_size=1, collate_fn=processor_type.batch, num_workers=4,
@@ -124,7 +124,7 @@ class MyTestCase(unittest.TestCase):
 		GNN = SNN_Ebli(5, 10, 15, 10).to(DEVICE)
 		processor_type = SNNEbliProcessor()
 
-		data = SimplicialComplexDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=True)
+		data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=True)
 		batched_dataset = DataLoader(data, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=4,
 															 shuffle=False)
 		individual_dataset = DataLoader(data, batch_size=1, collate_fn=processor_type.batch, num_workers=4,
@@ -149,7 +149,7 @@ class MyTestCase(unittest.TestCase):
 		GNN = SNN_Bunch(5, 10, 15, 10).to(DEVICE)
 		processor_type = SNNBunchProcessor()
 
-		data = SimplicialComplexDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=True)
+		data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=True)
 		batched_dataset = DataLoader(data, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=4,
 															 shuffle=False)
 		individual_dataset = DataLoader(data, batch_size=1, collate_fn=processor_type.batch, num_workers=4,
@@ -175,7 +175,7 @@ class MyTestCase(unittest.TestCase):
 		GNN = SAT(5, 10, 15, 10).to(DEVICE)
 		processor_type = SATProcessor()
 
-		data = SimplicialComplexDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=True)
+		data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=True)
 		batched_dataset = DataLoader(data, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=4,
 															 shuffle=False)
 		individual_dataset = DataLoader(data, batch_size=1, collate_fn=processor_type.batch, num_workers=4,

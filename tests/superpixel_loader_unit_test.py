@@ -1,5 +1,5 @@
 import unittest
-from dataset_processor.SuperpixelDataset.SuperpixelLoader import SimplicialComplexDataset
+from dataset_processor.SuperpixelDataset.SuperpixelLoader import SuperpixelSCDataset
 from dataset_processor.SuperpixelDataset.EdgeFlow import PixelBasedEdgeFlow
 from dataset_processor.SuperpixelDataset.ImageProcessor import ProcessImage
 import torchvision.transforms as transforms
@@ -20,7 +20,7 @@ class MyTestCase(unittest.TestCase):
         train = False
         processor_type = GNNProcessor()
 
-        train_data = SimplicialComplexDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=train)
+        train_data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=train)
         mnist_images = datasets.MNIST(root='./data', train=train, download=True, transform=transforms.ToTensor())
         PI = ProcessImage(superpixel_size, PixelBasedEdgeFlow)
 
@@ -39,7 +39,7 @@ class MyTestCase(unittest.TestCase):
         train = False
         processor_type = SNNEbliProcessor()
 
-        train_data = SimplicialComplexDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=train)
+        train_data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=train)
         mnist_images = datasets.MNIST(root='./data', train=train, download=True, transform=transforms.ToTensor())
         PI = ProcessImage(superpixel_size, PixelBasedEdgeFlow)
 
@@ -58,7 +58,7 @@ class MyTestCase(unittest.TestCase):
         train = False
         processor_type = SNNBunchProcessor()
 
-        train_data = SimplicialComplexDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=train)
+        train_data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=train)
         mnist_images = datasets.MNIST(root='./data', train=train, download=True, transform=transforms.ToTensor())
         PI = ProcessImage(superpixel_size, PixelBasedEdgeFlow)
 
@@ -77,7 +77,7 @@ class MyTestCase(unittest.TestCase):
         train = False
         processor_type = SATProcessor()
 
-        train_data = SimplicialComplexDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=train)
+        train_data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=train)
         mnist_images = datasets.MNIST(root='./data', train=train, download=True, transform=transforms.ToTensor())
         PI = ProcessImage(superpixel_size, PixelBasedEdgeFlow)
 

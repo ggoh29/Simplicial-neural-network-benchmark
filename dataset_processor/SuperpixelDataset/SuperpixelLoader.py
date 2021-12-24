@@ -34,7 +34,7 @@ def make_smaller_dataset_10_classes(data):
 	return data_out
 
 
-class SimplicialComplexDataset(InMemoryDataset):
+class SuperpixelSCDataset(InMemoryDataset):
 
 	def __init__(self, root, dataset_name, superpix_size, edgeflow_type, processor_type, n_jobs=8, train=True):
 
