@@ -31,6 +31,7 @@ def corruption_function(feature_dct, processor_type, p = 0.000):
     corrupted_train = processor_type.process(scData)
     corrupted_train = processor_type.batch([corrupted_train])[0]
     corrupted_train = processor_type.clean_feature_dct(corrupted_train)
+    corrupted_train = processor_type.repair(corrupted_train)
 
     # Might be missing nodes from adjacency matrix, add padding here
     L0_diag = torch.diag(L0, 0)
@@ -101,13 +102,11 @@ class DGI(nn.Module):
 
         feature_dct = {key: convert_to_device(feature_dct[key]) for key in feature_dct}
         h_1 = self.model(feature_dct)
-
         c = self.read(h_1, None)
         c = self.sigm(c)
 
         corrupted_dct = {key: convert_to_device(corrupted_dct[key]) for key in corrupted_dct}
         h_2 = self.model(corrupted_dct)
-
         ret = self.disc(c, h_1, h_2, None, None)
 
         return ret

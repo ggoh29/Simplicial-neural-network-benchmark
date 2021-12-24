@@ -163,3 +163,7 @@ class SNNEbliProcessor(NNProcessor):
 
     def clean_feature_dct(self, feature_dct):
         return convert_indices_and_values_to_sparse(feature_dct, 'lapacian_indices', 'lapacian_values', 'lapacian')
+
+
+    def repair(self, feature_dct):
+        return feature_dct

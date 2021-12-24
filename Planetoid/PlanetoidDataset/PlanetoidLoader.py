@@ -1,14 +1,11 @@
 from torch_geometric.datasets import Planetoid
-import torch
 from torch_geometric.data import InMemoryDataset
 import networkx as nx
 import numpy as np
 from utils import edge_to_node_matrix, triangle_to_edge_matrix
 import functools
 from models.SCData import SCData
-from utils import sparse_to_tensor, ensure_input_is_tensor
 import torch
-from models.nn_utils import to_sparse_coo
 
 
 def get_features(features, sc_list):
@@ -16,7 +13,7 @@ def get_features(features, sc_list):
         f = [features[i] for i in sc]
         return functools.reduce(lambda a, b: a + b, f)
 
-    return torch.stack([_get_features(features, sc) for sc in sc_list], dim = 1)
+    return torch.stack([_get_features(features, sc) for sc in sc_list], dim = 0)
 
 
 def convert_to_SC(ones, edges, features, labels, reduce = True):

@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch_geometric.nn import global_mean_pool
-from models.nn_utils import chebyshev, unpack_feature_dct_to_L_X_B
+from models.nn_utils import unpack_feature_dct_to_L_X_B
 
 class SNN_Bunch_Layer(nn.Module):
   # This model is based on model described by Eric Bunch et al. in Simplicial 2-Complex Convolutional Neural Networks

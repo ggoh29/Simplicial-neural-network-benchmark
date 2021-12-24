@@ -27,6 +27,7 @@ if __name__ == "__main__":
     data = PlanetoidSCDataset('./data', 'Cora', processor_type)
     train_dct = processor_type.batch([data[0]])[0]
     train_dct = processor_type.clean_feature_dct(train_dct)
+    train_dct = processor_type.repair(train_dct)
 
     b_xent = nn.BCEWithLogitsLoss()
     xent = nn.CrossEntropyLoss()
