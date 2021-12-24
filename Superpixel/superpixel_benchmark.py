@@ -1,8 +1,8 @@
-from dataset_processor.SuperpixelDataset.SuperpixelLoader import SuperpixelSCDataset
-from dataset_processor.SuperpixelDataset.EdgeFlow import PixelBasedEdgeFlow, RandomBasedEdgeFlow
+from Superpixel.SuperpixelDataset.SuperpixelLoader import SuperpixelSCDataset
+from Superpixel.SuperpixelDataset.EdgeFlow import PixelBasedEdgeFlow
 from torch.utils.data import DataLoader
 from constants import DEVICE
-from models.all_models import Ebli_nn, Bunch_nn, sat_nn, gnn, gat
+from models.all_models import sat_nn
 import torch
 from torchvision import datasets
 import numpy as np

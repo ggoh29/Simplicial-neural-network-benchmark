@@ -1,17 +1,12 @@
 from torch_geometric.datasets import Planetoid
 import torch
-import torchvision.transforms as transforms
 from torch_geometric.data import InMemoryDataset
-from joblib import Parallel, delayed
-from tqdm import tqdm
-from torchvision import datasets
 import networkx as nx
 import numpy as np
-import scipy as sp
-from constants import DEVICE
 from utils import edge_to_node_matrix, triangle_to_edge_matrix
 import functools
-from dataset_processor.SCData import SCData
+from models.SCData import SCData
+
 
 def get_features(features, sc_list):
     def _get_features(features, sc):
@@ -19,7 +14,6 @@ def get_features(features, sc_list):
         return functools.reduce(lambda a, b: a + b, f)
 
     return [_get_features(features, sc) for sc in sc_list]
-
 
 
 def convert_to_SC(ones, edges, features, labels):
@@ -40,8 +34,8 @@ def convert_to_SC(ones, edges, features, labels):
     g.add_edges_from(edges)
     triangles = [x for x in nx.enumerate_all_cliques(g) if len(x) == 3]
 
-    b1 = edge_to_node_matrix(edges, nodes)
-    b2 = triangle_to_edge_matrix(triangles, edges)
+    b1 = edge_to_node_matrix(edges, nodes).to_sparse()
+    b2 = triangle_to_edge_matrix(triangles, edges).to_sparse()
 
     X1 = get_features(features, edges)
     X2 = get_features(features, triangles)
@@ -53,15 +47,15 @@ def convert_to_SC(ones, edges, features, labels):
 
 class PlanetoidSCDataset(InMemoryDataset):
 
-    def __init__(self, root, dataset_name, n_jobs=8):
+    def __init__(self, root, dataset_name, processor_type, n_jobs=8):
         self.root = root
         self.dataset_name = dataset_name
         self.n_jobs = n_jobs
+        self.processor_type = processor_type
 
         self.train_split = 0.15
         self.val_split = 0.20
         self.test_split = 0.35
-
 
         folder = f"{root}/{self.dataset_name}/SC"
 
@@ -85,7 +79,6 @@ class PlanetoidSCDataset(InMemoryDataset):
         # Instantiating this will download and process the graph dataset_processor.
         self.data_download = Planetoid(self.root, self.dataset_name)[0]
 
-
     @property
     def processed_file_names(self):
         return ["features.pt"]
@@ -107,19 +100,30 @@ class PlanetoidSCDataset(InMemoryDataset):
         test_edges = edge_index[val_end:test_end].T
 
         train_ones = torch.ones(train_end)
-        val_ones = torch.ones(val_end)
-        test_ones = torch.ones(test_end)
+        val_ones = torch.ones(val_end - train_end)
+        test_ones = torch.ones(test_end - val_end)
 
         train = convert_to_SC(train_ones, train_edges, features, labels)
+        val = convert_to_SC(val_ones, val_edges, features, labels)
+        test = convert_to_SC(test_ones, test_edges, features, labels)
 
+        data_list = [train, val, test]
+        data_list = [self.processor_type.process(data) for data in data_list]
+
+        data, slices = self.processor_type.collate(data_list)
+        torch.save((data, slices), self.processed_paths[0])
+
+    def get_train(self):
+        return self.__getitem__(0)
+
+    def get_val(self):
+        return self.__getitem__(1)
+
+    def get_test(self):
+        return self.__getitem__(2)
 
     def __getitem__(self, idx):
         return self.processor_type.get(self.data, self.slices, idx)
 
     def get_name(self):
         return self.name
-
-
-if __name__ == "__main__":
-    data = PlanetoidSCDataset('./root', 'Cora')
-    print(data[0])

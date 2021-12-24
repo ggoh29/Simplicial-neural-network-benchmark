@@ -1,7 +1,7 @@
 import torch
 from skimage.segmentation import slic
 from utils import triangle_to_edge_matrix, edge_to_node_matrix
-from dataset_processor.SCData import SCData
+from models.SCData import SCData
 from skimage import color
 import numpy as np
 from constants import DEVICE

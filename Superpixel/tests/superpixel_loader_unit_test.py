@@ -1,7 +1,7 @@
 import unittest
-from dataset_processor.SuperpixelDataset.SuperpixelLoader import SuperpixelSCDataset
-from dataset_processor.SuperpixelDataset.EdgeFlow import PixelBasedEdgeFlow
-from dataset_processor.SuperpixelDataset.ImageProcessor import ProcessImage
+from Superpixel.SuperpixelDataset.SuperpixelLoader import SuperpixelSCDataset
+from Superpixel.SuperpixelDataset.EdgeFlow import PixelBasedEdgeFlow
+from Superpixel.SuperpixelDataset.ImageProcessor import ProcessImage
 import torchvision.transforms as transforms
 from torchvision import datasets
 from tqdm import tqdm

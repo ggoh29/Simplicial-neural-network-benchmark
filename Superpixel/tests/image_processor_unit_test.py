@@ -6,8 +6,8 @@ import numpy as np
 import networkx as nx
 from utils import triangle_to_edge_matrix, edge_to_node_matrix, tensor_to_sparse
 from constants import TEST_CIFAR10_IMAGE_1, TEST_MNIST_IMAGE_1, TEST_MNIST_IMAGE_2
-from dataset_processor.SuperpixelDataset.ImageProcessor import ProcessImage
-from dataset_processor.SuperpixelDataset.EdgeFlow import PixelBasedEdgeFlow
+from Superpixel.SuperpixelDataset.ImageProcessor import ProcessImage
+from Superpixel.SuperpixelDataset.EdgeFlow import PixelBasedEdgeFlow
 from skimage import color
 from constants import DEVICE
 

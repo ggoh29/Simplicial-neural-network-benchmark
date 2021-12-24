@@ -1,12 +1,12 @@
 import unittest
-from dataset_processor.SuperpixelDataset.ImageProcessor import ProcessImage
+from Superpixel.SuperpixelDataset.ImageProcessor import ProcessImage
 import torch
 from constants import TEST_MNIST_IMAGE_1, DEVICE
 from utils import tensor_to_sparse
-from dataset_processor.SuperpixelDataset.EdgeFlow import PixelBasedEdgeFlow
-from superpixel_benchmark import test, train
+from Superpixel.SuperpixelDataset.EdgeFlow import PixelBasedEdgeFlow
+from Superpixel.superpixel_benchmark import test, train
 from torchvision import datasets
-from dataset_processor.SuperpixelDataset.SuperpixelLoader import SuperpixelSCDataset
+from Superpixel.SuperpixelDataset.SuperpixelLoader import SuperpixelSCDataset
 from torch.utils.data import DataLoader
 from models.GNN.model import GCN
 from models.GNN.GNNProcessor import GNNProcessor
