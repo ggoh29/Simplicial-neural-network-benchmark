@@ -27,9 +27,7 @@ optimiser = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=l2_coef)
 if __name__ == "__main__":
 
     data = PlanetoidSCDataset('./data', dataset, processor_type)
-    train_dct = processor_type.batch([data[0]])[0]
-    train_dct = processor_type.clean_feature_dct(train_dct)
-    train_dct = processor_type.repair(train_dct)
+    data_dct = data.get_full()
 
     b_xent = nn.BCEWithLogitsLoss()
     xent = nn.CrossEntropyLoss()
@@ -41,12 +39,12 @@ if __name__ == "__main__":
         model.train()
         optimiser.zero_grad()
 
-        nb_nodes = train_dct["features"][0].shape[0]
+        nb_nodes = data_dct["features"][0].shape[0]
         lbl_1 = torch.ones(1, nb_nodes)
         lbl_2 = torch.zeros(1, nb_nodes)
         lbl = torch.cat((lbl_1, lbl_2), 1).to(DEVICE)
 
-        logits = model(train_dct, processor_type)
+        logits = model(data_dct, processor_type)
 
         loss = b_xent(logits, lbl)
 
@@ -66,58 +64,58 @@ if __name__ == "__main__":
 
         loss.backward()
         optimiser.step()
-
-    print('Loading {}th epoch'.format(best_t))
-    model.load_state_dict(torch.load('best_dgi.pkl'))
-
-    embeds, _ = model.embed(train_dct)
-    train_embs, _ = model.embed(train_dct)
-
-    val_dct = processor_type.batch([data[1]])[0]
-    val_dct = processor_type.clean_feature_dct(val_dct)
-    val_dct = processor_type.repair(val_dct)
-    val_embs, _ = model.embed(val_dct)
-
-    test_dct = processor_type.batch([data[2]])[0]
-    test_dct = processor_type.clean_feature_dct(test_dct)
-    test_dct = processor_type.repair(test_dct)
-    test_embs, _ = model.embed(test_dct)
-
-    train_lbls = data[0].label.to(DEVICE)
-    val_lbls = data[1].label.to(DEVICE)
-    test_lbls = data[2].label.to(DEVICE)
-
-    tot = torch.zeros(1).to(DEVICE)
-
-    accs = []
-
-    for _ in range(50):
-        log = LogReg(output_size, dataset_classes_dct[dataset])
-        opt = torch.optim.Adam(log.parameters(), lr=0.01, weight_decay=0.0)
-        log.cuda()
-
-        pat_steps = 0
-        best_acc = torch.zeros(1)
-        best_acc = best_acc.cuda()
-        for _ in range(100):
-            log.train()
-            opt.zero_grad()
-
-            logits = log(train_embs)
-            loss = xent(logits, train_lbls)
-
-            loss.backward()
-            opt.step()
-
-        logits = log(test_embs)
-        preds = torch.argmax(logits, dim=1)
-        acc = torch.sum(preds == test_lbls).float() / test_lbls.shape[0]
-        accs.append(acc * 100)
-        print(acc)
-        tot += acc
-
-    print('Average accuracy:', tot / 50)
-
-    accs = torch.stack(accs)
-    print(accs.mean())
-    print(accs.std())
+    #
+    # print('Loading {}th epoch'.format(best_t))
+    # model.load_state_dict(torch.load('best_dgi.pkl'))
+    #
+    # embeds, _ = model.embed(train_dct)
+    # train_embs, _ = model.embed(train_dct)
+    #
+    # val_dct = processor_type.batch([data[1]])[0]
+    # val_dct = processor_type.clean_feature_dct(val_dct)
+    # val_dct = processor_type.repair(val_dct)
+    # val_embs, _ = model.embed(val_dct)
+    #
+    # test_dct = processor_type.batch([data[2]])[0]
+    # test_dct = processor_type.clean_feature_dct(test_dct)
+    # test_dct = processor_type.repair(test_dct)
+    # test_embs, _ = model.embed(test_dct)
+    #
+    # train_lbls = data[0].label.to(DEVICE)
+    # val_lbls = data[1].label.to(DEVICE)
+    # test_lbls = data[2].label.to(DEVICE)
+    #
+    # tot = torch.zeros(1).to(DEVICE)
+    #
+    # accs = []
+    #
+    # for _ in range(50):
+    #     log = LogReg(output_size, dataset_classes_dct[dataset])
+    #     opt = torch.optim.Adam(log.parameters(), lr=0.01, weight_decay=0.0)
+    #     log.cuda()
+    #
+    #     pat_steps = 0
+    #     best_acc = torch.zeros(1)
+    #     best_acc = best_acc.cuda()
+    #     for _ in range(100):
+    #         log.train()
+    #         opt.zero_grad()
+    #
+    #         logits = log(train_embs)
+    #         loss = xent(logits, train_lbls)
+    #
+    #         loss.backward()
+    #         opt.step()
+    #
+    #     logits = log(test_embs)
+    #     preds = torch.argmax(logits, dim=1)
+    #     acc = torch.sum(preds == test_lbls).float() / test_lbls.shape[0]
+    #     accs.append(acc * 100)
+    #     print(acc)
+    #     tot += acc
+    #
+    # print('Average accuracy:', tot / 50)
+    #
+    # accs = torch.stack(accs)
+    # print(accs.mean())
+    # print(accs.std())

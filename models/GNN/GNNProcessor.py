@@ -26,7 +26,7 @@ class GNNProcessor(NNProcessor):
 		b1, b2 = to_sparse_coo(scData.b1), to_sparse_coo(scData.b2)
 
 		X0 = scData.X0
-		L0 = normalise(torch.sparse.mm(b1, b1.t()))
+		L0 = torch.sparse.mm(b1, b1.t())
 		label = scData.label
 
 		return GraphObject(X0, L0, label)

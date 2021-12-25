@@ -1,10 +1,57 @@
 import torch
+import scipy
 import scipy.sparse.linalg as spl
 import numpy as np
 from scipy.sparse import coo_matrix
+import networkx as nx
+from utils import edge_to_node_matrix, triangle_to_edge_matrix
+from models.SCData import SCData
+import functools
+
+def remove_diag_sparse(sparse_adj):
+    scipy_adj = torch_sparse_to_scipy_sparse(sparse_adj)
+    scipy_adj = scipy.sparse.triu(scipy_adj, k=1)
+    return scipy_sparse_to_torch_sparse(scipy_adj)
+
+def get_features(features, sc_list):
+    def _get_features(features, sc):
+        f = [features[i] for i in sc]
+        return functools.reduce(lambda a, b: a + b, f)
+    features = [_get_features(features, sc) for sc in sc_list]
+    if bool(features):
+        return torch.stack(features, dim = 0)
+    else:
+        return torch.tensor([])
+
+def convert_to_SC(adj, features, labels, get_features = get_features):
+    X0 = features
+
+    nodes = [i for i in range(X0.shape[0])]
+    edges = adj.coalesce().indices().tolist()
+
+    g = nx.Graph()
+    g.add_nodes_from(nodes)
+    edges = [(i, j) for i, j in zip(edges[0], edges[1])]
+    g.add_edges_from(edges)
+    triangles = [x for x in nx.enumerate_all_cliques(g) if len(x) == 3]
+
+    b1 = edge_to_node_matrix(edges, nodes).to_sparse()
+    b2 = triangle_to_edge_matrix(triangles, edges).to_sparse()
+    X1 = get_features(features, edges)
+    X2 = get_features(features, triangles)
+
+    return SCData(X0, X1, X2, b1, b2, labels)
+
+
+def fill_adj(ones, edges, n):
+    full_adj = torch.empty((n, n), dtype=torch.float)
+    adj = torch.sparse_coo_tensor(edges, ones).to_dense()
+    full_adj[: adj.shape[0], : adj.shape[1]] = adj
+    return full_adj
 
 
 def repair_sparse(matrix, ideal_shape):
+    # Only use this if last few cols/rows are empty and were removed in sparse operation
     i_x, i_y = ideal_shape
     m_x, m_y = matrix.shape[0], matrix.shape[1]
     indices = matrix.coalesce().indices()

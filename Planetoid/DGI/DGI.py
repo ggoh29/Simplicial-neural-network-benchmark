@@ -1,5 +1,6 @@
-from models.nn_utils import unpack_feature_dct_to_L_X_B
-from Planetoid.PlanetoidDataset.PlanetoidLoader import convert_to_SC
+from models.nn_utils import unpack_feature_dct_to_L_X_B, convert_to_SC, torch_sparse_to_scipy_sparse, repair_sparse,\
+    scipy_sparse_to_torch_sparse
+import scipy
 import numpy as np
 import torch
 import torch.nn as nn
@@ -8,7 +9,7 @@ from constants import DEVICE
 def convert_to_device(lst):
     return [i.to(DEVICE) for i in lst]
 
-def corruption_function(feature_dct, processor_type, p = 0.000):
+def corruption_function(feature_dct, processor_type, p = 0.005):
     L, X, batch = unpack_feature_dct_to_L_X_B(feature_dct)
     X0 = X[0]
 
@@ -16,29 +17,32 @@ def corruption_function(feature_dct, processor_type, p = 0.000):
     idx = np.random.permutation(nb_nodes)
     C_X0 = X0[idx]
 
-    L0_i = L[0].coalesce().indices()
-    L0_v = torch.ones(L0_i.shape[1])
-    L0 = torch.sparse_coo_tensor(L0_i, L0_v).to_dense()
+    L0_i = L[0].coalesce().indices().to(DEVICE)
+    L0_v = -torch.ones(L0_i.shape[1]).to(DEVICE)
+    L0 = torch.sparse_coo_tensor(L0_i, L0_v).to(DEVICE)
 
-    C_L0 = torch.tensor(np.random.binomial(1, p, size = (L[0].shape)), dtype = torch.float)
-    C_L0 = torch.logical_xor(L0, C_L0)
-    C_L0 = torch.triu(C_L0, diagonal=1).to_sparse()
-    C_L0_i = C_L0.coalesce().indices()
-    ones = torch.ones(C_L0_i.shape[1])
+    cor_adj_i = torch.triu_indices(nb_nodes, nb_nodes, 0).to(DEVICE)
+    cor_adj_v = torch.tensor(np.random.binomial(1, p, size=(cor_adj_i.shape[1])), dtype=torch.float, device = DEVICE)
 
-    fake_labels = torch.tensor([0 for _ in range(nb_nodes)])
-    scData = convert_to_SC(ones, C_L0_i, C_X0, fake_labels, False)
+    # logical xor for edge insertion/deletion
+    cor_adj = torch.sparse_coo_tensor(cor_adj_i, cor_adj_v).to(DEVICE)
+    cor_adj = L0 + cor_adj
+    cor_adj_i, cor_adj_v = cor_adj.coalesce().indices().to(DEVICE), cor_adj.coalesce().values().to(DEVICE)
+    cor_adj_v = torch.abs(cor_adj_v)
+    cor_adj = torch.sparse_coo_tensor(cor_adj_i, cor_adj_v)
+    cor_adj = torch_sparse_to_scipy_sparse(cor_adj)
+    cor_adj = scipy.sparse.triu(cor_adj, k=1)
+    cor_adj.eliminate_zeros()
+    cor_adj = scipy_sparse_to_torch_sparse(cor_adj)
+    cor_adj = repair_sparse(cor_adj, (nb_nodes, nb_nodes))
+
+    fake_labels = torch.tensor([0 for _ in range(nb_nodes)], dtype=torch.float, device = DEVICE)
+    scData = convert_to_SC(cor_adj, C_X0, fake_labels)
     corrupted_train = processor_type.process(scData)
     corrupted_train = processor_type.batch([corrupted_train])[0]
     corrupted_train = processor_type.clean_feature_dct(corrupted_train)
     corrupted_train = processor_type.repair(corrupted_train)
 
-    # Might be missing nodes from adjacency matrix, add padding here
-    L0_diag = torch.diag(L0, 0)
-    L0_diag = torch.diag(L0_diag)
-    adj = corrupted_train['lapacian'][0].to_dense()
-    L0_diag[: adj.shape[0], : adj.shape[1]] = adj
-    corrupted_train['lapacian'][0] = L0_diag.to_sparse()
     return corrupted_train
 
 ######################################################################################################

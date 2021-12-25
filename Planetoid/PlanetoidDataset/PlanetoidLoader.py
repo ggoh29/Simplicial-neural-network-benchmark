@@ -1,64 +1,29 @@
 from torch_geometric.datasets import Planetoid
 from torch_geometric.data import InMemoryDataset
-import networkx as nx
 import numpy as np
-from utils import edge_to_node_matrix, triangle_to_edge_matrix
-import functools
-from models.SCData import SCData
 import torch
+from models.nn_utils import torch_sparse_to_scipy_sparse, scipy_sparse_to_torch_sparse, to_sparse_coo, convert_to_SC, remove_diag_sparse
+import scipy
 
-
-def get_features(features, sc_list):
-    def _get_features(features, sc):
-        f = [features[i] for i in sc]
-        return functools.reduce(lambda a, b: a + b, f)
-
-    return torch.stack([_get_features(features, sc) for sc in sc_list], dim = 0)
-
-
-def convert_to_SC(ones, edges, features, labels, reduce = True):
-    n = features.shape[0]
-    full_adj = torch.empty((n, n), dtype=torch.float)
-    adj = torch.sparse_coo_tensor(edges, ones).to_dense()
-    full_adj[: adj.shape[0], : adj.shape[1]] = adj
-    valid_features = torch.tensor(np.unique(edges), dtype=torch.int)
-    if reduce:
-        X0 = torch.index_select(features, 0, valid_features)
-        adj = torch.index_select(full_adj, 0, valid_features)
-        adj = torch.index_select(adj, 1, valid_features)
-    else:
-        X0 = features
-        adj = full_adj
-    adj = torch.triu(adj, diagonal=1)
-    nodes = [i for i in range(X0.shape[0])]
-    edges = adj.to_sparse().coalesce().indices().tolist()
-
-    g = nx.Graph()
-    g.add_nodes_from(nodes)
-    edges = [(i, j) for i, j in zip(edges[0], edges[1])]
-    g.add_edges_from(edges)
-    triangles = [x for x in nx.enumerate_all_cliques(g) if len(x) == 3]
-
-    b1 = edge_to_node_matrix(edges, nodes).to_sparse()
-    b2 = triangle_to_edge_matrix(triangles, edges).to_sparse()
-    X1 = get_features(features, edges)
-    X2 = get_features(features, triangles)
-
-    labels = torch.index_select(labels, 0, valid_features)
-    return SCData(X0, X1, X2, b1, b2, labels)
+train_val_test_dct = {'Cora' : (0, 140, 640, 1640), 'CiteSeer' : (0, 120, 620, 1620), 'PubMed' : (0, 60, 560, 1560)}
+node_size_dct = {'Cora' : 2708, 'CiteSeer' : 3327, 'PubMed' : 19717}
 
 
 class PlanetoidSCDataset(InMemoryDataset):
 
-    def __init__(self, root, dataset_name, processor_type, n_jobs=8):
+    def __init__(self, root, dataset_name, processor_type):
         self.root = root
         self.dataset_name = dataset_name
-        self.n_jobs = n_jobs
         self.processor_type = processor_type
 
-        self.train_split = 0.10
-        self.val_split = 0.15
-        self.test_split = 0.20
+        start, train, val, test = train_val_test_dct[dataset_name]
+
+        nodes = np.array([i for i in range(node_size_dct[dataset_name])])
+        np.random.shuffle(nodes)
+
+        self.train_split = nodes[start: train]
+        self.val_split = nodes[train: val]
+        self.test_split = nodes[val: test]
 
         folder = f"{root}/{self.dataset_name}/{processor_type.__class__.__name__}"
 
@@ -89,41 +54,46 @@ class PlanetoidSCDataset(InMemoryDataset):
     def process(self):
         data = self.data_download
         features, edges, labels = data.x, data.edge_index, data.y
-        n = edges.shape[1]
+        adj_ones = torch.ones(edges.shape[1])
+        adj = torch.sparse_coo_tensor(edges, adj_ones)
 
-        edge_index = np.array(edges.T)
-        np.random.shuffle(edge_index)
+        adj = remove_diag_sparse(adj)
 
-        train_end = int(n * self.train_split)
-        val_end = int(n * (self.train_split + self.val_split))
-        test_end = int(n * (self.train_split + self.val_split + self.test_split))
+        dataset = convert_to_SC(adj, features, labels)
+        dataset = [self.processor_type.process(dataset)]
 
-        train_edges = edge_index[:train_end].T
-        val_edges = edge_index[train_end:val_end].T
-        test_edges = edge_index[val_end:test_end].T
-
-        train_ones = torch.ones(train_end)
-        val_ones = torch.ones(val_end - train_end)
-        test_ones = torch.ones(test_end - val_end)
-
-        train = convert_to_SC(train_ones, train_edges, features, labels)
-        val = convert_to_SC(val_ones, val_edges, features, labels)
-        test = convert_to_SC(test_ones, test_edges, features, labels)
-
-        data_list = [train, val, test]
-        data_list = [self.processor_type.process(data) for data in data_list]
-
-        data, slices = self.processor_type.collate(data_list)
+        data, slices = self.processor_type.collate(dataset)
         torch.save((data, slices), self.processed_paths[0])
 
     def get_train(self):
-        return self.__getitem__(0)
+        return self._get_node_subsection(self.train_split)
 
     def get_val(self):
-        return self.__getitem__(1)
+        return self._get_node_subsection(self.val_split)
 
     def get_test(self):
-        return self.__getitem__(2)
+        return self._get_node_subsection(self.test_split)
+
+    def get_full(self):
+        data_dct = self.get(0)
+        data_dct = self.processor_type.batch([data_dct])[0]
+        data_dct = self.processor_type.clean_feature_dct(data_dct)
+        return self.processor_type.repair(data_dct)
+
+    def _get_node_subsection(self, idx_list):
+        dataset = self.__getitem__(0)
+        idx_list = torch.tensor(idx_list)
+        adj = to_sparse_coo(dataset.L0).to_dense()
+        adj = torch.index_select(adj, 0, idx_list)
+        adj = torch.index_select(adj, 1, idx_list)
+        adj = torch.triu(adj, diagonal=1).to_sparse()
+        features = dataset.X0[idx_list]
+        labels = dataset.label[idx_list]
+        dataset = convert_to_SC(adj, features, labels)
+        dataset = self.processor_type.process(dataset)
+        data_dct = self.processor_type.batch([dataset])[0]
+        data_dct = self.processor_type.clean_feature_dct(data_dct)
+        return self.processor_type.repair(data_dct)
 
     def __getitem__(self, idx):
         return self.processor_type.get(self.data, self.slices, idx)
