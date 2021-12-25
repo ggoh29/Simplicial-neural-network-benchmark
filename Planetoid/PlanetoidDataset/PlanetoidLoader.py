@@ -56,9 +56,9 @@ class PlanetoidSCDataset(InMemoryDataset):
         self.n_jobs = n_jobs
         self.processor_type = processor_type
 
-        self.train_split = 0.15
-        self.val_split = 0.20
-        self.test_split = 0.35
+        self.train_split = 0.10
+        self.val_split = 0.15
+        self.test_split = 0.20
 
         folder = f"{root}/{self.dataset_name}/{processor_type.__class__.__name__}"
 

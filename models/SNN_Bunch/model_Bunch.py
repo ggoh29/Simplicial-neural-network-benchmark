@@ -94,7 +94,7 @@ class PlanetoidBunch(nn.Module):
   def __init__(self, num_node_feats, output_size, bias=True):
 
     super().__init__()
-    f_size = 64
+    f_size = output_size//2
     self.layer1 = SNN_Bunch_Layer(num_node_feats, num_node_feats, num_node_feats, f_size, bias)
     self.layer2 = SNN_Bunch_Layer(f_size, f_size, f_size, output_size, bias)
 

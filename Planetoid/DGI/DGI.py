@@ -114,6 +114,7 @@ class DGI(nn.Module):
 
     # Detach the return variables
     def embed(self, feature_dct):
+        feature_dct = {key: convert_to_device(feature_dct[key]) for key in feature_dct}
         h_1 = self.model(feature_dct)
         c = self.read(h_1, None)
 
