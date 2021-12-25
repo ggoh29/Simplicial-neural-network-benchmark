@@ -14,10 +14,10 @@ output_size = 64
 nb_epochs = 5000
 lr = 0.001
 l2_coef = 0.0
-patience = 25
+patience = 20
 
-nn_mod = planetoid_gnn
-# nn_mod = planetoid_Bunch_nn
+# nn_mod = planetoid_gnn
+nn_mod = planetoid_Bunch_nn
 processor_type = nn_mod[0]
 model = nn_mod[1]
 
@@ -64,58 +64,55 @@ if __name__ == "__main__":
 
         loss.backward()
         optimiser.step()
-    #
-    # print('Loading {}th epoch'.format(best_t))
-    # model.load_state_dict(torch.load('best_dgi.pkl'))
-    #
-    # embeds, _ = model.embed(train_dct)
-    # train_embs, _ = model.embed(train_dct)
-    #
-    # val_dct = processor_type.batch([data[1]])[0]
-    # val_dct = processor_type.clean_feature_dct(val_dct)
-    # val_dct = processor_type.repair(val_dct)
-    # val_embs, _ = model.embed(val_dct)
-    #
-    # test_dct = processor_type.batch([data[2]])[0]
-    # test_dct = processor_type.clean_feature_dct(test_dct)
-    # test_dct = processor_type.repair(test_dct)
-    # test_embs, _ = model.embed(test_dct)
-    #
-    # train_lbls = data[0].label.to(DEVICE)
-    # val_lbls = data[1].label.to(DEVICE)
-    # test_lbls = data[2].label.to(DEVICE)
-    #
-    # tot = torch.zeros(1).to(DEVICE)
-    #
-    # accs = []
-    #
-    # for _ in range(50):
-    #     log = LogReg(output_size, dataset_classes_dct[dataset])
-    #     opt = torch.optim.Adam(log.parameters(), lr=0.01, weight_decay=0.0)
-    #     log.cuda()
-    #
-    #     pat_steps = 0
-    #     best_acc = torch.zeros(1)
-    #     best_acc = best_acc.cuda()
-    #     for _ in range(100):
-    #         log.train()
-    #         opt.zero_grad()
-    #
-    #         logits = log(train_embs)
-    #         loss = xent(logits, train_lbls)
-    #
-    #         loss.backward()
-    #         opt.step()
-    #
-    #     logits = log(test_embs)
-    #     preds = torch.argmax(logits, dim=1)
-    #     acc = torch.sum(preds == test_lbls).float() / test_lbls.shape[0]
-    #     accs.append(acc * 100)
-    #     print(acc)
-    #     tot += acc
-    #
-    # print('Average accuracy:', tot / 50)
-    #
-    # accs = torch.stack(accs)
-    # print(accs.mean())
-    # print(accs.std())
+
+    print('Loading {}th epoch'.format(best_t))
+    model.load_state_dict(torch.load('best_dgi.pkl'))
+
+    embeds, _ = model.embed(data_dct)
+    train_dct = data.get_train()
+    train_embs, _ = model.embed(train_dct)
+
+    val_dct = data.get_val()
+    val_embs, _ = model.embed(val_dct)
+
+    test_dct = data.get_test()
+    test_embs, _ = model.embed(test_dct)
+
+    train_lbls = data.get_train_labels().to(DEVICE)
+    val_lbls = data.get_val_labels().to(DEVICE)
+    test_lbls = data.get_val_test().to(DEVICE)
+
+    tot = torch.zeros(1).to(DEVICE)
+
+    accs = []
+
+    for _ in range(50):
+        log = LogReg(output_size, dataset_classes_dct[dataset])
+        opt = torch.optim.Adam(log.parameters(), lr=0.01, weight_decay=0.0)
+        log.cuda()
+
+        pat_steps = 0
+        best_acc = torch.zeros(1)
+        best_acc = best_acc.cuda()
+        for _ in range(100):
+            log.train()
+            opt.zero_grad()
+
+            logits = log(train_embs)
+            loss = xent(logits, train_lbls)
+
+            loss.backward()
+            opt.step()
+
+        logits = log(test_embs)
+        preds = torch.argmax(logits, dim=1)
+        acc = torch.sum(preds == test_lbls).float() / test_lbls.shape[0]
+        accs.append(acc * 100)
+        print(acc)
+        tot += acc
+
+    print('Average accuracy:', tot / 50)
+
+    accs = torch.stack(accs)
+    print(accs.mean())
+    print(accs.std())

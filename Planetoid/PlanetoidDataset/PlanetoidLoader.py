@@ -95,6 +95,18 @@ class PlanetoidSCDataset(InMemoryDataset):
         data_dct = self.processor_type.clean_feature_dct(data_dct)
         return self.processor_type.repair(data_dct)
 
+    def get_train_labels(self):
+        data_dct = self.get(0)
+        return data_dct.label[self.train_split]
+
+    def get_val_labels(self):
+        data_dct = self.get(0)
+        return data_dct.label[self.val_split]
+
+    def get_test_labels(self):
+        data_dct = self.get(0)
+        return data_dct.label[self.test_split]
+
     def __getitem__(self, idx):
         return self.processor_type.get(self.data, self.slices, idx)
 
