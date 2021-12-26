@@ -26,8 +26,7 @@ model = nn_mod[1]
 model = DGI(input_size, output_size, model)
 optimiser = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=l2_coef)
 
-if __name__ == "__main__":
-
+def run():
     data = PlanetoidSCDataset('./data', dataset, processor_type)
     data_dct = data.get_full()
 
@@ -106,7 +105,6 @@ if __name__ == "__main__":
             loss.backward()
             opt.step()
 
-
         logits = log(test_embs)
         preds = torch.argmax(logits, dim=1)
         acc = torch.sum(preds == test_lbls).float() / test_lbls.shape[0]
@@ -119,3 +117,7 @@ if __name__ == "__main__":
     accs = torch.stack(accs)
     print(accs.mean())
     print(accs.std())
+
+if __name__ == "__main__":
+
+    run()
