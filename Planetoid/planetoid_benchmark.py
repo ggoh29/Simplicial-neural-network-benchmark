@@ -10,14 +10,14 @@ dataset = 'Cora'
 dataset_features_dct = {'Cora' : 1433, 'CiteSeer' : 3703, 'PubMed' : 500}
 dataset_classes_dct = {'Cora' : 7, 'CiteSeer' : 6, 'PubMed' : 3}
 input_size = dataset_features_dct[dataset]
-output_size = 64
-nb_epochs = 5000
+output_size = 512
+nb_epochs = 10
 lr = 0.001
 l2_coef = 0.0
 patience = 20
 
-# nn_mod = planetoid_gnn
-nn_mod = planetoid_Bunch_nn
+nn_mod = planetoid_gnn
+# nn_mod = planetoid_Bunch_nn
 processor_type = nn_mod[0]
 model = nn_mod[1]
 
@@ -69,24 +69,22 @@ if __name__ == "__main__":
     model.load_state_dict(torch.load('best_dgi.pkl'))
 
     embeds, _ = model.embed(data_dct)
-    train_dct = data.get_train()
-    train_embs, _ = model.embed(train_dct)
 
-    val_dct = data.get_val()
-    val_embs, _ = model.embed(val_dct)
-
-    test_dct = data.get_test()
-    test_embs, _ = model.embed(test_dct)
+    train_embs = data.get_train_embeds(embeds)
+    val_embs = data.get_val_embeds(embeds)
+    test_embs = data.get_test_embeds(embeds)
 
     train_lbls = data.get_train_labels().to(DEVICE)
+    x_unique = train_lbls.unique(sorted=True)
+    x_unique_count = torch.stack([(train_lbls == x_u).sum() for x_u in x_unique])
     val_lbls = data.get_val_labels().to(DEVICE)
-    test_lbls = data.get_val_test().to(DEVICE)
+    test_lbls = data.get_test_labels().to(DEVICE)
 
     tot = torch.zeros(1).to(DEVICE)
 
     accs = []
 
-    for _ in range(50):
+    for _ in range(10):
         log = LogReg(output_size, dataset_classes_dct[dataset])
         opt = torch.optim.Adam(log.parameters(), lr=0.01, weight_decay=0.0)
         log.cuda()
@@ -103,7 +101,6 @@ if __name__ == "__main__":
 
             loss.backward()
             opt.step()
-
         logits = log(test_embs)
         preds = torch.argmax(logits, dim=1)
         acc = torch.sum(preds == test_lbls).float() / test_lbls.shape[0]

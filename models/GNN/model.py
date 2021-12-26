@@ -1,9 +1,10 @@
 import torch
 import torch.nn as nn
-from torch_geometric.nn import GCNConv, GATConv
+from torch_geometric.nn import GCNConv
 from torch_geometric.nn import global_mean_pool
 import torch.nn.functional as F
 from models.nn_utils import unpack_feature_dct_to_L_X_B
+from torch.nn.parameter import Parameter
 
 
 class SuperpixelGCN(nn.Module):
@@ -32,13 +33,22 @@ class SuperpixelGCN(nn.Module):
         return F.softmax(self.layer_final(x), dim = 1)
 
 
+class PRELU(nn.PReLU):
+
+    def forward(self, input):
+        return F.prelu(input, self.weight.cuda())
+
+
+
 class PLanetoidGCN(nn.Module):
     def __init__(self, input_size, output_size):
         super().__init__()
 
         f_size = output_size//2
-        self.conv1 = GCNConv(input_size, f_size)
-        self.conv2 = GCNConv(f_size, output_size)
+        self.conv1 = GCNConv(input_size, output_size)
+        # self.conv2 = GCNConv(f_size, output_size)
+
+        self.act = PRELU()
 
     def forward(self, feature_dct):
         L, X, batch = unpack_feature_dct_to_L_X_B(feature_dct)
@@ -46,8 +56,8 @@ class PLanetoidGCN(nn.Module):
         adjacency = L[0].coalesce().indices()
         features = X[0]
 
-        x = F.relu(self.conv1(features, adjacency))
-        x = F.relu(self.conv2(x, adjacency))
+        return self.act(self.conv1(features, adjacency))
+        x = self.act(self.conv2(x, adjacency))
 
         return x
 

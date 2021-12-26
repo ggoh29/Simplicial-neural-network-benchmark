@@ -35,7 +35,7 @@ def convert_to_SC(adj, features, labels, get_features = get_features):
     g.add_edges_from(edges)
     triangles = [x for x in nx.enumerate_all_cliques(g) if len(x) == 3]
 
-    b1 = edge_to_node_matrix(edges, nodes).to_sparse()
+    b1 = edge_to_node_matrix(edges, nodes, one_indexed=False).to_sparse()
     b2 = triangle_to_edge_matrix(triangles, edges).to_sparse()
     X1 = get_features(features, edges)
     X2 = get_features(features, triangles)

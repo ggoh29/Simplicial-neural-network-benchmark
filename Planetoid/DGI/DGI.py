@@ -12,7 +12,6 @@ def convert_to_device(lst):
 def corruption_function(feature_dct, processor_type, p = 0.0001):
     L, X, batch = unpack_feature_dct_to_L_X_B(feature_dct)
     X0 = X[0]
-
     nb_nodes = X0.shape[0]
     idx = np.random.permutation(nb_nodes)
     C_X0 = X0[idx]
@@ -21,12 +20,22 @@ def corruption_function(feature_dct, processor_type, p = 0.0001):
     L0_v = -torch.ones(L0_i.shape[1]).to(DEVICE)
     L0 = torch.sparse_coo_tensor(L0_i, L0_v).to(DEVICE)
 
-    cor_adj_i = torch.triu_indices(nb_nodes, nb_nodes, 0).to(DEVICE)
-    cor_adj_v = torch.tensor(np.random.binomial(1, p, size=(cor_adj_i.shape[1])), dtype=torch.float, device = DEVICE)
+    # cor_adj_i = torch.triu_indices(nb_nodes, nb_nodes, 0).to(DEVICE)
+    # cor_adj_v = torch.tensor(np.random.binomial(1, p, size=(cor_adj_i.shape[1])), dtype=torch.float, device = DEVICE)
+    #
+    # # logical xor for edge insertion/deletion
+    # cor_adj = torch.sparse_coo_tensor(cor_adj_i, cor_adj_v).to(DEVICE)
+    # cor_adj = L0 + cor_adj
+    # cor_adj_i, cor_adj_v = cor_adj.coalesce().indices().to(DEVICE), cor_adj.coalesce().values().to(DEVICE)
+    # cor_adj_v = torch.abs(cor_adj_v)
+    # cor_adj = torch.sparse_coo_tensor(cor_adj_i, cor_adj_v)
+    # cor_adj = torch_sparse_to_scipy_sparse(cor_adj)
+    # cor_adj = scipy.sparse.triu(cor_adj, k=1)
+    # cor_adj.eliminate_zeros()
+    # cor_adj = scipy_sparse_to_torch_sparse(cor_adj)
+    # cor_adj = repair_sparse(cor_adj, (nb_nodes, nb_nodes))
 
-    # logical xor for edge insertion/deletion
-    cor_adj = torch.sparse_coo_tensor(cor_adj_i, cor_adj_v).to(DEVICE)
-    cor_adj = L0 + cor_adj
+    cor_adj = L0
     cor_adj_i, cor_adj_v = cor_adj.coalesce().indices().to(DEVICE), cor_adj.coalesce().values().to(DEVICE)
     cor_adj_v = torch.abs(cor_adj_v)
     cor_adj = torch.sparse_coo_tensor(cor_adj_i, cor_adj_v)

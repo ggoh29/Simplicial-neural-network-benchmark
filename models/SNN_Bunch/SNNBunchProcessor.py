@@ -55,7 +55,6 @@ class SNNBunchProcessor(NNProcessor):
         B1, B2 = to_dense(scData.b1).to('cpu'), to_dense(scData.b2).to('cpu')
         X0, X1, X2 = scData.X0.to('cpu'), scData.X1.to('cpu'), scData.X2.to('cpu')
         label = scData.label
-
         B1 = repair_sparse(B1, (X0.shape[0], X1.shape[0])).to_dense()
         B2 = repair_sparse(B2, (X1.shape[0], X2.shape[0])).to_dense()
 

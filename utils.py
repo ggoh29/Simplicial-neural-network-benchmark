@@ -22,13 +22,14 @@ def ensure_input_is_tensor(input):
     return input
 
 
-def edge_to_node_matrix(edges, nodes):
+def edge_to_node_matrix(edges, nodes, one_indexed = True):
     sigma1 = torch.tensor([[0 for _ in edges] for _ in nodes], dtype=torch.float, device=DEVICE)
+    offset = int(one_indexed)
     j = 0
     for edge in edges:
         x, y = edge
-        sigma1[x - 1][j] -= 1
-        sigma1[y - 1][j] += 1
+        sigma1[x - offset][j] -= 1
+        sigma1[y - offset][j] += 1
         j += 1
     return sigma1
 
