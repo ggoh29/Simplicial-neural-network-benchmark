@@ -2,9 +2,19 @@ from torch_geometric.datasets import Planetoid
 from torch_geometric.data import InMemoryDataset
 import numpy as np
 import torch
-from models.nn_utils import to_sparse_coo, convert_to_SC, remove_diag_sparse
+from models.nn_utils import convert_to_SC, remove_diag_sparse
+import scipy.sparse as sp
 
 node_size_dct = {'Cora' : 2708, 'CiteSeer' : 3327, 'PubMed' : 19717}
+
+def preprocess_features(features):
+    """Row-normalize feature matrix and convert to tuple representation"""
+    rowsum = np.array(features.sum(1))
+    r_inv = np.power(rowsum, -1).flatten()
+    r_inv[np.isinf(r_inv)] = 0.
+    r_mat_inv = sp.diags(r_inv)
+    features = r_mat_inv.dot(features)
+    return torch.tensor(features, dtype=torch.float)
 
 
 class PlanetoidSCDataset(InMemoryDataset):
@@ -48,6 +58,7 @@ class PlanetoidSCDataset(InMemoryDataset):
     def process(self):
         data = self.data_download
         features, edges, labels = data.x, data.edge_index, data.y
+        features = preprocess_features(features)
         adj_ones = torch.ones(edges.shape[1])
         adj = torch.sparse_coo_tensor(edges, adj_ones)
         adj = remove_diag_sparse(adj)
@@ -58,33 +69,9 @@ class PlanetoidSCDataset(InMemoryDataset):
         data, slices = self.processor_type.collate(dataset)
         torch.save((data, slices), self.processed_paths[0])
 
-    def get_train(self):
-        return self._get_node_subsection(self.train_split)
-
-    def get_val(self):
-        return self._get_node_subsection(self.val_split)
-
-    def get_test(self):
-        return self._get_node_subsection(self.test_split)
-
     def get_full(self):
         data_dct = self.get(0)
         data_dct = self.processor_type.batch([data_dct])[0]
-        data_dct = self.processor_type.clean_feature_dct(data_dct)
-        return self.processor_type.repair(data_dct)
-
-    def _get_node_subsection(self, idx_list):
-        dataset = self.__getitem__(0)
-        idx_list = torch.tensor(idx_list)
-        adj = to_sparse_coo(dataset.L0).to_dense()
-        adj = torch.index_select(adj, 0, idx_list)
-        adj = torch.index_select(adj, 1, idx_list)
-        adj = torch.triu(adj, diagonal=1).to_sparse()
-        features = dataset.X0[idx_list]
-        labels = dataset.label[idx_list]
-        dataset = convert_to_SC(adj, features, labels)
-        dataset = self.processor_type.process(dataset)
-        data_dct = self.processor_type.batch([dataset])[0]
         data_dct = self.processor_type.clean_feature_dct(data_dct)
         return self.processor_type.repair(data_dct)
 

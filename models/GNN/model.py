@@ -4,7 +4,7 @@ from torch_geometric.nn import GCNConv
 from torch_geometric.nn import global_mean_pool
 import torch.nn.functional as F
 from models.nn_utils import unpack_feature_dct_to_L_X_B
-from torch.nn.parameter import Parameter
+
 
 
 class SuperpixelGCN(nn.Module):
@@ -33,13 +33,11 @@ class SuperpixelGCN(nn.Module):
         return F.softmax(self.layer_final(x), dim = 1)
 
 
-class PLanetoidGCN(nn.Module):
+class PLanetoidGCN1(nn.Module):
     def __init__(self, input_size, output_size):
         super().__init__()
-
-        f_size = output_size//2
-        self.conv1 = GCNConv(input_size, f_size)
-        self.conv2 = GCNConv(f_size, output_size)
+        self.act = nn.PReLU()
+        self.conv1 = GCNConv(input_size, output_size)
 
 
     def forward(self, feature_dct):
@@ -48,11 +46,44 @@ class PLanetoidGCN(nn.Module):
         adjacency = L[0].coalesce().indices()
         features = X[0]
 
-        x = F.relu(self.conv1(features, adjacency))
-        x = F.relu(self.conv2(x, adjacency))
+        x = self.act(self.conv1(features, adjacency))
 
         return x
 
+
+class PLanetoidGCN(nn.Module):
+    def __init__(self, in_ft, out_ft, bias=True):
+        super().__init__()
+        self.fc = nn.Linear(in_ft, out_ft, bias=False)
+        self.act = nn.PReLU()
+
+        if bias:
+            self.bias = nn.Parameter(torch.FloatTensor(out_ft))
+            self.bias.data.fill_(0.0)
+        else:
+            self.register_parameter('bias', None)
+
+        for m in self.modules():
+            self.weights_init(m)
+
+    def weights_init(self, m):
+        if isinstance(m, nn.Linear):
+            torch.nn.init.xavier_uniform_(m.weight.data)
+            if m.bias is not None:
+                m.bias.data.fill_(0.0)
+
+    # Shape of seq: (batch, nodes, features)
+    def forward(self, feature_dct):
+        L, X, batch = unpack_feature_dct_to_L_X_B(feature_dct)
+
+        adjacency = L[0]
+        features = X[0]
+
+        seq_fts = self.fc(features)
+
+        out = torch.unsqueeze(torch.spmm(adjacency, seq_fts), 0)
+        out += self.bias
+        return self.act(out).squeeze(0)
 
 class GATLayer(nn.Module):
 

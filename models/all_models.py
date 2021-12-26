@@ -4,7 +4,7 @@ from models.SNN_Ebli.model_Ebli import SuperpixelEbli, PlanetoidEbli
 from models.SNN_Ebli.SNNEbliProcessor import SNNEbliProcessor
 from models.SNN_Bunch.model_Bunch import SuperpixelBunch, PlanetoidBunch
 from models.SNN_Bunch.SNNBunchProcessor import SNNBunchProcessor
-from models.SAT.model import SuperpixelSAT
+from models.SAT.model import SuperpixelSAT, PlanetoidSAT
 from models.SAT.SATProcessor import SATProcessor
 
 
@@ -18,4 +18,5 @@ planetoid_Ebli_nn = [SNNEbliProcessor(), PlanetoidEbli]
 planetoid_Bunch_nn = [SNNBunchProcessor(), PlanetoidBunch]
 planetoid_gnn = [GNNProcessor(), PLanetoidGCN]
 planetoid_gat = [GNNProcessor(), PlanetoidGAT]
+planetoid_sat = [SATProcessor(), PlanetoidSAT]
 

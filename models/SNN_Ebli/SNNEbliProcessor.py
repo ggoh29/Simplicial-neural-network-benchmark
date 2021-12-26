@@ -2,7 +2,7 @@ import torch
 from models.ProcessorTemplate import NNProcessor
 from utils import sparse_to_tensor, ensure_input_is_tensor
 from models.nn_utils import to_sparse_coo
-from models.nn_utils import batch_all_feature_and_lapacian_pair, convert_indices_and_values_to_sparse, normalise
+from models.nn_utils import batch_all_feature_and_lapacian_pair, convert_indices_and_values_to_sparse, normalise, repair_sparse
 
 
 class SimplicialObject:
@@ -36,9 +36,11 @@ class SNNEbliProcessor(NNProcessor):
     # Github here https://github.com/stefaniaebli/simplicial_neural_networks?utm_source=catalyzex.com
 
     def process(self, scData):
-        b1, b2 = to_sparse_coo(scData.b1), to_sparse_coo(scData.b2)
-
         X0, X1, X2 = scData.X0, scData.X1, scData.X2
+        b1, b2 = to_sparse_coo(scData.b1).to('cpu'), to_sparse_coo(scData.b2).to('cpu')
+
+        b1 = repair_sparse(b1, (X0.shape[0], X1.shape[0]))
+        b2 = repair_sparse(b2, (X1.shape[0], X2.shape[0]))
 
         L0 = torch.sparse.mm(b1, b1.t()).to('cpu')
         L1 = torch.sparse.FloatTensor.add(torch.sparse.mm(b1.t(), b1), torch.sparse.mm(b2, b2.t())).to('cpu')

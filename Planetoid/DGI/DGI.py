@@ -1,5 +1,5 @@
 from models.nn_utils import unpack_feature_dct_to_L_X_B, convert_to_SC, torch_sparse_to_scipy_sparse, repair_sparse,\
-    scipy_sparse_to_torch_sparse
+    scipy_sparse_to_torch_sparse, to_sparse_coo
 import scipy
 import numpy as np
 import torch
@@ -9,7 +9,7 @@ from constants import DEVICE
 def convert_to_device(lst):
     return [i.to(DEVICE) for i in lst]
 
-def corruption_function(feature_dct, processor_type, p = 0.0001):
+def corruption_function(feature_dct, processor_type, p = 0.0):
     L, X, batch = unpack_feature_dct_to_L_X_B(feature_dct)
     X0 = X[0]
     nb_nodes = X0.shape[0]
@@ -19,23 +19,12 @@ def corruption_function(feature_dct, processor_type, p = 0.0001):
     L0_i = L[0].coalesce().indices().to(DEVICE)
     L0_v = -torch.ones(L0_i.shape[1]).to(DEVICE)
     L0 = torch.sparse_coo_tensor(L0_i, L0_v).to(DEVICE)
+    cor_adj_i = torch.triu_indices(nb_nodes, nb_nodes, 0).to(DEVICE)
+    cor_adj_v = torch.tensor(np.random.binomial(1, p, size=(cor_adj_i.shape[1])), dtype=torch.float, device = DEVICE)
 
-    # cor_adj_i = torch.triu_indices(nb_nodes, nb_nodes, 0).to(DEVICE)
-    # cor_adj_v = torch.tensor(np.random.binomial(1, p, size=(cor_adj_i.shape[1])), dtype=torch.float, device = DEVICE)
-    #
-    # # logical xor for edge insertion/deletion
-    # cor_adj = torch.sparse_coo_tensor(cor_adj_i, cor_adj_v).to(DEVICE)
-    # cor_adj = L0 + cor_adj
-    # cor_adj_i, cor_adj_v = cor_adj.coalesce().indices().to(DEVICE), cor_adj.coalesce().values().to(DEVICE)
-    # cor_adj_v = torch.abs(cor_adj_v)
-    # cor_adj = torch.sparse_coo_tensor(cor_adj_i, cor_adj_v)
-    # cor_adj = torch_sparse_to_scipy_sparse(cor_adj)
-    # cor_adj = scipy.sparse.triu(cor_adj, k=1)
-    # cor_adj.eliminate_zeros()
-    # cor_adj = scipy_sparse_to_torch_sparse(cor_adj)
-    # cor_adj = repair_sparse(cor_adj, (nb_nodes, nb_nodes))
-
-    cor_adj = L0
+    # logical xor for edge insertion/deletion
+    cor_adj = torch.sparse_coo_tensor(cor_adj_i, cor_adj_v).to(DEVICE)
+    cor_adj = L0 + cor_adj
     cor_adj_i, cor_adj_v = cor_adj.coalesce().indices().to(DEVICE), cor_adj.coalesce().values().to(DEVICE)
     cor_adj_v = torch.abs(cor_adj_v)
     cor_adj = torch.sparse_coo_tensor(cor_adj_i, cor_adj_v)
@@ -43,7 +32,6 @@ def corruption_function(feature_dct, processor_type, p = 0.0001):
     cor_adj = scipy.sparse.triu(cor_adj, k=1)
     cor_adj.eliminate_zeros()
     cor_adj = scipy_sparse_to_torch_sparse(cor_adj)
-    cor_adj = repair_sparse(cor_adj, (nb_nodes, nb_nodes))
 
     fake_labels = torch.tensor([0 for _ in range(nb_nodes)], dtype=torch.float, device = DEVICE)
     scData = convert_to_SC(cor_adj, C_X0, fake_labels)
@@ -84,17 +72,12 @@ class Discriminator(nn.Module):
             if m.bias is not None:
                 m.bias.data.fill_(0.0)
 
-    def forward(self, c, h_pl, h_mi, s_bias1=None, s_bias2=None):
+    def forward(self, c, h_pl, h_mi):
         c_x = torch.unsqueeze(c, 1)
         c_x = c_x.expand_as(h_pl)
 
-        sc_1 = torch.squeeze(self.f_k(h_pl, c_x), 1).unsqueeze(0)
-        sc_2 = torch.squeeze(self.f_k(h_mi, c_x), 1).unsqueeze(0)
-
-        if s_bias1 is not None:
-            sc_1 += s_bias1
-        if s_bias2 is not None:
-            sc_2 += s_bias2
+        sc_1 = torch.squeeze(self.f_k(h_pl, c_x), 2)
+        sc_2 = torch.squeeze(self.f_k(h_mi, c_x), 2)
 
         logits = torch.cat((sc_1, sc_2), 1)
 
@@ -114,14 +97,14 @@ class DGI(nn.Module):
         corrupted_dct = corruption_function(feature_dct, processor_type)
 
         feature_dct = {key: convert_to_device(feature_dct[key]) for key in feature_dct}
-        h_1 = self.model(feature_dct)
+        h_1 = self.model(feature_dct).unsqueeze(0)
         c = self.read(h_1, None)
         c = self.sigm(c)
 
         corrupted_dct = {key: convert_to_device(corrupted_dct[key]) for key in corrupted_dct}
-        h_2 = self.model(corrupted_dct)
+        h_2 = self.model(corrupted_dct).unsqueeze(0)
 
-        ret = self.disc(c, h_1, h_2, None, None)
+        ret = self.disc(c, h_1, h_2)
 
         return ret
 

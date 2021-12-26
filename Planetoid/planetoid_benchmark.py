@@ -1,5 +1,5 @@
 from Planetoid.PlanetoidDataset.PlanetoidLoader import PlanetoidSCDataset
-from models.all_models import planetoid_gat, planetoid_gnn, planetoid_Bunch_nn, planetoid_Ebli_nn
+from models.all_models import planetoid_gat, planetoid_gnn, planetoid_Bunch_nn, planetoid_Ebli_nn, planetoid_sat
 import torch.nn as nn
 import torch
 from Planetoid.DGI.DGI import DGI
@@ -11,13 +11,15 @@ dataset_features_dct = {'Cora' : 1433, 'CiteSeer' : 3703, 'PubMed' : 500}
 dataset_classes_dct = {'Cora' : 7, 'CiteSeer' : 6, 'PubMed' : 3}
 input_size = dataset_features_dct[dataset]
 output_size = 512
-nb_epochs = 10
+nb_epochs = 500
+test_epochs = 50
 lr = 0.001
 l2_coef = 0.0
 patience = 20
 
-nn_mod = planetoid_gnn
-# nn_mod = planetoid_Bunch_nn
+# nn_mod = planetoid_gnn
+nn_mod = planetoid_Bunch_nn
+# nn_mod = planetoid_sat
 processor_type = nn_mod[0]
 model = nn_mod[1]
 
@@ -34,7 +36,7 @@ if __name__ == "__main__":
     cnt_wait = 0
     best = 1e9
     best_t = 0
-
+    thing = data_dct['lapacian'][0].to_dense().clone()
     for epoch in range(nb_epochs):
         model.train()
         optimiser.zero_grad()
@@ -42,6 +44,7 @@ if __name__ == "__main__":
         nb_nodes = data_dct["features"][0].shape[0]
         lbl_1 = torch.ones(1, nb_nodes)
         lbl_2 = torch.zeros(1, nb_nodes)
+
         lbl = torch.cat((lbl_1, lbl_2), 1).to(DEVICE)
 
         logits = model(data_dct, processor_type)
@@ -84,7 +87,7 @@ if __name__ == "__main__":
 
     accs = []
 
-    for _ in range(10):
+    for _ in range(test_epochs):
         log = LogReg(output_size, dataset_classes_dct[dataset])
         opt = torch.optim.Adam(log.parameters(), lr=0.01, weight_decay=0.0)
         log.cuda()
@@ -92,6 +95,7 @@ if __name__ == "__main__":
         pat_steps = 0
         best_acc = torch.zeros(1)
         best_acc = best_acc.cuda()
+
         for _ in range(100):
             log.train()
             opt.zero_grad()
@@ -101,6 +105,8 @@ if __name__ == "__main__":
 
             loss.backward()
             opt.step()
+
+
         logits = log(test_embs)
         preds = torch.argmax(logits, dim=1)
         acc = torch.sum(preds == test_lbls).float() / test_lbls.shape[0]
@@ -108,7 +114,7 @@ if __name__ == "__main__":
         print(acc)
         tot += acc
 
-    print('Average accuracy:', tot / 50)
+    print('Average accuracy:', tot / test_epochs)
 
     accs = torch.stack(accs)
     print(accs.mean())
