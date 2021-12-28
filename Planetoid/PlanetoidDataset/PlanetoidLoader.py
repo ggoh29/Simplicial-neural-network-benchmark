@@ -83,6 +83,10 @@ class PlanetoidSCDataset(InMemoryDataset):
         data_dct = self.get(0)
         return data_dct.label[self.val_split]
 
+    def get_labels(self):
+        data_dct = self.get(0)
+        return data_dct.label
+
     def get_test_labels(self):
         data_dct = self.get(0)
         return data_dct.label[self.test_split]

@@ -19,7 +19,7 @@ def get_features(features, sc_list):
         return functools.reduce(lambda a, b: a + b, f)
     features = [_get_features(features, sc) for sc in sc_list]
     if bool(features):
-        return torch.stack(features, dim = 0)
+        return torch.stack(features, dim = 0)/len(features)
     else:
         return torch.tensor([])
 

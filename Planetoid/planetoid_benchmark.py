@@ -1,5 +1,5 @@
 from Planetoid.PlanetoidDataset.PlanetoidLoader import PlanetoidSCDataset
-from models.all_models import planetoid_gat, planetoid_gnn, planetoid_Bunch_nn, planetoid_Ebli_nn, planetoid_sat
+from models.all_models import planetoid_gat, planetoid_gnn, planetoid_Bunch_nn, planetoid_Ebli_nn
 import torch.nn as nn
 import torch
 from Planetoid.DGI.DGI import DGI
@@ -10,23 +10,26 @@ dataset = 'Cora'
 dataset_features_dct = {'Cora' : 1433, 'CiteSeer' : 3703, 'PubMed' : 500}
 dataset_classes_dct = {'Cora' : 7, 'CiteSeer' : 6, 'PubMed' : 3}
 input_size = dataset_features_dct[dataset]
-output_size = 512
-nb_epochs = 500
-test_epochs = 50
+output_size = 128
+nb_epochs = 5000
+test_epochs = 5
 lr = 0.001
 l2_coef = 0.0
 patience = 20
 
 # nn_mod = planetoid_gnn
 nn_mod = planetoid_Bunch_nn
-# nn_mod = planetoid_sat
+# nn_mod = planetoid_gat
+
 processor_type = nn_mod[0]
 model = nn_mod[1]
 
 model = DGI(input_size, output_size, model)
 optimiser = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=l2_coef)
 
-def run():
+
+if __name__ == "__main__":
+
     data = PlanetoidSCDataset('./data', dataset, processor_type)
     data_dct = data.get_full()
 
@@ -71,7 +74,10 @@ def run():
     model.load_state_dict(torch.load('best_dgi.pkl'))
 
     embeds, _ = model.embed(data_dct)
-
+    with open("./embeddings.py", 'w') as f:
+        f.write(f'embeddings = {embeds.tolist()}')
+    with open("./labels.py", 'w') as f:
+        f.write(f'labels = {data.get_labels().tolist()}')
     train_embs = data.get_train_embeds(embeds)
     val_embs = data.get_val_embeds(embeds)
     test_embs = data.get_test_embeds(embeds)
@@ -117,7 +123,3 @@ def run():
     accs = torch.stack(accs)
     print(accs.mean())
     print(accs.std())
-
-if __name__ == "__main__":
-
-    run()

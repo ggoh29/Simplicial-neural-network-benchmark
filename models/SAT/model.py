@@ -84,24 +84,3 @@ class SuperpixelSAT(nn.Module):
         x = torch.cat([x0, x1, x2], dim=1)
 
         return F.softmax(self.layer(x), dim=1)
-
-
-class PlanetoidSAT(nn.Module):
-    def __init__(self, input_size, output_size):
-        super().__init__()
-
-        f_size = output_size//2
-        k_heads = 2
-        self.layer0_1 = torch.nn.ModuleList([SATLayer(input_size, f_size // k_heads) for _ in range(k_heads)])
-        self.layer0_2 = torch.nn.ModuleList([SATLayer(f_size, output_size // k_heads) for _ in range(k_heads)])
-
-    def forward(self, features_dct):
-        L, X, _ = unpack_feature_dct_to_L_X_B(features_dct)
-
-        X0, _, _, _ = X
-        L0, _, _, _ = L
-
-        x = F.relu(torch.cat([sat(X0, L0) for sat in self.layer0_1], dim=1))
-        x = F.relu(torch.cat([sat(x, L0) for sat in self.layer0_2], dim=1))
-
-        return x

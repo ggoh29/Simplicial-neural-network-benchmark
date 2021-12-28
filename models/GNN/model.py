@@ -143,8 +143,7 @@ class PlanetoidGAT(nn.Module):
 
         f_size = output_size//2
         assert f_size % k_heads == 0, f"k_heads needs to be a factor of feature size which is currently {f_size}."
-        self.gat1 = torch.nn.ModuleList([GATLayer(input_size, f_size//k_heads) for _ in range(k_heads)])
-        self.gat2 = torch.nn.ModuleList([GATLayer(f_size, output_size//k_heads) for _ in range(k_heads)])
+        self.gat1 = torch.nn.ModuleList([GATLayer(input_size, output_size//k_heads) for _ in range(k_heads)])
 
     def forward(self, features_dct):
         L, X, batch = unpack_feature_dct_to_L_X_B(features_dct)
@@ -153,7 +152,6 @@ class PlanetoidGAT(nn.Module):
         x = X[0]
 
         x = F.relu(torch.cat([gat(x, adjacency) for gat in self.gat1], dim = 1))
-        x = F.relu(torch.cat([gat(x, adjacency) for gat in self.gat2], dim = 1))
 
         return x
 
