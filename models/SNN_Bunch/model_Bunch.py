@@ -107,11 +107,10 @@ class SNN_p(nn.Module):
     # self.e2t_weights = nn.Linear(num_edge_feats, output_size, bias=bias)
     # self.t2e_weights = nn.Linear(num_triangle_feats, output_size, bias=bias)
     # self.t2t_weights = nn.Linear(num_triangle_feats, output_size, bias=bias)
-    self.w = PRELU()
+    # self.w = nn.ReLU()
 
 
   def forward(self, X0, X1, X2, L0, L1, L2, B2D3, D2B1TD1inv, D1invB1, B2TD2inv):
-
     n2n = self.n2n_weights(X0)  # Y00 = X0*W00
     n2n = torch.sparse.mm(L0, n2n)  # L0*Y00
 
@@ -133,10 +132,9 @@ class SNN_p(nn.Module):
     # t2e = self.t2e_weights(X2)  # Y12 = X2*W12
     # t2e = torch.sparse.mm(B2D3, t2e)  # B2D3*Y12
 
-
-    X0 = (1 / 2.) * self.w(n2n + e2n)
-    # X1 = (1 / 3.) * self.w(e2e + n2e + t2e)
-    # X2 = (1 / 2.) * self.w(t2t + e2t)
+    X0 = (1 / 2.) * F.relu(n2n + e2n)
+    # X1 = (1 / 3.) * F.relu(e2e + n2e + t2e)
+    # X2 = (1 / 2.) * F.relu(t2t + e2t)
     return X0
 
 

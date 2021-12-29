@@ -10,15 +10,15 @@ dataset = 'Cora'
 dataset_features_dct = {'Cora' : 1433, 'CiteSeer' : 3703, 'PubMed' : 500}
 dataset_classes_dct = {'Cora' : 7, 'CiteSeer' : 6, 'PubMed' : 3}
 input_size = dataset_features_dct[dataset]
-output_size = 128
-nb_epochs = 5000
-test_epochs = 5
+output_size = 512
+nb_epochs = 500
+test_epochs = 50
 lr = 0.001
 l2_coef = 0.0
 patience = 20
 
-# nn_mod = planetoid_gnn
-nn_mod = planetoid_Bunch_nn
+# nn_mod = planetoid_gnn # tensor(81.2860, device='cuda:0')
+nn_mod = planetoid_Bunch_nn # tensor([0.8105], device='cuda:0')
 # nn_mod = planetoid_gat
 
 processor_type = nn_mod[0]

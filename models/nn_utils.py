@@ -7,21 +7,36 @@ import networkx as nx
 from utils import edge_to_node_matrix, triangle_to_edge_matrix
 from models.SCData import SCData
 import functools
+import scipy.sparse as sp
+
+
+def preprocess_features(features):
+    """Row-normalize feature matrix and convert to tuple representation"""
+    rowsum = np.array(features.sum(1))
+    r_inv = np.power(rowsum, -1).flatten()
+    r_inv[np.isinf(r_inv)] = 0.
+    r_mat_inv = sp.diags(r_inv)
+    features = r_mat_inv.dot(features)
+    return torch.tensor(features, dtype=torch.float)
+
 
 def remove_diag_sparse(sparse_adj):
     scipy_adj = torch_sparse_to_scipy_sparse(sparse_adj)
     scipy_adj = scipy.sparse.triu(scipy_adj, k=1)
     return scipy_sparse_to_torch_sparse(scipy_adj)
 
+
+
 def get_features(features, sc_list):
     def _get_features(features, sc):
         f = [features[i] for i in sc]
-        return functools.reduce(lambda a, b: a + b, f)
+        return functools.reduce(lambda a, b: torch.logical_and(a, b), f).float()
     features = [_get_features(features, sc) for sc in sc_list]
     if bool(features):
-        return torch.stack(features, dim = 0)/len(features)
+        return torch.stack(features, dim = 0)
     else:
         return torch.tensor([])
+
 
 def convert_to_SC(adj, features, labels, get_features = get_features):
     X0 = features
@@ -37,9 +52,11 @@ def convert_to_SC(adj, features, labels, get_features = get_features):
 
     b1 = edge_to_node_matrix(edges, nodes, one_indexed=False).to_sparse()
     b2 = triangle_to_edge_matrix(triangles, edges).to_sparse()
+
+
     X1 = get_features(features, edges)
     X2 = get_features(features, triangles)
-
+    X0 = features
     return SCData(X0, X1, X2, b1, b2, labels)
 
 

@@ -1,5 +1,5 @@
 from models.nn_utils import unpack_feature_dct_to_L_X_B, convert_to_SC, torch_sparse_to_scipy_sparse, repair_sparse,\
-    scipy_sparse_to_torch_sparse, to_sparse_coo
+    scipy_sparse_to_torch_sparse, to_sparse_coo, preprocess_features
 import scipy
 import numpy as np
 import torch
@@ -9,11 +9,12 @@ from constants import DEVICE
 def convert_to_device(lst):
     return [i.to(DEVICE) for i in lst]
 
-def corruption_function(feature_dct, processor_type, p = 0):
+def corruption_function(feature_dct, processor_type, p = 0.00):
     L, X, batch = unpack_feature_dct_to_L_X_B(feature_dct)
     X0 = X[0]
     nb_nodes = X0.shape[0]
     idx = np.random.permutation(nb_nodes)
+    # idx = [i for i in range(nb_nodes)]
     C_X0 = X0[idx]
 
     L0_i = L[0].coalesce().indices().to(DEVICE)
@@ -95,13 +96,14 @@ class DGI(nn.Module):
 
     def forward(self, feature_dct, processor_type):
         corrupted_dct = corruption_function(feature_dct, processor_type)
-
         feature_dct = {key: convert_to_device(feature_dct[key]) for key in feature_dct}
+
         h_1 = self.model(feature_dct).unsqueeze(0)
         c = self.read(h_1, None)
         c = self.sigm(c)
 
         corrupted_dct = {key: convert_to_device(corrupted_dct[key]) for key in corrupted_dct}
+
         h_2 = self.model(corrupted_dct).unsqueeze(0)
 
         ret = self.disc(c, h_1, h_2)
