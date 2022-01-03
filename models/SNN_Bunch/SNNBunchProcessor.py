@@ -57,7 +57,6 @@ class SNNBunchProcessor(NNProcessor):
         label = scData.label
         B1 = repair_sparse(B1, (X0.shape[0], X1.shape[0])).to_dense()
         B2 = repair_sparse(B2, (X1.shape[0], X2.shape[0])).to_dense()
-
         L0 = B1 @ B1.T
         B1_sum = torch.sum(torch.abs(B1), 1)
         d0 = torch.diag(B1_sum)

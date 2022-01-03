@@ -1,5 +1,5 @@
-from Superpixel.SuperpixelDataset.SuperpixelLoader import SuperpixelSCDataset
-from Superpixel.SuperpixelDataset.EdgeFlow import PixelBasedEdgeFlow
+from SuperpixelDataset.SuperpixelLoader import SuperpixelSCDataset
+from SuperpixelDataset.EdgeFlow import PixelBasedEdgeFlow
 from torch.utils.data import DataLoader
 from constants import DEVICE
 from models.all_models import superpixel_sat_nn, superpixel_gat, superpixel_gnn, superpixel_Bunch_nn, superpixel_Ebli_nn
@@ -10,9 +10,9 @@ from datetime import timedelta
 import time
 
 batch_size = 8
-superpixel_size = 75
-dataset = datasets.MNIST
-# dataset = datasets.CIFAR10
+superpixel_size = 50
+# dataset = datasets.MNIST
+dataset = datasets.CIFAR10
 edgeFlow = PixelBasedEdgeFlow
 # edgeFlow = RandomBasedEdgeFlow
 
@@ -109,7 +109,7 @@ def run(processor_type, NN, output_suffix):
 
 if __name__ == "__main__":
     # NN_list = [superpixel_gnn, superpixel_gat, superpixel_Ebli_nn, superpixel_Bunch_nn]
-    NN_list = [superpixel_sat_nn]
+    NN_list = [superpixel_Ebli_nn]
     for output_suffix in range(5):
         for processor_type, NN in NN_list:
             NN = NN(5, 10, 15, output_size)

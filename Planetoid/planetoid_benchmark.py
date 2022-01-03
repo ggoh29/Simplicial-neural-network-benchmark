@@ -1,9 +1,9 @@
-from Planetoid.PlanetoidDataset.PlanetoidLoader import PlanetoidSCDataset
+from PlanetoidDataset.PlanetoidLoader import PlanetoidSCDataset
 from models.all_models import planetoid_gat, planetoid_gnn, planetoid_Bunch_nn, planetoid_Ebli_nn
 import torch.nn as nn
 import torch
-from Planetoid.DGI.DGI import DGI
-from Planetoid.DGI.logreg import LogReg
+from DGI.DGI import DGI
+from DGI.logreg import LogReg
 from constants import DEVICE
 
 dataset = 'Cora'

@@ -49,14 +49,13 @@ class PlanetoidSCDataset(InMemoryDataset):
     def process(self):
         data = self.data_download
         features, edges, labels = data.x, data.edge_index, data.y
-
+        features = preprocess_features(features)
         adj_ones = torch.ones(edges.shape[1])
         adj = torch.sparse_coo_tensor(edges, adj_ones)
         adj = remove_diag_sparse(adj)
 
         dataset = convert_to_SC(adj, features, labels)
         dataset = [self.processor_type.process(dataset)]
-
 
         data, slices = self.processor_type.collate(dataset)
         torch.save((data, slices), self.processed_paths[0])
@@ -74,13 +73,13 @@ class PlanetoidSCDataset(InMemoryDataset):
         dataset = self.processor_type.process(dataset)
         data_dct = self.processor_type.batch([dataset])[0]
         data_dct = self.processor_type.clean_feature_dct(data_dct)
-        return self.processor_type.repair(data_dct)
+        return data_dct
 
     def get_full(self):
         data_dct = self.get(0)
         data_dct = self.processor_type.batch([data_dct])[0]
         data_dct = self.processor_type.clean_feature_dct(data_dct)
-        return self.processor_type.repair(data_dct)
+        return data_dct
 
     def get_train_labels(self):
         data_dct = self.get(0)

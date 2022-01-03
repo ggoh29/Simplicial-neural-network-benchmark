@@ -30,7 +30,9 @@ def remove_diag_sparse(sparse_adj):
 def get_features(features, sc_list):
     def _get_features(features, sc):
         f = [features[i] for i in sc]
-        return functools.reduce(lambda a, b: torch.logical_and(a, b), f).float()
+        return functools.reduce(lambda a, b: a + b, f).float()
+        # return functools.reduce(lambda a, b: torch.logical_and(a, b), f).float()
+        # return a/torch.sum(s)
     features = [_get_features(features, sc) for sc in sc_list]
     if bool(features):
         return torch.stack(features, dim = 0)
@@ -53,10 +55,12 @@ def convert_to_SC(adj, features, labels, get_features = get_features):
     b1 = edge_to_node_matrix(edges, nodes, one_indexed=False).to_sparse()
     b2 = triangle_to_edge_matrix(triangles, edges).to_sparse()
 
+    # X0 = preprocess_features(features)
+    # X1 = torch.tensor(edges)
+    # X1 = preprocess_features(X1)
+    X1 = torch.tensor(edges)
+    X2 = torch.tensor(triangles)
 
-    X1 = get_features(features, edges)
-    X2 = get_features(features, triangles)
-    X0 = features
     return SCData(X0, X1, X2, b1, b2, labels)
 
 
