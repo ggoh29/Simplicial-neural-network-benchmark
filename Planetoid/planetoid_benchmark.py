@@ -8,7 +8,7 @@ from constants import DEVICE
 
 dataset = 'Cora'
 dataset_features_dct = {'Cora' : 1433, 'CiteSeer' : 3703, 'PubMed' : 500}
-dataset_classes_dct = {'Cora' : 7, 'CiteSeer' : 6, 'PubMed' : 3}
+dataset_classes_dct = {'Cora' : 7, 'CiteSeer' : 6, 'PubMed' : 3 , 'Pokemon' : 18}
 input_size = dataset_features_dct[dataset]
 output_size = 512
 nb_epochs = 500
@@ -26,6 +26,8 @@ model = nn_mod[1]
 
 model = DGI(input_size, output_size, model)
 optimiser = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=l2_coef)
+b_xent = nn.BCEWithLogitsLoss()
+xent = nn.CrossEntropyLoss()
 
 
 if __name__ == "__main__":
@@ -33,8 +35,6 @@ if __name__ == "__main__":
     data = PlanetoidSCDataset('./data', dataset, processor_type)
     data_dct = data.get_full()
 
-    b_xent = nn.BCEWithLogitsLoss()
-    xent = nn.CrossEntropyLoss()
     cnt_wait = 0
     best = 1e9
     best_t = 0
@@ -74,6 +74,8 @@ if __name__ == "__main__":
     model.load_state_dict(torch.load('best_dgi.pkl'))
 
     embeds, _ = model.embed(data_dct)
+    # embeds = data_dct['features'][0]
+    # output_size = 789
     with open("./embeddings.py", 'w') as f:
         f.write(f'embeddings = {embeds.tolist()}')
     with open("./labels.py", 'w') as f:
@@ -95,11 +97,11 @@ if __name__ == "__main__":
     for _ in range(test_epochs):
         log = LogReg(output_size, dataset_classes_dct[dataset])
         opt = torch.optim.Adam(log.parameters(), lr=0.01, weight_decay=0.0)
-        log.cuda()
+        log.to(DEVICE)
 
         pat_steps = 0
         best_acc = torch.zeros(1)
-        best_acc = best_acc.cuda()
+        best_acc = best_acc.to(DEVICE)
 
         for _ in range(100):
             log.train()

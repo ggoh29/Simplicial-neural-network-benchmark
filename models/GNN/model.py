@@ -61,10 +61,11 @@ class PLanetoidGCN(nn.Module):
 
         adjacency = L[0]
         features = X[0]
+        # features[features != 0] = 1
 
         seq_fts = self.fc(features)
 
-        out = torch.unsqueeze(torch.spmm(adjacency, seq_fts), 0)
+        out = torch.unsqueeze(torch.sparse.mm(adjacency, seq_fts), 0)
         return self.act(out).squeeze(0)
 
 

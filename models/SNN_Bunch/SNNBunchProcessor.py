@@ -4,7 +4,7 @@ import numpy as np
 from models.ProcessorTemplate import NNProcessor
 from models.nn_utils import convert_indices_and_values_to_sparse,\
     batch_sparse_matrix, batch_all_feature_and_lapacian_pair
-from models.nn_utils import chebyshev, unpack_feature_dct_to_L_X_B, repair_sparse
+from models.nn_utils import chebyshev, unpack_feature_dct_to_L_X_B, repair_sparse, sparse_diag_identity, sparse_diag
 
 
 class SimplicialObject:
@@ -46,7 +46,7 @@ class SNNBunchProcessor(NNProcessor):
     # This model is based on model described by Eric Bunch et al. in Simplicial 2-Complex Convolutional Neural Networks
     # Github here https://github.com/AmFamMLTeam/simplicial-2-complex-cnns
 
-    def process(self, scData):
+    def _process(self, scData):
         def to_dense(matrix):
             indices = matrix[0:2]
             values = matrix[2:3].squeeze()
@@ -97,6 +97,71 @@ class SNNBunchProcessor(NNProcessor):
         L0, L1, L2 = L0.to_sparse(), L1.to_sparse(), L2.to_sparse()
         B2D3, D2B1TD1inv, D1invB1, B2TD2inv = B2D3.to_sparse(), D2B1TD1inv.to_sparse(), \
                                               D1invB1.to_sparse(), B2TD2inv.to_sparse()
+
+        return SimplicialObject(X0, X1, X2, L0, L1, L2, B2D3, D2B1TD1inv, D1invB1, B2TD2inv, label)
+
+    def process(self, scData):
+        # This does processing in a sparse format
+        def to_sparse(matrix, size):
+            indices = matrix[0:2]
+            values = matrix[2:3].squeeze()
+            return torch.sparse_coo_tensor(indices, values, size)
+
+        X0, X1, X2 = scData.X0.to('cpu'), scData.X1.to('cpu'), scData.X2.to('cpu')
+        label = scData.label
+
+        x0, x1, x2 = X0.shape[0], X1.shape[0], X2.shape[0]
+
+        B1, B2 = to_sparse(scData.b1, (x0, x1)).to('cpu'), to_sparse(scData.b2, (x1, x2)).to('cpu')
+
+
+        L0 = torch.sparse.mm(B1, B1.t())
+        B1_v_abs, B1_i = torch.abs(B1.coalesce().values()), B1.coalesce().indices()
+        B1_sum = torch.sparse.sum(torch.sparse_coo_tensor(B1_i, B1_v_abs, (x0, x1)), dim = 1)
+        B1_sum_values = B1_sum.to_dense()
+        B1_sum_indices = torch.tensor([i for i in range(x0)])
+        d0_diag_indices = torch.stack([B1_sum_indices, B1_sum_indices], dim = 0)
+        d0 = torch.sparse_coo_tensor(d0_diag_indices, B1_sum_values, (x0, x0))
+        B1_sum_inv_values = torch.nan_to_num(1. / B1_sum_values, nan=0., posinf=0., neginf=0.)
+        d0_inv = torch.sparse_coo_tensor(d0_diag_indices, B1_sum_inv_values, (x0, x0))
+        L0 = torch.sparse.mm(d0_inv, L0)
+        L0_factor_values = -1 / (B1_sum_inv_values + 1)
+        L0_factor = torch.sparse_coo_tensor(d0_diag_indices, L0_factor_values, (x0, x0))
+        L0_bias_values = torch.ones(d0.shape[0])
+        L0bias = torch.sparse_coo_tensor(d0_diag_indices, L0_bias_values, (x0, x0))
+        L0 = (L0bias + torch.sparse.mm(L0_factor, L0))
+
+        D1_inv = torch.sparse_coo_tensor(d0_diag_indices, 0.5 * B1_sum_inv_values, (x0, x0))
+        B2_v_abs, B2_i = torch.abs(B2.coalesce().values()), B2.coalesce().indices()
+        D2diag_1 = torch.sparse.sum(torch.sparse_coo_tensor(B2_i, B2_v_abs), dim = 1).to_dense()
+        D2diag = torch.maximum(D2diag_1, torch.ones(D2diag_1.shape[0]))
+        D2_indices = [i for i in range(D2diag.shape[0])]
+        D2_indices = torch.tensor([D2_indices, D2_indices])
+        D2 = torch.sparse_coo_tensor(D2_indices, D2diag)
+        D2_inv = torch.sparse_coo_tensor(D2_indices, 1/D2diag)
+        D3_values = (1 / 3.) * torch.ones(B2.shape[1])
+        D3_indices = [i for i in range(B2.shape[1])]
+        D3_indices = torch.tensor([D3_indices, D3_indices])
+        D3 = torch.sparse_coo_tensor(D3_indices, D3_values)
+
+        A_1u = D2 - torch.sparse.mm(torch.sparse.mm(B2, D3), B2.t())
+        A_1d = D2_inv - torch.sparse.mm(torch.sparse.mm(B1.t(), D1_inv), B1)
+        A_1u_norm = torch.sparse.mm((sparse_diag_identity(A_1u.shape[0]) + A_1u), (torch.sparse_coo_tensor(D2_indices, 1 / (D2diag + 1))))
+        A_1d_norm = torch.sparse.mm((D2 + sparse_diag_identity(D2.shape[0])), (A_1d + sparse_diag_identity(A_1d.shape[0])))
+        L1 = A_1u_norm + A_1d_norm
+
+        B2_sum = D2diag_1
+        B2_sum_inv = 1 / (B2_sum + 1)
+        D5inv = sparse_diag(B2_sum_inv)
+
+        A_2d = sparse_diag_identity(B2.shape[1]) + torch.sparse.mm(torch.sparse.mm(B2.t(), D5inv), B2)
+        A_2d_norm = torch.sparse.mm((2 * sparse_diag_identity(B2.shape[1])), (A_2d + sparse_diag_identity(A_2d.shape[0])))
+        L2 = A_2d_norm
+
+        B2D3 = torch.sparse.mm(B2, D3)
+        D2B1TD1inv = (1 / np.sqrt(2.)) * torch.sparse.mm(torch.sparse.mm(D2, B1.t()), D1_inv)
+        D1invB1 = (1 / np.sqrt(2.)) * torch.sparse.mm(D1_inv, B1)
+        B2TD2inv = torch.sparse.mm(B2.t(), D5inv)
 
         return SimplicialObject(X0, X1, X2, L0, L1, L2, B2D3, D2B1TD1inv, D1invB1, B2TD2inv, label)
 

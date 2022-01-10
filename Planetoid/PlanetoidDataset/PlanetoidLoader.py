@@ -3,10 +3,7 @@ from torch_geometric.data import InMemoryDataset
 import numpy as np
 import torch
 from models.nn_utils import convert_to_SC, remove_diag_sparse, preprocess_features, to_sparse_coo
-
-
-node_size_dct = {'Cora' : 2708, 'CiteSeer' : 3327, 'PubMed' : 19717}
-
+from functools import reduce
 
 class PlanetoidSCDataset(InMemoryDataset):
 
@@ -14,8 +11,6 @@ class PlanetoidSCDataset(InMemoryDataset):
         self.root = root
         self.dataset_name = dataset_name
         self.processor_type = processor_type
-
-        self.nodes = np.array([i for i in range(node_size_dct[dataset_name])])
 
         folder = f"{root}/{self.dataset_name}/{processor_type.__class__.__name__}"
 
@@ -38,9 +33,13 @@ class PlanetoidSCDataset(InMemoryDataset):
     def download(self):
         # Instantiating this will download and process the graph dataset_processor.
         self.data_download = Planetoid(self.root, self.dataset_name)[0]
-        self.test_split = self.nodes[self.data_download.test_mask]
-        self.train_split = self.nodes[self.data_download.train_mask]
-        self.val_split = self.nodes[self.data_download.val_mask]
+
+        nodes = self.data_download.x.shape[0]
+        self.nodes = np.array([i for i in range(nodes)])
+
+        self.test_split = self.data_download.test_mask
+        self.train_split = self.data_download.train_mask
+        self.val_split = self.data_download.val_mask
 
     @property
     def processed_file_names(self):
@@ -49,14 +48,13 @@ class PlanetoidSCDataset(InMemoryDataset):
     def process(self):
         data = self.data_download
         features, edges, labels = data.x, data.edge_index, data.y
-        features = preprocess_features(features)
         adj_ones = torch.ones(edges.shape[1])
         adj = torch.sparse_coo_tensor(edges, adj_ones)
-        adj = remove_diag_sparse(adj)
 
+        features = preprocess_features(features)
+        adj = remove_diag_sparse(adj)
         dataset = convert_to_SC(adj, features, labels)
         dataset = [self.processor_type.process(dataset)]
-
         data, slices = self.processor_type.collate(dataset)
         torch.save((data, slices), self.processed_paths[0])
 
@@ -79,6 +77,7 @@ class PlanetoidSCDataset(InMemoryDataset):
         data_dct = self.get(0)
         data_dct = self.processor_type.batch([data_dct])[0]
         data_dct = self.processor_type.clean_feature_dct(data_dct)
+        data_dct = self.processor_type.repair(data_dct)
         return data_dct
 
     def get_train_labels(self):

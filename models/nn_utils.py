@@ -39,27 +39,37 @@ def get_features(features, sc_list):
     else:
         return torch.tensor([])
 
+def filter_simplices(node_features, simplice):
+    s = [node_features[i] for i in simplice]
+    common_features = functools.reduce(lambda a, b: torch.logical_and(a, b), s).float()
+    return torch.sum(common_features).item() > 0
 
-def convert_to_SC(adj, features, labels, get_features = get_features):
+
+def convert_to_SC(adj, features, labels):
     X0 = features
 
     nodes = [i for i in range(X0.shape[0])]
     edges = adj.coalesce().indices().tolist()
+    edges = [(i, j) for i, j in zip(edges[0], edges[1])]
+    # edges = [*filter(lambda x: filter_simplices(features, x), edges)]
 
     g = nx.Graph()
     g.add_nodes_from(nodes)
-    edges = [(i, j) for i, j in zip(edges[0], edges[1])]
     g.add_edges_from(edges)
-    triangles = [x for x in nx.enumerate_all_cliques(g) if len(x) == 3]
-
+    triangles = [list(sorted(x)) for x in nx.enumerate_all_cliques(g) if len(x) == 3]
+    # triangles = [*filter(lambda x: filter_simplices(features, x), triangles)]
     b1 = edge_to_node_matrix(edges, nodes, one_indexed=False).to_sparse()
     b2 = triangle_to_edge_matrix(triangles, edges).to_sparse()
 
-    # X0 = preprocess_features(features)
-    # X1 = torch.tensor(edges)
-    # X1 = preprocess_features(X1)
     X1 = torch.tensor(edges)
     X2 = torch.tensor(triangles)
+
+    X0[X0 != 0] = 1
+    X1_in, X1_out = X0[X1[:,0]], X0[X1[:,1]]
+    X1 = torch.logical_and(X1_in, X1_out).float()
+
+    X2_i, X2_j, X2_k = X0[X2[:,0]], X0[X2[:,1]], X0[X2[:,0]]
+    X2 = torch.logical_and(X2_i, torch.logical_and(X2_j, X2_k)).float()
 
     return SCData(X0, X1, X2, b1, b2, labels)
 
@@ -89,6 +99,14 @@ def to_sparse_coo(matrix):
     indices = matrix[0:2]
     values = matrix[2:3].squeeze()
     return torch.sparse_coo_tensor(indices, values)
+
+def sparse_diag_identity(n):
+    i = [i for i in range(n)]
+    return torch.sparse_coo_tensor(torch.tensor([i, i]), torch.ones(n))
+
+def sparse_diag(tensor):
+    i = [i for i in range(tensor.shape[0])]
+    return torch.sparse_coo_tensor(torch.tensor([i, i]), tensor)
 
 
 def chebyshev(L, X, k=3):

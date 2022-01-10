@@ -3,7 +3,7 @@ import torch
 from models.nn_utils import to_sparse_coo
 from models.ProcessorTemplate import NNProcessor
 from models.nn_utils import batch_feature_and_lapacian_pair, convert_indices_and_values_to_sparse, \
-    scipy_sparse_to_torch_sparse
+    scipy_sparse_to_torch_sparse, repair_sparse, unpack_feature_dct_to_L_X_B
 import scipy.sparse as sp
 import numpy as np
 
@@ -123,4 +123,12 @@ class GNNProcessor(NNProcessor):
         return convert_indices_and_values_to_sparse(feature_dct, 'lapacian_indices', 'lapacian_values', 'lapacian')
 
     def repair(self, feature_dct):
+        L, X, _ = unpack_feature_dct_to_L_X_B(feature_dct)
+
+        X0 = X[0]
+
+        n = X0.shape[0]
+
+        feature_dct['lapacian'] = [repair_sparse(L[0], (n, n))]
+
         return feature_dct
