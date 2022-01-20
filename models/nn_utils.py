@@ -152,15 +152,17 @@ def scipy_sparse_to_torch_sparse(matrix):
     return torch.sparse.FloatTensor(i, v)
 
 
-def normalise(L, k):
-    indices = L.coalesce().indices()
-    values = torch.ones(indices.shape[1])
-    L_ = torch.sparse_coo_tensor(indices, values)
-    D = torch.sparse.sum(L_, dim=1).to_dense() - k - 1
-    D = 1 / torch.sqrt(D)
-    i = [i for i in range(D.shape[0])]
-    D = torch.sparse_coo_tensor(torch.tensor([i, i]), D)
-    return torch.sparse.mm(torch.sparse.mm(D, L), D)
+def normalise(L, half_interval = False):
+    M = L.shape[0]
+    L = torch_sparse_to_scipy_sparse(L)
+    topeig = spl.eigsh(L, k=1, which="LM", return_eigenvectors=False)[0]
+    ret = L.copy()
+    if half_interval:
+        ret *= 1.0 / topeig
+    else:
+        ret *= 2.0 / topeig
+        ret.setdiag(ret.diagonal(0) - np.ones(M), 0)
+    ret.setdiag(ret.diagonal(0) - np.ones(M), 0)
 
 
 def batch_all_feature_and_lapacian_pair(X, L_i, L_v):
