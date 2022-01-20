@@ -46,9 +46,9 @@ class SNNEbliProcessor(NNProcessor):
         L1 = torch.sparse.FloatTensor.add(torch.sparse.mm(b1.t(), b1), torch.sparse.mm(b2, b2.t())).to('cpu')
         L2 = torch.sparse.mm(b2.t(), b2).to('cpu')
 
-        L0 = normalise(L0)
-        L1 = normalise(L1)
-        L2 = normalise(L2)
+        L0 = normalise(L0, 0)
+        L1 = normalise(L1, 1)
+        L2 = normalise(L2, 2)
 
         # splitting the sparse tensor as pooling cannot return sparse and to make preparation for minibatching easier
         assert (X0.size()[0] == L0.size()[0])
