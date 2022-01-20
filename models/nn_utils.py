@@ -146,7 +146,7 @@ def normalise(L):
     ret *= 2.0 / topeig
     ret.setdiag(ret.diagonal(0) - np.ones(M), 0)
 
-    return -scipy_sparse_to_torch_sparse(ret)
+    return scipy_sparse_to_torch_sparse(ret)
 
 
 def batch_all_feature_and_lapacian_pair(X, L_i, L_v):
