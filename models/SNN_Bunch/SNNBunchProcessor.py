@@ -6,6 +6,16 @@ from models.nn_utils import convert_indices_and_values_to_sparse,\
     batch_sparse_matrix, batch_all_feature_and_lapacian_pair
 from models.nn_utils import chebyshev, unpack_feature_dct_to_L_X_B, repair_sparse, sparse_diag_identity, sparse_diag
 
+def compute_d2(B):
+    D2diag = torch.maximum(torch.diag(B), torch.ones(B.shape[0]))
+    return torch.diag(D2diag)
+
+def compute_d1(B, D):
+    B_v_abs, B_i = torch.abs(B.coalesce().values()), B.coalesce().indices()
+    B_abs = torch.sparse_coo_tensor(B_i, B_v_abs)
+    diag = torch.sparse.sum(torch.sparse.mm(B_abs, D), dim = 1).to_dense()
+    return 2 * torch.diag(diag)
+
 
 class SimplicialObject:
 
@@ -46,7 +56,7 @@ class SNNBunchProcessor(NNProcessor):
     # This model is based on model described by Eric Bunch et al. in Simplicial 2-Complex Convolutional Neural Networks
     # Github here https://github.com/AmFamMLTeam/simplicial-2-complex-cnns
 
-    def _process(self, scData):
+    def process(self, scData):
         def to_dense(matrix):
             indices = matrix[0:2]
             values = matrix[2:3].squeeze()
@@ -55,8 +65,10 @@ class SNNBunchProcessor(NNProcessor):
         B1, B2 = to_dense(scData.b1).to('cpu'), to_dense(scData.b2).to('cpu')
         X0, X1, X2 = scData.X0.to('cpu'), scData.X1.to('cpu'), scData.X2.to('cpu')
         label = scData.label
+        x0, x1, x2 = X0.shape[0], X1.shape[0], X2.shape[0]
         B1 = repair_sparse(B1, (X0.shape[0], X1.shape[0])).to_dense()
         B2 = repair_sparse(B2, (X1.shape[0], X2.shape[0])).to_dense()
+
         L0 = B1 @ B1.T
         B1_sum = torch.sum(torch.abs(B1), 1)
         d0 = torch.diag(B1_sum)
@@ -65,7 +77,7 @@ class SNNBunchProcessor(NNProcessor):
         L0 = d0_inv @ L0
         L0_factor = -1 * torch.diag(1 / (B1_sum_inv + 1))
         L0bias = torch.eye(n=d0.shape[0])
-        L0 = L0_factor @ L0 + L0bias
+        # L0 = L0_factor @ L0 + L0bias
 
         D1_inv = torch.diag(0.5 * B1_sum_inv)
         D2diag = torch.sum(torch.abs(B2), 1)
@@ -74,25 +86,31 @@ class SNNBunchProcessor(NNProcessor):
         D2_inv = torch.diag(1 / D2diag)
         D3 = (1 / 3.) * torch.eye(n=B2.shape[1])
 
+        L0 = B1 @ torch.eye(x1) @ B1.T @ d0_inv
         # might need to change this
-        A_1u = D2 - B2 @ D3 @ B2.T
-        A_1d = D2_inv - B1.T @ D1_inv @ B1
-        A_1u_norm = (A_1u + torch.eye(n=A_1u.shape[0])) @ (torch.diag(1 / (D2diag + 1)))
-        A_1d_norm = (D2 + torch.eye(n=D2.shape[0])) @ (A_1d + torch.eye(n=A_1d.shape[0]))
-        L1 = A_1u_norm + A_1d_norm
+        L1 = D2 @ B1.T @ D1_inv @ B1 + B2 @ D3 @ B2.T @ D2_inv
+        # A_1u = D2 - B2 @ D3 @ B2.T
+        # A_1d = D2_inv - B1.T @ D1_inv @ B1
+        # A_1u_norm = (A_1u + torch.eye(n=A_1u.shape[0])) @ (torch.diag(1 / (D2diag + 1)))
+        # A_1d_norm = (D2 + torch.eye(n=D2.shape[0])) @ (A_1d + torch.eye(n=A_1d.shape[0]))
+        # L1 = A_1u_norm + A_1d_norm
 
         B2_sum = torch.sum(torch.abs(B2), 1)
         B2_sum_inv = 1 / (B2_sum + 1)
         D5inv = torch.diag(B2_sum_inv)
 
-        A_2d = torch.eye(n=B2.shape[1]) + B2.T @ D5inv @ B2
-        A_2d_norm = (2 * torch.eye(n=B2.shape[1])) @ (A_2d + torch.eye(n=A_2d.shape[0]))
-        L2 = A_2d_norm
+        # A_2d = torch.eye(n=B2.shape[1]) + B2.T @ D5inv @ B2
+        # A_2d_norm = (2 * torch.eye(n=B2.shape[1])) @ (A_2d + torch.eye(n=A_2d.shape[0]))
+        L2 = torch.eye(x2) @ B2.T @ D5inv @ B2
 
         B2D3 = B2 @ D3
         D2B1TD1inv = (1 / np.sqrt(2.)) * D2 @ B1.T @ D1_inv
         D1invB1 = (1 / np.sqrt(2.)) * D1_inv @ B1
         B2TD2inv = B2.T @ D5inv
+
+        L0 = (torch.eye(x0) - L0)
+        L1 = (torch.eye(x1) - L1)
+        L2 = (torch.eye(x2) - L2)
 
         L0, L1, L2 = L0.to_sparse(), L1.to_sparse(), L2.to_sparse()
         B2D3, D2B1TD1inv, D1invB1, B2TD2inv = B2D3.to_sparse(), D2B1TD1inv.to_sparse(), \
@@ -100,7 +118,7 @@ class SNNBunchProcessor(NNProcessor):
 
         return SimplicialObject(X0, X1, X2, L0, L1, L2, B2D3, D2B1TD1inv, D1invB1, B2TD2inv, label)
 
-    def process(self, scData):
+    def _process(self, scData):
         # This does processing in a sparse format
         def to_sparse(matrix, size):
             indices = matrix[0:2]
@@ -111,7 +129,6 @@ class SNNBunchProcessor(NNProcessor):
         label = scData.label
 
         x0, x1, x2 = X0.shape[0], X1.shape[0], X2.shape[0]
-
         B1, B2 = to_sparse(scData.b1, (x0, x1)).to('cpu'), to_sparse(scData.b2, (x1, x2)).to('cpu')
 
 
@@ -129,31 +146,29 @@ class SNNBunchProcessor(NNProcessor):
         L0_factor = torch.sparse_coo_tensor(d0_diag_indices, L0_factor_values, (x0, x0))
         L0_bias_values = torch.ones(d0.shape[0])
         L0bias = torch.sparse_coo_tensor(d0_diag_indices, L0_bias_values, (x0, x0))
-        L0 = (L0bias + torch.sparse.mm(L0_factor, L0))
+        L0 = L0bias + torch.sparse.mm(L0_factor, L0)
 
         D1_inv = torch.sparse_coo_tensor(d0_diag_indices, 0.5 * B1_sum_inv_values, (x0, x0))
         B2_v_abs, B2_i = torch.abs(B2.coalesce().values()), B2.coalesce().indices()
-        D2diag_1 = torch.sparse.sum(torch.sparse_coo_tensor(B2_i, B2_v_abs), dim = 1).to_dense()
+        D2diag_1 = torch.sparse.sum(torch.sparse_coo_tensor(B2_i, B2_v_abs, (x1, x1)), dim = 1).to_dense()
         D2diag = torch.maximum(D2diag_1, torch.ones(D2diag_1.shape[0]))
         D2_indices = [i for i in range(D2diag.shape[0])]
         D2_indices = torch.tensor([D2_indices, D2_indices])
-        D2 = torch.sparse_coo_tensor(D2_indices, D2diag)
-        D2_inv = torch.sparse_coo_tensor(D2_indices, 1/D2diag)
+        D2 = torch.sparse_coo_tensor(D2_indices, D2diag, (x1, x1))
+        D2_inv = torch.sparse_coo_tensor(D2_indices, 1/D2diag, (x1, x1))
         D3_values = (1 / 3.) * torch.ones(B2.shape[1])
         D3_indices = [i for i in range(B2.shape[1])]
         D3_indices = torch.tensor([D3_indices, D3_indices])
-        D3 = torch.sparse_coo_tensor(D3_indices, D3_values)
-
+        D3 = torch.sparse_coo_tensor(D3_indices, D3_values, (x2, x2))
         A_1u = D2 - torch.sparse.mm(torch.sparse.mm(B2, D3), B2.t())
         A_1d = D2_inv - torch.sparse.mm(torch.sparse.mm(B1.t(), D1_inv), B1)
-        A_1u_norm = torch.sparse.mm((sparse_diag_identity(A_1u.shape[0]) + A_1u), (torch.sparse_coo_tensor(D2_indices, 1 / (D2diag + 1))))
+        A_1u_norm = torch.sparse.mm((sparse_diag_identity(A_1u.shape[0]) + A_1u), (torch.sparse_coo_tensor(D2_indices, 1 / (D2diag + 1), (x1, x1))))
         A_1d_norm = torch.sparse.mm((D2 + sparse_diag_identity(D2.shape[0])), (A_1d + sparse_diag_identity(A_1d.shape[0])))
         L1 = A_1u_norm + A_1d_norm
 
         B2_sum = D2diag_1
         B2_sum_inv = 1 / (B2_sum + 1)
         D5inv = sparse_diag(B2_sum_inv)
-
         A_2d = sparse_diag_identity(B2.shape[1]) + torch.sparse.mm(torch.sparse.mm(B2.t(), D5inv), B2)
         A_2d_norm = torch.sparse.mm((2 * sparse_diag_identity(B2.shape[1])), (A_2d + sparse_diag_identity(A_2d.shape[0])))
         L2 = A_2d_norm

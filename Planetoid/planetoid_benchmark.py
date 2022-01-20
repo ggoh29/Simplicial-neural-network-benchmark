@@ -5,10 +5,10 @@ import torch
 from DGI.DGI import DGI
 from DGI.logreg import LogReg
 from constants import DEVICE
-
+2708, 79
 dataset = 'Cora'
-dataset_features_dct = {'Cora' : 1433, 'CiteSeer' : 3703, 'PubMed' : 500}
-dataset_classes_dct = {'Cora' : 7, 'CiteSeer' : 6, 'PubMed' : 3 , 'Pokemon' : 18}
+dataset_features_dct = {'Cora' : 1433, 'CiteSeer' : 3703, 'PubMed' : 500, 'fake' : 2708}
+dataset_classes_dct = {'Cora' : 7, 'CiteSeer' : 6, 'PubMed' : 3 , 'fake' : 2}
 input_size = dataset_features_dct[dataset]
 output_size = 512
 nb_epochs = 500
@@ -17,8 +17,8 @@ lr = 0.001
 l2_coef = 0.0
 patience = 20
 
-# nn_mod = planetoid_gnn # tensor(81.2860, device='cuda:0')
-nn_mod = planetoid_Bunch_nn # tensor([0.8105], device='cuda:0')
+# nn_mod = planetoid_gnn
+nn_mod = planetoid_Bunch_nn
 # nn_mod = planetoid_gat
 
 processor_type = nn_mod[0]
@@ -75,7 +75,7 @@ if __name__ == "__main__":
 
     embeds, _ = model.embed(data_dct)
     # embeds = data_dct['features'][0]
-    # output_size = 789
+    # output_size = 2708
     with open("./embeddings.py", 'w') as f:
         f.write(f'embeddings = {embeds.tolist()}')
     with open("./labels.py", 'w') as f:

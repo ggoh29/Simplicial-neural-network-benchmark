@@ -78,17 +78,13 @@ class PlanetoidEbli(nn.Module):
     def __init__(self, num_node_feats, output_size, bias = True):
         super().__init__()
 
-        conv_size = output_size//2
-
         # Degree 0 convolutions.
-        self.C0_1 = SCNLayer(num_node_feats, conv_size, enable_bias = bias)
-        self.C0_2 = SCNLayer(conv_size, output_size, enable_bias = bias)
+        self.C0_1 = SCNLayer(num_node_feats, output_size, enable_bias = bias)
 
 
     def forward(self, features_dct):
         L, X, batch = unpack_feature_dct_to_L_X_B(features_dct)
 
         out0_1 = nn.LeakyReLU()(self.C0_1(L[0], X[0]))
-        out0_2 = nn.LeakyReLU()(self.C0_2(L[0], out0_1))
 
-        return out0_2
+        return out0_1

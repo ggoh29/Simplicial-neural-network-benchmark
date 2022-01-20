@@ -3,6 +3,7 @@ from torch_geometric.data import InMemoryDataset
 import numpy as np
 import torch
 from models.nn_utils import convert_to_SC, remove_diag_sparse, preprocess_features, to_sparse_coo
+from Planetoid.PlanetoidDataset.fake_dataset import gen_dataset
 from functools import reduce
 
 class PlanetoidSCDataset(InMemoryDataset):
@@ -32,7 +33,10 @@ class PlanetoidSCDataset(InMemoryDataset):
 
     def download(self):
         # Instantiating this will download and process the graph dataset_processor.
-        self.data_download = Planetoid(self.root, self.dataset_name)[0]
+        if self.dataset_name == 'fake':
+            self.data_download = gen_dataset()
+        else:
+            self.data_download = Planetoid(self.root, self.dataset_name)[0]
 
         nodes = self.data_download.x.shape[0]
         self.nodes = np.array([i for i in range(nodes)])
@@ -51,7 +55,7 @@ class PlanetoidSCDataset(InMemoryDataset):
         adj_ones = torch.ones(edges.shape[1])
         adj = torch.sparse_coo_tensor(edges, adj_ones)
 
-        features = preprocess_features(features)
+        # features = preprocess_features(features)
         adj = remove_diag_sparse(adj)
         dataset = convert_to_SC(adj, features, labels)
         dataset = [self.processor_type.process(dataset)]

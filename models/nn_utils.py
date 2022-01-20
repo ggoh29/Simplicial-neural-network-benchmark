@@ -45,7 +45,7 @@ def filter_simplices(node_features, simplice):
     return torch.sum(common_features).item() > 0
 
 
-def convert_to_SC(adj, features, labels):
+def convert_to_SC(adj, features, labels, X1 = None, X2 = None):
     X0 = features
 
     nodes = [i for i in range(X0.shape[0])]
@@ -61,15 +61,38 @@ def convert_to_SC(adj, features, labels):
     b1 = edge_to_node_matrix(edges, nodes, one_indexed=False).to_sparse()
     b2 = triangle_to_edge_matrix(triangles, edges).to_sparse()
 
-    X1 = torch.tensor(edges)
-    X2 = torch.tensor(triangles)
-
     X0[X0 != 0] = 1
-    X1_in, X1_out = X0[X1[:,0]], X0[X1[:,1]]
-    X1 = torch.logical_and(X1_in, X1_out).float()
 
-    X2_i, X2_j, X2_k = X0[X2[:,0]], X0[X2[:,1]], X0[X2[:,0]]
-    X2 = torch.logical_and(X2_i, torch.logical_and(X2_j, X2_k)).float()
+    I = torch.eye(X0.shape[0])
+
+    if X1 is None:
+        X1 = torch.tensor(edges)
+
+        # X1_in, X1_out = X0[X1[:, 0]], X0[X1[:, 1]]
+        # X1_i_i, X1_o_i = I[X1[:, 0]], I[X1[:, 1]]
+        # X1 = torch.logical_and(X1_in, X1_out).float()
+        # X1 = torch.logical_or(X1_in, X1_out).float()
+        # X1_i = X1_i_i + X1_o_i
+        # X1 = X1 - X1_i
+        # X1 = (X1_in + X1_out)
+        # X1 = torch.sparse.softmax(X1.to_sparse(), dim = 1).to_dense()
+
+    if X2 is None:
+        X2 = torch.tensor(triangles)
+
+        # X2_i, X2_j, X2_k = X0[X2[:, 0]], X0[X2[:, 1]], X0[X2[:, 2]]
+        # X2_i_i, X2_j_i, X2_k_i = I[X2[:, 0]], I[X2[:, 1]], I[X2[:, 2]]
+        # X2 = torch.logical_and(X2_i, torch.logical_and(X2_j, X2_k)).float()
+        # X2 = torch.logical_or(X2_i, torch.logical_or(X2_j, X2_k)).float()
+        # X2_I = (X2_i_i + X2_j_i + X2_k_i)
+        # X2 = X2 - X2_I
+        # X2 = torch.sparse.softmax(X2.to_sparse(), dim = 1).to_dense()
+
+        # X2_1 = torch.logical_and(X2_i, X2_j).float()
+        # X2_2 = torch.logical_and(X2_i, X2_k).float()
+        # X2_3 = torch.logical_and(X2_j, X2_k).float()
+
+        # X2 = torch.logical_or(X2_i, torch.logical_or(X2_j, X2_k)).float()
 
     return SCData(X0, X1, X2, b1, b2, labels)
 
@@ -146,7 +169,7 @@ def normalise(L):
     ret *= 2.0 / topeig
     ret.setdiag(ret.diagonal(0) - np.ones(M), 0)
 
-    return -scipy_sparse_to_torch_sparse(ret)
+    return scipy_sparse_to_torch_sparse(ret)
 
 
 def batch_all_feature_and_lapacian_pair(X, L_i, L_v):
