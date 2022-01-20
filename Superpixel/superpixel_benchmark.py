@@ -10,9 +10,9 @@ from datetime import timedelta
 import time
 
 batch_size = 8
-superpixel_size = 50
-# dataset = datasets.MNIST
-dataset = datasets.CIFAR10
+superpixel_size = 75
+dataset = datasets.MNIST
+# dataset = datasets.CIFAR10
 edgeFlow = PixelBasedEdgeFlow
 # edgeFlow = RandomBasedEdgeFlow
 

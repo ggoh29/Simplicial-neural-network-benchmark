@@ -6,7 +6,7 @@ from models.nn_utils import chebyshev, unpack_feature_dct_to_L_X_B
 
 
 class SCNLayer(nn.Module):
-    def __init__(self, feature_size, output_size, enable_bias = True, k = 4):
+    def __init__(self, feature_size, output_size, enable_bias = True, k = 1):
         super().__init__()
         self.k = k
         self.conv = nn.Linear(k * feature_size, output_size, bias = enable_bias)
@@ -22,7 +22,7 @@ class SuperpixelEbli(nn.Module):
     def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size, bias = True):
         super().__init__()
 
-        conv_size = 16
+        conv_size = 32
 
         # Degree 0 convolutions.
         self.C0_1 = SCNLayer(num_node_feats, conv_size, enable_bias = bias)
@@ -43,7 +43,7 @@ class SuperpixelEbli(nn.Module):
         self.layer1 = nn.Linear(3 * conv_size, output_size)
         self.layer2 = nn.Linear(3 * conv_size, output_size)
 
-        self.combined_layer = nn.Linear(output_size * 3, output_size)
+        # self.combined_layer = nn.Linear(output_size * 3, output_size)
 
 
     def forward(self, features_dct):
@@ -67,9 +67,9 @@ class SuperpixelEbli(nn.Module):
         out2 = self.layer0(torch.cat([out2_1, out2_2, out2_3], dim=1))
         out2 = global_mean_pool(out2, batch[2])
 
-        out = torch.cat([out0, out1, out2], dim = 1)
-
-        return F.softmax(self.layer(out), dim = 1)
+        return F.softmax((out0 + out1 + out2)/3)
+        # out = torch.cat([out0, out1, out2], dim = 1)
+        # return F.softmax(self.combined_layer(out), dim = 1)
 
 
 class PlanetoidEbli(nn.Module):

@@ -18,41 +18,37 @@ def corruption_function(feature_dct, processor_type, p = 0.00):
     # idx = [i for i in range(nb_nodes)]
     C_X0 = X0[idx]
 
-    # L0_i = L[0].coalesce().indices().to(DEVICE)
-    # L0_v = -torch.ones(L0_i.shape[1]).to(DEVICE)
-    # L0 = torch.sparse_coo_tensor(L0_i, L0_v).to(DEVICE)
-    # cor_adj_i = torch.triu_indices(nb_nodes, nb_nodes, 0).to(DEVICE)
-    # cor_adj_v = torch.tensor(np.random.binomial(1, p, size=(cor_adj_i.shape[1])), dtype=torch.float, device = DEVICE)
-    #
-    # # logical xor for edge insertion/deletion
-    # cor_adj = torch.sparse_coo_tensor(cor_adj_i, cor_adj_v).to(DEVICE)
-    # cor_adj = L0 + cor_adj
-    # cor_adj_i, cor_adj_v = cor_adj.coalesce().indices().to(DEVICE), cor_adj.coalesce().values().to(DEVICE)
-    # cor_adj_v = torch.abs(cor_adj_v)
-    # cor_adj = torch.sparse_coo_tensor(cor_adj_i, cor_adj_v)
-    # cor_adj = torch_sparse_to_scipy_sparse(cor_adj)
-    # cor_adj = scipy.sparse.triu(cor_adj, k=1)
-    # cor_adj.eliminate_zeros()
-    # cor_adj = scipy_sparse_to_torch_sparse(cor_adj)
-    #
-    # fake_labels = torch.tensor([0 for _ in range(nb_nodes)], dtype=torch.float, device = DEVICE)
-    # scData = convert_to_SC(cor_adj, C_X0, fake_labels)
-    # corrupted_train = processor_type.process(scData)
-    # corrupted_train = processor_type.batch([corrupted_train])[0]
-    # corrupted_train = processor_type.clean_feature_dct(corrupted_train)
+    L0_i = L[0].coalesce().indices().to(DEVICE)
+    L0_v = -torch.ones(L0_i.shape[1]).to(DEVICE)
+    L0 = torch.sparse_coo_tensor(L0_i, L0_v).to(DEVICE)
+    cor_adj_i = torch.triu_indices(nb_nodes, nb_nodes, 0).to(DEVICE)
+    cor_adj_v = torch.tensor(np.random.binomial(1, p, size=(cor_adj_i.shape[1])), dtype=torch.float, device = DEVICE)
 
-    corrupted_train = {feature : feature_dct[feature] for feature in feature_dct.keys()}
-    corrupted_train['features'] = copy.deepcopy(corrupted_train['features'])
-    corrupted_train['features'][0] = C_X0
+    # logical xor for edge insertion/deletion
+    cor_adj = torch.sparse_coo_tensor(cor_adj_i, cor_adj_v).to(DEVICE)
+    cor_adj = L0 + cor_adj
+    cor_adj_i, cor_adj_v = cor_adj.coalesce().indices().to(DEVICE), cor_adj.coalesce().values().to(DEVICE)
+    cor_adj_v = torch.abs(cor_adj_v)
+    cor_adj = torch.sparse_coo_tensor(cor_adj_i, cor_adj_v)
+    cor_adj = torch_sparse_to_scipy_sparse(cor_adj)
+    cor_adj = scipy.sparse.triu(cor_adj, k=1)
+    cor_adj.eliminate_zeros()
+    cor_adj = scipy_sparse_to_torch_sparse(cor_adj)
 
+    fake_labels = torch.tensor([0 for _ in range(nb_nodes)], dtype=torch.float, device = DEVICE)
+    scData = convert_to_SC(cor_adj, C_X0, fake_labels)
+    corrupted_train = processor_type.process(scData)
+    corrupted_train = processor_type.batch([corrupted_train])[0]
+    corrupted_train = processor_type.clean_feature_dct(corrupted_train)
+
+    # corrupted_train = {feature : feature_dct[feature] for feature in feature_dct.keys()}
+    # corrupted_train['features'] = copy.deepcopy(corrupted_train['features'])
+    # corrupted_train['features'][0] = C_X0
+    #
     # if len(feature_dct['features']) > 1:
     #     idx = np.random.permutation(feature_dct['features'][1].shape[0])
     #     corrupted_edges = feature_dct['features'][1][idx]
     #     corrupted_train['features'][1] = corrupted_edges
-    #
-    #     idx = np.random.permutation(feature_dct['features'][2].shape[0])
-    #     corrupted_tri = feature_dct['features'][2][idx]
-    #     corrupted_train['features'][2] = corrupted_tri
 
     return corrupted_train
 
