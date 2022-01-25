@@ -1,14 +1,15 @@
 from PlanetoidDataset.PlanetoidLoader import PlanetoidSCDataset
-from models.all_models import planetoid_gat, planetoid_gnn, planetoid_Bunch_nn, planetoid_Ebli_nn
+from models import planetoid_gat, planetoid_gnn, planetoid_Bunch_nn
 import torch.nn as nn
 import torch
 from DGI.DGI import DGI
 from DGI.logreg import LogReg
 from constants import DEVICE
+
 2708, 79
-dataset = 'Cora'
+dataset = 'fake'
 dataset_features_dct = {'Cora' : 1433, 'CiteSeer' : 3703, 'PubMed' : 500, 'fake' : 2708}
-dataset_classes_dct = {'Cora' : 7, 'CiteSeer' : 6, 'PubMed' : 3 , 'fake' : 2}
+dataset_classes_dct = {'Cora' : 7, 'CiteSeer' : 6, 'PubMed' : 3 , 'fake' : 3}
 input_size = dataset_features_dct[dataset]
 output_size = 512
 nb_epochs = 500
@@ -38,7 +39,7 @@ if __name__ == "__main__":
     cnt_wait = 0
     best = 1e9
     best_t = 0
-    thing = data_dct['lapacian'][0].to_dense().clone()
+    bl = False
     for epoch in range(nb_epochs):
         model.train()
         optimiser.zero_grad()
@@ -60,8 +61,11 @@ if __name__ == "__main__":
             best_t = epoch
             cnt_wait = 0
             torch.save(model.state_dict(), 'best_dgi.pkl')
+            if epoch != 0:
+                bl = True
         else:
-            cnt_wait += 1
+            if bl:
+                cnt_wait += 1
 
         if cnt_wait == patience:
             print('Early stopping!')
@@ -74,8 +78,8 @@ if __name__ == "__main__":
     model.load_state_dict(torch.load('best_dgi.pkl'))
 
     embeds, _ = model.embed(data_dct)
-    # embeds = data_dct['features'][0]
-    # output_size = 2708
+    # embeds = data_dct['features'][0].to(DEVICE)
+    # output_size = 79
     with open("./embeddings.py", 'w') as f:
         f.write(f'embeddings = {embeds.tolist()}')
     with open("./labels.py", 'w') as f:

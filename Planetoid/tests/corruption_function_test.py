@@ -1,6 +1,6 @@
 import unittest
 from Planetoid.PlanetoidDataset.PlanetoidLoader import PlanetoidSCDataset
-from models.all_models import planetoid_gat, planetoid_gnn, planetoid_Bunch_nn, planetoid_Ebli_nn
+from models import planetoid_gat, planetoid_gnn, planetoid_Bunch_nn, planetoid_Ebli_nn
 from Planetoid.DGI.DGI import corruption_function
 import torch.nn as nn
 import torch

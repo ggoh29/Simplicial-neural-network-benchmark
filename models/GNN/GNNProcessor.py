@@ -15,7 +15,30 @@ def normalize_adj(adj):
     d_inv_sqrt = np.power(rowsum, -0.5).flatten()
     d_inv_sqrt[np.isinf(d_inv_sqrt)] = 0.
     d_mat_inv_sqrt = sp.diags(d_inv_sqrt)
-    return adj.dot(d_mat_inv_sqrt).transpose().dot(d_mat_inv_sqrt).tocoo()
+    adj =  adj.dot(d_mat_inv_sqrt).transpose().dot(d_mat_inv_sqrt).tocoo()
+    return scipy_sparse_to_torch_sparse(adj)
+
+def normalise_lap(L, k):
+    indices = L.coalesce().indices()
+    values = torch.ones(indices.shape[1])
+    L_ = torch.sparse_coo_tensor(indices, values)
+    D = torch.sparse.sum(L_, dim=1).to_dense() - k - 1
+    D = torch.nan_to_num(1 / torch.sqrt(D), nan=0., posinf=0., neginf=0.)
+    i = [i for i in range(D.shape[0])]
+    D = torch.sparse_coo_tensor(torch.tensor([i, i]), D)
+    return (torch.eye(L.shape[0]) - torch.sparse.mm(torch.sparse.mm(D, L), D)).to_sparse()
+
+def normalise_adjacency(L):
+    L = L.to_dense()
+    L[L != 0] = 1
+    # L = torch.triu(L, 1)
+    # L = L + L.T
+    L = L.to_sparse()
+    D = torch.sparse.sum(L, dim=1).to_dense()
+    D = torch.nan_to_num(1 / torch.sqrt(D), nan=0., posinf=0., neginf=0.)
+    i = [i for i in range(D.shape[0])]
+    D = torch.sparse_coo_tensor(torch.tensor([i, i]), D)
+    return (torch.sparse.mm(torch.sparse.mm(D, L), D))
 
 
 class GraphObject:
@@ -40,10 +63,7 @@ class GNNProcessor(NNProcessor):
         b1, b2 = to_sparse_coo(scData.b1), to_sparse_coo(scData.b2)
 
         X0 = scData.X0
-        L0 = torch.sparse.mm(b1, b1.t()).to_dense()
-        L0[L0 != 0] = 1
-        L0 = normalize_adj(L0.cpu().numpy())
-        L0 = scipy_sparse_to_torch_sparse(L0)
+        L0 = torch.sparse.mm(b1, b1.t())
         label = scData.label
 
         return GraphObject(X0, L0, label)

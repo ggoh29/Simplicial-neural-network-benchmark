@@ -1,11 +1,10 @@
 from abc import abstractmethod, ABC
-from Superpixel.SuperpixelDataset.ImageProcessor import SCData
 
 
 class NNProcessor(ABC):
 
 	@abstractmethod
-	def process(self, scData: SCData):
+	def process(self, scData):
 		# Given a scData object, continue to process it until the structure can be stored in inmemorydataset
 		pass
 

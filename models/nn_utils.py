@@ -11,7 +11,7 @@ import scipy.sparse as sp
 
 
 def preprocess_features(features):
-    """Row-normalize feature matrix and convert to tuple representation"""
+    """Row-normalize feature matrix"""
     rowsum = np.array(features.sum(1))
     r_inv = np.power(rowsum, -1).flatten()
     r_inv[np.isinf(r_inv)] = 0.
@@ -61,15 +61,14 @@ def convert_to_SC(adj, features, labels, X1 = None, X2 = None):
     b1 = edge_to_node_matrix(edges, nodes, one_indexed=False).to_sparse()
     b2 = triangle_to_edge_matrix(triangles, edges).to_sparse()
 
-    X0[X0 != 0] = 1
+    # X0[X0 != 0] = 1
 
-    I = torch.eye(X0.shape[0])
+    # I = torch.eye(X0.shape[0])
 
     if X1 is None:
         X1 = torch.tensor(edges)
 
         # X1_in, X1_out = X0[X1[:, 0]], X0[X1[:, 1]]
-        # X1_i_i, X1_o_i = I[X1[:, 0]], I[X1[:, 1]]
         # X1 = torch.logical_and(X1_in, X1_out).float()
         # X1 = torch.logical_or(X1_in, X1_out).float()
         # X1_i = X1_i_i + X1_o_i
@@ -81,7 +80,6 @@ def convert_to_SC(adj, features, labels, X1 = None, X2 = None):
         X2 = torch.tensor(triangles)
 
         # X2_i, X2_j, X2_k = X0[X2[:, 0]], X0[X2[:, 1]], X0[X2[:, 2]]
-        # X2_i_i, X2_j_i, X2_k_i = I[X2[:, 0]], I[X2[:, 1]], I[X2[:, 2]]
         # X2 = torch.logical_and(X2_i, torch.logical_and(X2_j, X2_k)).float()
         # X2 = torch.logical_or(X2_i, torch.logical_or(X2_j, X2_k)).float()
         # X2_I = (X2_i_i + X2_j_i + X2_k_i)
@@ -162,7 +160,7 @@ def normalise(L, half_interval = False):
     else:
         ret *= 2.0 / topeig
         ret.setdiag(ret.diagonal(0) - np.ones(M), 0)
-    ret.setdiag(ret.diagonal(0) - np.ones(M), 0)
+    return scipy_sparse_to_torch_sparse(ret)
 
 
 def batch_all_feature_and_lapacian_pair(X, L_i, L_v):

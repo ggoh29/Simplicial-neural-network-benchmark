@@ -50,8 +50,7 @@ class SNN_Bunch_Layer(nn.Module):
     t2e = self.t2e_weights(X2)  # Y12 = X2*W12
     t2e = torch.sparse.mm(B2D3, t2e)  # B2D3*Y12
 
-    X0 = self.w(n2n)
-    # X0 = (1 / 2.) * self.w(n2n + e2n)
+    X0 = (1 / 2.) * self.w(n2n + e2n)
     X1 = (1 / 3.) * self.w(e2e + n2e + t2e)
     X2 = (1 / 2.) * self.w(t2t + e2t)
 
@@ -104,44 +103,6 @@ class PRELU(nn.PReLU):
     return F.prelu(input, self.weight)
 
 
-class SNN_b(nn.Module):
-  # This model is based on model described by Eric Bunch et al. in Simplicial 2-Complex Convolutional Neural Networks
-  # Github here https://github.com/AmFamMLTeam/simplicial-2-complex-cnns
-  def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size, bias=True, f = F.relu):
-
-    super().__init__()
-    self.n2n_weights = nn.Linear(num_node_feats, output_size, bias=bias)
-    self.n2e_weights = nn.Linear(num_node_feats, output_size, bias=bias)
-    self.e2e_weights = nn.Linear(num_edge_feats, output_size, bias=bias)
-    self.e2n_weights = nn.Linear(num_edge_feats, output_size, bias=bias)
-    self.e2t_weights = nn.Linear(num_edge_feats, output_size, bias=bias)
-    self.w = f
-
-
-  def forward(self, X0, X1, X2, L0, L1, L2, B2D3, D2B1TD1inv, D1invB1, B2TD2inv):
-
-    n2n = self.n2n_weights(X0)  # Y00 = X0*W00
-    n2n = torch.sparse.mm(L0, n2n)  # L0*Y00
-
-    n2e = self.n2e_weights(X0)  # Y01 = X0*W01
-    n2e = torch.sparse.mm(D2B1TD1inv, n2e)  # D2*B1.T*D1^-1*Y01
-
-    e2n = self.e2n_weights(X1)  # Y10 = X1*W10
-    e2n = torch.sparse.mm(D1invB1, e2n)  # D1invB1*Y10
-
-    e2e = self.e2e_weights(X1)  # Y11 = X1*W11
-    e2e = torch.sparse.mm(L1, e2e)  # L1*Y11
-    #
-    # e2t = self.e2t_weights(X1)  # Y21 = X1*W21
-    # e2t = torch.sparse.mm(B2TD2inv, e2t)  # B2TD2inv*Y21
-
-    X0 = (1 / 2.) * self.w(n2n + e2n)
-    X1 = (1 / 2.) *  self.w(e2e + n2e)
-    # X2 = self.w(e2t)
-
-    return X0, X1, X2
-
-
 class PlanetoidBunch(nn.Module):
 
   def __init__(self, num_node_feats, output_size, bias=True):
@@ -149,9 +110,10 @@ class PlanetoidBunch(nn.Module):
     super().__init__()
     f_size = output_size
     self.layer1 = SNN_Bunch_Layer(num_node_feats, num_node_feats, num_node_feats, f_size, bias, PRELU())
+    self.layer1 = SNN_Bunch_Layer(num_node_feats, num_node_feats, num_node_feats, f_size, bias, PRELU())
 
     self.tri_layer = nn.Linear(output_size, output_size)
-    self.final_layer = nn.Linear(3 * output_size, output_size)
+    # self.final_layer = nn.Linear(3 * output_size, output_size)
     # self.w = PRELU()
 
 
@@ -164,7 +126,7 @@ class PlanetoidBunch(nn.Module):
 
     X1_in, X1_out = X0[X1[:, 0]], X0[X1[:, 1]]
     X1 = torch.logical_and(X1_in, X1_out).float()
-    #
+
     X2_i, X2_j, X2_k = X0[X2[:, 0]], X0[X2[:, 1]], X0[X2[:, 2]]
     X2 = torch.logical_and(X2_i, torch.logical_and(X2_j, X2_k)).float()
 
@@ -177,5 +139,6 @@ class PlanetoidBunch(nn.Module):
     # X0 = self.final_layer(Y0_cat)
     # X0 = (X0 + torch.sparse.mm(D1invB1, X1)) / 2
     # X0 = (X0 + torch.sparse.mm(D1invB1, X1) + torch.sparse.mm(D1invB1, torch.sparse.mm(B2D3, X2))) / 3
-    X0 = X0 + torch.sparse.mm(D1invB1, X1) + torch.sparse.mm(D1invB1, self.tri_layer(torch.sparse.mm(B2D3, X2)))/3
+    X0 = (X0 + torch.sparse.mm(D1invB1, X1) + torch.sparse.mm(D1invB1, self.tri_layer(torch.sparse.mm(B2D3, X2))))/3
+
     return X0

@@ -56,7 +56,7 @@ class SNNBunchProcessor(NNProcessor):
     # This model is based on model described by Eric Bunch et al. in Simplicial 2-Complex Convolutional Neural Networks
     # Github here https://github.com/AmFamMLTeam/simplicial-2-complex-cnns
 
-    def process(self, scData):
+    def _process(self, scData):
         def to_dense(matrix):
             indices = matrix[0:2]
             values = matrix[2:3].squeeze()
@@ -108,9 +108,9 @@ class SNNBunchProcessor(NNProcessor):
         D1invB1 = (1 / np.sqrt(2.)) * D1_inv @ B1
         B2TD2inv = B2.T @ D5inv
 
-        L0 = (torch.eye(x0) - L0)
-        L1 = (torch.eye(x1) - L1)
-        L2 = (torch.eye(x2) - L2)
+        # L0 = (torch.eye(x0) - L0)
+        # L1 = (torch.eye(x1) - L1)
+        # L2 = (torch.eye(x2) - L2)
 
         L0, L1, L2 = L0.to_sparse(), L1.to_sparse(), L2.to_sparse()
         B2D3, D2B1TD1inv, D1invB1, B2TD2inv = B2D3.to_sparse(), D2B1TD1inv.to_sparse(), \
@@ -118,7 +118,7 @@ class SNNBunchProcessor(NNProcessor):
 
         return SimplicialObject(X0, X1, X2, L0, L1, L2, B2D3, D2B1TD1inv, D1invB1, B2TD2inv, label)
 
-    def _process(self, scData):
+    def process(self, scData):
         # This does processing in a sparse format
         def to_sparse(matrix, size):
             indices = matrix[0:2]

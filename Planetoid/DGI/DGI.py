@@ -10,7 +10,7 @@ import copy
 def convert_to_device(lst):
     return [i.to(DEVICE) for i in lst]
 
-def corruption_function(feature_dct, processor_type, p = 0.00):
+def corruption_function(feature_dct, processor_type, p = 0.001):
     L, X, batch = unpack_feature_dct_to_L_X_B(feature_dct)
     X0 = X[0]
     nb_nodes = X0.shape[0]
@@ -44,11 +44,6 @@ def corruption_function(feature_dct, processor_type, p = 0.00):
     # corrupted_train = {feature : feature_dct[feature] for feature in feature_dct.keys()}
     # corrupted_train['features'] = copy.deepcopy(corrupted_train['features'])
     # corrupted_train['features'][0] = C_X0
-    #
-    # if len(feature_dct['features']) > 1:
-    #     idx = np.random.permutation(feature_dct['features'][1].shape[0])
-    #     corrupted_edges = feature_dct['features'][1][idx]
-    #     corrupted_train['features'][1] = corrupted_edges
 
     return corrupted_train
 

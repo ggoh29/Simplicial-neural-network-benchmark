@@ -4,7 +4,7 @@ import torch
 import numpy as np
 from nn_utils import convert_to_SC, torch_sparse_to_scipy_sparse, scipy_sparse_to_torch_sparse, to_sparse_coo
 from scipy import sparse
-from all_models import superpixel_Bunch_nn, superpixel_Ebli_nn
+from models import superpixel_Bunch_nn
 
 def Bunch_github_processing(B1, B2):
 
@@ -112,45 +112,91 @@ class MyTestCase(unittest.TestCase):
         self.assertTrue(torch.allclose(B2TD2inv, B2TD2inv_b, atol=1e-5))
 
 
-    def test_lapacian_normalisation_function_is_correct(self):
-
-        def normalise_adjacency(L):
-            L = L.to_dense()
-            L[L != 0] = 1
-            adj = torch.triu(L, 1)
-            adj = adj + adj.T
-            L = adj.to_sparse()
-            D = torch.sparse.sum(L, dim=1).to_dense()
-            D = 1 / torch.sqrt(D)
-            i = [i for i in range(D.shape[0])]
-            D = torch.sparse_coo_tensor(torch.tensor([i, i]), D)
-            return torch.eye(L.shape[0]) - torch.sparse.mm(torch.sparse.mm(D, L), D).to_dense()
-
-
-        nb_nodes = 200
-        adj_i = torch.triu_indices(nb_nodes, nb_nodes, 1)
-        adj_v = torch.tensor(np.random.binomial(1, 0.10, size=(adj_i.shape[1])), dtype=torch.float)
-        adj_matrix = torch.sparse_coo_tensor(adj_i, adj_v, (nb_nodes, nb_nodes)).to_dense().to_sparse().cuda()
-
-        features = torch.tensor([[1, 1] for _ in range(nb_nodes)])
-        labels = torch.tensor([0 for _ in range(nb_nodes)])
-        sc_data = convert_to_SC(adj_matrix, features, labels)
-
-        processor = superpixel_Ebli_nn[0]
-        sc_object = processor.process(sc_data)
-
-        X0, X1, X2 = sc_data.X0, sc_data.X1, sc_data.X2
-        x0, x1, x2 = X0.shape[0], X1.shape[0], X2.shape[0]
-
-        b1, b2 = to_sparse(sc_data.b1, (x0, x1)), to_sparse(sc_data.b2, (x1, x2))
-
-        L0 = torch.sparse.mm(b1, b1.t()).to('cpu')
-
-        L0 = normalise_adjacency(L0)
-
-        L0_ebli = to_sparse_coo(sc_object.L0).to_dense()
-
-        self.assertTrue(torch.allclose(L0, L0_ebli, atol = 1e-5))
+    # def test_lapacian_normalisation_function_is_correct(self):
+    #
+    #     def get_D(L):
+    #         L = L.to_dense()
+    #         L[L != 0] = 1
+    #         adj = torch.triu(L, 1)
+    #         adj = adj + adj.T
+    #         L = adj.to_sparse()
+    #         D = torch.sparse.sum(L, dim=1).to_dense()
+    #         return D
+    #
+    #     def get_D_inv(L):
+    #         L = L.to_dense()
+    #         L[L != 0] = 1
+    #         adj = torch.triu(L, 1)
+    #         adj = adj + adj.T
+    #         L = adj.to_sparse()
+    #         D = torch.sparse.sum(L, dim=1).to_dense()
+    #         D = 1 / torch.sqrt(D)
+    #         i = [i for i in range(D.shape[0])]
+    #         D = torch.sparse_coo_tensor(torch.tensor([i, i]), D)
+    #         return D
+    #
+    #     def normalise_adjacency_u(L, D):
+    #         L = L.to_dense()
+    #         L[L != 0] = 1
+    #         adj = torch.triu(L, 1)
+    #         adj = adj + adj.T
+    #         L = adj.to_sparse()
+    #         D = torch.sparse.sum(L, dim=1).to_dense()
+    #         D = 1 / torch.sqrt(D)
+    #         i = [i for i in range(D.shape[0])]
+    #         D = torch.sparse_coo_tensor(torch.tensor([i, i]), D)
+    #         return torch.eye(L.shape[0]) - torch.sparse.mm(torch.sparse.mm(D, L), D).to_dense()
+    #
+    #     def normalise_adjacency_d(L, D):
+    #         L = L.to_dense()
+    #         L[L != 0] = 1
+    #         adj = torch.triu(L, 1)
+    #         adj = adj + adj.T
+    #         L = adj.to_sparse()
+    #         return torch.sparse.mm(torch.sparse.mm(D, L), D).to_dense()
+    #
+    #     def deg_k(k, D):
+    #         return (k + 1) * torch.sparse.mm(D, D)
+    #
+    #     nb_nodes = 200
+    #     adj_i = torch.triu_indices(nb_nodes, nb_nodes, 1)
+    #     adj_v = torch.tensor(np.random.binomial(1, 0.10, size=(adj_i.shape[1])), dtype=torch.float)
+    #     adj_matrix = torch.sparse_coo_tensor(adj_i, adj_v, (nb_nodes, nb_nodes)).to_dense().to_sparse().cuda()
+    #
+    #     features = torch.tensor([[1, 1] for _ in range(nb_nodes)])
+    #     labels = torch.tensor([0 for _ in range(nb_nodes)])
+    #     sc_data = convert_to_SC(adj_matrix, features, labels)
+    #
+    #     processor = superpixel_Ebli_nn[0]
+    #     sc_object = processor.process(sc_data)
+    #
+    #     X0, X1, X2 = sc_data.X0, sc_data.X1, sc_data.X2
+    #     x0, x1, x2 = X0.shape[0], X1.shape[0], X2.shape[0]
+    #
+    #     b1, b2 = to_sparse(sc_data.b1, (x0, x1)), to_sparse(sc_data.b2, (x1, x2))
+    #
+    #     L0 = torch.sparse.mm(b1, b1.t()).to('cpu')
+    #     L1_d = torch.sparse.mm(b1.t(), b1).to('cpu')
+    #     L1_u = torch.sparse.mm(b2, b2.t()).to('cpu')
+    #     L2 = torch.sparse.mm(b2.t(), b2).to('cpu')
+    #
+    #     D0 = get_D_inv(L0)
+    #     L0 = normalise_adjacency_u(L0, D0)
+    #
+    #     D2_i = get_D_inv(L2)
+    #     L2_k = deg_k(2, D2_i).to_dense()
+    #     L2 = normalise_adjacency_d(L2, D2_i) + L2_k + torch.eye(L2.shape[0])
+    #
+    #     L0_ebli = to_sparse_coo(sc_object.L0).to_dense()
+    #     L2_ebli = to_sparse_coo(sc_object.L2).to_dense()
+    #
+    #     print(L0)
+    #     print(L0_ebli)
+    #
+    #     print(L2)
+    #     print(L2_ebli)
+    #
+    #     self.assertTrue(torch.allclose(L0, L0_ebli, atol = 1e-5))
 
 
 

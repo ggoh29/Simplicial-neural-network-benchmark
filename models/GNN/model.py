@@ -32,7 +32,7 @@ class SuperpixelGCN(nn.Module):
         return F.softmax(self.layer_final(x), dim=1)
 
 
-class PLanetoidGCN1(nn.Module):
+class PLanetoidGCN(nn.Module):
     def __init__(self, input_size, output_size):
         super().__init__()
         self.act = nn.PReLU()
@@ -47,26 +47,6 @@ class PLanetoidGCN1(nn.Module):
         x = self.act(self.conv1(features, adjacency))
 
         return x
-
-
-class PLanetoidGCN(nn.Module):
-    def __init__(self, in_ft, out_ft, bias=True):
-        super().__init__()
-        self.fc = nn.Linear(in_ft, out_ft, bias=bias)
-        self.act = nn.PReLU()
-
-    # Shape of seq: (batch, nodes, features)
-    def forward(self, feature_dct):
-        L, X, batch = unpack_feature_dct_to_L_X_B(feature_dct)
-
-        adjacency = L[0]
-        features = X[0]
-        # features[features != 0] = 1
-
-        seq_fts = self.fc(features)
-
-        out = torch.unsqueeze(torch.sparse.mm(adjacency, seq_fts), 0)
-        return self.act(out).squeeze(0)
 
 
 class GATLayer(nn.Module):

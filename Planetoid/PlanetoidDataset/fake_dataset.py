@@ -30,15 +30,23 @@ def gen_dataset():
     g.add_nodes_from(nodes)
     g.add_edges_from(edges)
 
-    triangles = [list(sorted(x)) for x in nx.enumerate_all_cliques(g) if len(x) == 4]
+    triangles = [list(sorted(x)) for x in nx.enumerate_all_cliques(g) if len(x) == 3]
+    quads = [list(sorted(x)) for x in nx.enumerate_all_cliques(g) if len(x) == 4]
+    quads_indices_set = set()
+
+    labels = [0 for _ in range(n)]
+    for quad in quads:
+        for index in quad:
+            labels[index] = 2
+            quads_indices_set.add(index)
 
     tri_indices_set = set()
 
-    labels = [0 for _ in range(n)]
     for triangle in triangles:
         for index in triangle:
-            labels[index] = 1
-            tri_indices_set.add(index)
+            if index not in quads_indices_set:
+                labels[index] = 1
+                tri_indices_set.add(index)
 
     y = torch.tensor(labels)
 
@@ -46,24 +54,28 @@ def gen_dataset():
     val_mask = []
     test_mask = []
 
-    train_no = 40
+    train_no = 60
     val_no = 300
     test_no = 1000
 
     class_1 = 0
     class_2 = 0
+    class_3 = 0
 
     val = 0
     test = 0
 
     for i in nodes:
-        if class_1 + class_2 < train_no:
-            if i in tri_indices_set and class_1 < train_no//2:
+        if class_1 + class_2 + class_3 < train_no:
+            if i in tri_indices_set and class_1 < 20:
                 train_mask.append(i)
                 class_1 += 1
-            elif class_2 < train_no//2:
+            elif i in quads_indices_set and class_2 < 20:
                 train_mask.append(i)
                 class_2 += 1
+            elif class_3 < 20:
+                train_mask.append(i)
+                class_3 += 1
         elif val < val_no:
             val_mask.append(i)
             val += 1
@@ -86,12 +98,13 @@ def gen_dataset():
     val_mask.index_fill_(0, val_index, 1)
     val_mask = val_mask > 0
 
-    # features = torch.sum(adj, dim = 1)
-    # X0 = torch.nn.functional.one_hot(features.long()).float()
-    X0 = adj + adj.T
+    X0 = torch.sum(adj, dim = 1)
+    X0 = torch.nn.functional.one_hot(X0.long()).float()
+    # X0 = adj + adj.T
+    X0 = torch.ones((adj.shape[0], adj.shape[0]))
     edge_index = torch.nonzero(adj).T
 
-    assert(X0.shape[0] == y.shape[0])
+    assert (X0.shape[0] == y.shape[0])
     assert (y.shape[0] == train_mask.shape[0])
     assert (y.shape[0] == val_mask.shape[0])
     assert (y.shape[0] == test_mask.shape[0])
