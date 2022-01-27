@@ -110,11 +110,8 @@ class PlanetoidBunch(nn.Module):
     super().__init__()
     f_size = output_size
     self.layer1 = SNN_Bunch_Layer(num_node_feats, num_node_feats, num_node_feats, f_size, bias, PRELU())
-    self.layer1 = SNN_Bunch_Layer(num_node_feats, num_node_feats, num_node_feats, f_size, bias, PRELU())
 
     self.tri_layer = nn.Linear(output_size, output_size)
-    # self.final_layer = nn.Linear(3 * output_size, output_size)
-    # self.w = PRELU()
 
 
   def forward(self, feature_dct):
@@ -130,15 +127,8 @@ class PlanetoidBunch(nn.Module):
     X2_i, X2_j, X2_k = X0[X2[:, 0]], X0[X2[:, 1]], X0[X2[:, 2]]
     X2 = torch.logical_and(X2_i, torch.logical_and(X2_j, X2_k)).float()
 
-    # X1 = torch.ones((X1.shape[0], X0.shape[1])).cuda()
-    # X2 = torch.ones((X2.shape[0], X0.shape[1])).cuda()
-
     X0, X1, X2 = self.layer1(X0, X1, X2, L0, L1, L2, B2D3, D2B1TD1inv, D1invB1, B2TD2inv)
-    # Y0_cat = torch.cat([X0, torch.sparse.mm(D1invB1, X1)], dim = 1)
-    # Y0_cat = torch.cat([X0, torch.sparse.mm(D1invB1, X1), torch.sparse.mm(D1invB1, self.tri_layer(torch.sparse.mm(B2D3, X2)))], dim = 1)
-    # X0 = self.final_layer(Y0_cat)
-    # X0 = (X0 + torch.sparse.mm(D1invB1, X1)) / 2
-    # X0 = (X0 + torch.sparse.mm(D1invB1, X1) + torch.sparse.mm(D1invB1, torch.sparse.mm(B2D3, X2))) / 3
+
     X0 = (X0 + torch.sparse.mm(D1invB1, X1) + torch.sparse.mm(D1invB1, self.tri_layer(torch.sparse.mm(B2D3, X2))))/3
 
     return X0

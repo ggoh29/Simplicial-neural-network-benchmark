@@ -68,9 +68,9 @@ class SuperpixelSAT(nn.Module):
     def forward(self, features_dct):
         L, X, batch = unpack_feature_dct_to_L_X_B(features_dct)
 
-        X0, X1, _, X2 = X
+        X0, X1, X2 = X
         L0, L1_u, L1_d, L2 = L
-        batch0, batch1, _, batch2 = batch
+        batch0, batch1, batch2 = batch
         l1 = [L1_u, L1_d]
 
         x0_1 = F.relu(torch.cat([sat(X0, L0) for sat in self.layer0_1], dim=1))

@@ -2,7 +2,7 @@ from SuperpixelDataset.SuperpixelLoader import SuperpixelSCDataset
 from SuperpixelDataset.EdgeFlow import PixelBasedEdgeFlow
 from torch.utils.data import DataLoader
 from constants import DEVICE
-from models.all_models import superpixel_sat_nn, superpixel_gat, superpixel_gnn, superpixel_Bunch_nn, superpixel_Ebli_nn
+from models import superpixel_sat_nn, superpixel_gat, superpixel_gnn, superpixel_Bunch_nn, superpixel_Ebli_nn
 import torch
 from torchvision import datasets
 import numpy as np
@@ -10,7 +10,7 @@ from datetime import timedelta
 import time
 
 batch_size = 8
-superpixel_size = 75
+superpixel_size = 50
 dataset = datasets.MNIST
 # dataset = datasets.CIFAR10
 edgeFlow = PixelBasedEdgeFlow
@@ -20,7 +20,6 @@ output_size = 10
 
 def convert_to_device(lst):
     return [i.to(DEVICE) for i in lst]
-
 
 def train(NN, epoch_size, dataloader, optimizer, criterion, processor_type):
     NN.train()
@@ -33,6 +32,7 @@ def train(NN, epoch_size, dataloader, optimizer, criterion, processor_type):
         i = 0
         for features_dct, train_labels in dataloader:
             features_dct = processor_type.clean_feature_dct(features_dct)
+            features_dct = processor_type.repair(features_dct)
             features_dct = {key: convert_to_device(features_dct[key]) for key in features_dct}
             train_labels = train_labels.to(DEVICE)
             optimizer.zero_grad()
@@ -64,6 +64,7 @@ def test(NN, dataloader, processor_type):
     with torch.no_grad():
         for features_dct, test_labels in dataloader:
             features_dct = processor_type.clean_feature_dct(features_dct)
+            features_dct = processor_type.repair(features_dct)
             features_dct = {key: convert_to_device(features_dct[key]) for key in features_dct}
             test_labels = test_labels.to(DEVICE)
             prediction = NN(features_dct)
@@ -109,7 +110,7 @@ def run(processor_type, NN, output_suffix):
 
 if __name__ == "__main__":
     # NN_list = [superpixel_gnn, superpixel_gat, superpixel_Ebli_nn, superpixel_Bunch_nn]
-    NN_list = [superpixel_Ebli_nn]
+    NN_list = [superpixel_Bunch_nn]
     for output_suffix in range(5):
         for processor_type, NN in NN_list:
             NN = NN(5, 10, 15, output_size)

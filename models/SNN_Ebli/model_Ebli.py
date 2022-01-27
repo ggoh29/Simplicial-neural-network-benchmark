@@ -43,7 +43,7 @@ class SuperpixelEbli(nn.Module):
         self.layer1 = nn.Linear(3 * conv_size, output_size)
         self.layer2 = nn.Linear(3 * conv_size, output_size)
 
-        # self.combined_layer = nn.Linear(output_size * 3, output_size)
+        self.combined_layer = nn.Linear(output_size * 3, output_size)
 
 
     def forward(self, features_dct):
@@ -67,9 +67,9 @@ class SuperpixelEbli(nn.Module):
         out2 = self.layer0(torch.cat([out2_1, out2_2, out2_3], dim=1))
         out2 = global_mean_pool(out2, batch[2])
 
-        return F.softmax((out0 + out1 + out2)/3)
-        # out = torch.cat([out0, out1, out2], dim = 1)
-        # return F.softmax(self.combined_layer(out), dim = 1)
+        # return F.softmax((out0 + out1 + out2)/3)
+        out = torch.cat([out0, out1, out2], dim = 1)
+        return F.softmax(self.combined_layer(out), dim = 1)
 
 
 class PlanetoidEbli(nn.Module):

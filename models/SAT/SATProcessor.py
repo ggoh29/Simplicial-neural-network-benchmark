@@ -175,4 +175,6 @@ class SATProcessor(NNProcessor):
 
 
     def repair(self, feature_dct):
+        del feature_dct['features'][2]
+        del feature_dct['batch_index'][2]
         return feature_dct
