@@ -10,7 +10,7 @@ from datetime import timedelta
 import time
 
 batch_size = 8
-superpixel_size = 50
+superpixel_size = 75
 dataset = datasets.MNIST
 # dataset = datasets.CIFAR10
 edgeFlow = PixelBasedEdgeFlow
@@ -81,12 +81,12 @@ def run(processor_type, NN, output_suffix):
     params = sum([np.prod(p.size()) for p in model_parameters])
     print(params)
 
-    train_data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=True)
+    train_data = SuperpixelSCDataset('../data', dataset, superpixel_size, edgeFlow, processor_type, train=True)
     train_dataset = DataLoader(train_data, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=4,
                                shuffle=True, pin_memory=True)
     write_file_name = f"./results/{train_data.get_name()}_{NN.__class__.__name__}_{output_suffix}"
 
-    test_data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=False)
+    test_data = SuperpixelSCDataset('../data', dataset, superpixel_size, edgeFlow, processor_type, train=False)
     test_dataset = DataLoader(test_data, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=4,
                               shuffle=True, pin_memory=True)
 
@@ -110,7 +110,7 @@ def run(processor_type, NN, output_suffix):
 
 if __name__ == "__main__":
     # NN_list = [superpixel_gnn, superpixel_gat, superpixel_Ebli_nn, superpixel_Bunch_nn]
-    NN_list = [superpixel_Bunch_nn]
+    NN_list = [superpixel_Ebli_nn]
     for output_suffix in range(5):
         for processor_type, NN in NN_list:
             NN = NN(5, 10, 15, output_size)

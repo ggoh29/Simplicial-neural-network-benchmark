@@ -74,10 +74,6 @@ class SNNBunchProcessor(NNProcessor):
         d0 = torch.diag(B1_sum)
         B1_sum_inv = torch.nan_to_num(1. / B1_sum, nan=0., posinf=0., neginf=0.)
         d0_inv = torch.diag(B1_sum_inv)
-        L0 = d0_inv @ L0
-        L0_factor = -1 * torch.diag(1 / (B1_sum_inv + 1))
-        L0bias = torch.eye(n=d0.shape[0])
-        # L0 = L0_factor @ L0 + L0bias
 
         D1_inv = torch.diag(0.5 * B1_sum_inv)
         D2diag = torch.sum(torch.abs(B2), 1)
@@ -89,18 +85,11 @@ class SNNBunchProcessor(NNProcessor):
         L0 = B1 @ torch.eye(x1) @ B1.T @ d0_inv
         # might need to change this
         L1 = D2 @ B1.T @ D1_inv @ B1 + B2 @ D3 @ B2.T @ D2_inv
-        # A_1u = D2 - B2 @ D3 @ B2.T
-        # A_1d = D2_inv - B1.T @ D1_inv @ B1
-        # A_1u_norm = (A_1u + torch.eye(n=A_1u.shape[0])) @ (torch.diag(1 / (D2diag + 1)))
-        # A_1d_norm = (D2 + torch.eye(n=D2.shape[0])) @ (A_1d + torch.eye(n=A_1d.shape[0]))
-        # L1 = A_1u_norm + A_1d_norm
 
         B2_sum = torch.sum(torch.abs(B2), 1)
         B2_sum_inv = 1 / (B2_sum + 1)
         D5inv = torch.diag(B2_sum_inv)
 
-        # A_2d = torch.eye(n=B2.shape[1]) + B2.T @ D5inv @ B2
-        # A_2d_norm = (2 * torch.eye(n=B2.shape[1])) @ (A_2d + torch.eye(n=A_2d.shape[0]))
         L2 = torch.eye(x2) @ B2.T @ D5inv @ B2
 
         B2D3 = B2 @ D3
@@ -343,8 +332,7 @@ class SNNBunchProcessor(NNProcessor):
 
 
     def repair(self, feature_dct):
-        # The last few rows/columns of the matrix might be empty and when you convert it to a sparse matrix, the size
-        # of the matrix decreases
+        # The last few rows/columns of the matrix might be empty and this info is lost when you convert it to a sparse matrix
         _, X, _ = unpack_feature_dct_to_L_X_B(feature_dct)
 
         X0, X1, X2 = X

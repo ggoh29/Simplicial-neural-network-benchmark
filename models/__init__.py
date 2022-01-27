@@ -1,6 +1,6 @@
 from models.GNN.model import SuperpixelGCN, SuperpixelGAT, PlanetoidGAT, PLanetoidGCN
 from models.GNN.GNNProcessor import GNNProcessor
-from models.SNN_Ebli.model_Ebli import SuperpixelEbli, PlanetoidEbli
+from models.SNN_Ebli.model_Ebli import SuperpixelEbli
 from models.SNN_Ebli.SNNEbliProcessor import SNNEbliProcessor
 from models.SNN_Bunch.model_Bunch import SuperpixelBunch, PlanetoidBunch
 from models.SNN_Bunch.SNNBunchProcessor import SNNBunchProcessor

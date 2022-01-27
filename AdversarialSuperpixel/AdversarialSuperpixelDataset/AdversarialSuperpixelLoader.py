@@ -1,16 +1,25 @@
 import torch
-from Superpixel.SuperpixelDataset.ImageProcessor import ProcessImage
+from AdversarialSuperpixel.AdversarialSuperpixelDataset.AdversarialImageProcessor import ProcessImage
 import torchvision.transforms as transforms
 from torch_geometric.data import InMemoryDataset
 from joblib import Parallel, delayed
 from tqdm import tqdm
 from torchvision import datasets
+import random
 
 dataset_dct = {datasets.MNIST: "MNIST",
                datasets.CIFAR10: "CIFAR10"}
 
+def make_smaller_dataset_10_classes(data):
+    l = len(data)
+    data = [*sorted(data, key=lambda i: i[1])]
+    data_out = []
+    for i in range(10):
+        data_out += data[i * l // 10: (i * 5 + 1) * l // 50]
+    return data_out
 
-class SuperpixelSCDataset(InMemoryDataset):
+
+class AdversarialSuperpixelSCDataset(InMemoryDataset):
 
     def __init__(self, root, dataset_name, superpix_size, edgeflow_type, processor_type, n_jobs=8, train=True):
         self.dataset = dataset_name
@@ -47,6 +56,7 @@ class SuperpixelSCDataset(InMemoryDataset):
         # Instantiating this will download and process the graph dataset_processor.
         self.data_download = self.dataset(root='../data', train=self.train, download=True,
                                           transform=transforms.ToTensor())
+        self.data_download = make_smaller_dataset_10_classes(self.data_download)
 
     @property
     def processed_file_names(self):
