@@ -86,8 +86,8 @@ class SuperpixelBunch(nn.Module):
     X0_2, X1_2, X2_2 = self.layer3(X0_1, X1_1, X2_1, L0, L1, L2, B2D3, D2B1TD1inv, D1invB1, B2TD2inv)
 
     X0 = self.combined1(torch.cat([X0_0, X0_1, X0_2], dim = 1))
-    X1 = self.combined1(torch.cat([X1_0, X1_1, X1_2], dim=1))
-    X2 = self.combined1(torch.cat([X2_0, X2_1, X2_2], dim=1))
+    X1 = self.combined2(torch.cat([X1_0, X1_1, X1_2], dim=1))
+    X2 = self.combined3(torch.cat([X2_0, X2_1, X2_2], dim=1))
 
     X0 = global_mean_pool(X0, batch[0])
     X1 = global_mean_pool(X1, batch[1])

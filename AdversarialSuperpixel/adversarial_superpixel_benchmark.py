@@ -84,7 +84,7 @@ def train(NN, epoch_size, dataloader, optimizer, criterion, processor_type):
     return t, train_running_loss, epoch_loss, acc
 
 
-def gen_adversarial_dataset(NN, dataloader, full_target_labels, batch_size,  epsilon=0.001, targeted=True):
+def gen_adversarial_dataset(NN, dataloader, full_target_labels, batch_size, epsilon=0.002, targeted=True):
     NN.eval()
     no_epoch = 50
     full_batched_feature_dct, full_test_labels = [*map(list, zip(*dataloader))]
@@ -149,7 +149,8 @@ def gen_adversarial_dataset(NN, dataloader, full_target_labels, batch_size,  eps
         final_acc /= (i + 1)
         adv_acc /= (i + 1)
 
-    print(f"Initial accuracy of {start_initial_acc}, final accuracy of {final_acc}, adv accuracy of {adv_acc} of {NN.__class__.__name__}")
+
+    print(f"Initial accuracy of {start_initial_acc}, final accuracy of {final_acc}, target accuracy of {adv_acc} of {NN.__class__.__name__}")
     return initial_acc, final_acc, full_batched_feature_dct
 
 
@@ -178,7 +179,7 @@ def run_test_set(NN, dataloader, full_target_labels, batch_size):
     final_acc /= (i + 1)
     adv_acc /= (i + 1)
 
-    print(f"Final accuracy of {final_acc}, adv accuracy of {adv_acc} of {NN.__class__.__name__}")
+    print(f"Final accuracy of {final_acc}, target accuracy of {adv_acc} of {NN.__class__.__name__}")
 
 
 def run_direct_attack(processor_type, NN):
@@ -235,14 +236,17 @@ def run_transferability_attack(base_nn, base_processor_type, target_nn, target_p
 
 if __name__ == "__main__":
     # NN_list = [superpixel_gnn, superpixel_gat, superpixel_Ebli_nn, superpixel_Bunch_nn, superpixel_sat_nn]
-    # NN_list = [superpixel_gnn]
-    # for processor_type, NN in NN_list:
-    #     NN = NN(5, output_size)
-    #     run_direct_attack(processor_type, NN.to(DEVICE))
-    for _ in range(4):
-        base_processor_type, base_nn = superpixel_gat
-        target_processor_type, target_nn = superpixel_gnn
-        base_nn = base_nn(5, output_size).to(DEVICE)
-        target_nn = target_nn(5, output_size).to(DEVICE)
-        run_transferability_attack(base_nn, base_processor_type, target_nn, target_processor_type)
-        print()
+    NN_list = [superpixel_Ebli_nn]
+    for _ in range(5):
+        for processor_type, NN in NN_list:
+            NN = NN(5, 10, 15, output_size)
+            run_direct_attack(processor_type, NN.to(DEVICE))
+    # for _ in range(5):
+    #     base_processor_type, base_nn = superpixel_Ebli_nn
+    #     target_processor_type, target_nn = superpixel_gnn
+    #     base_nn = base_nn(5, 10, 15, output_size).to(DEVICE)
+    #     target_nn = target_nn(5, output_size).to(DEVICE)
+    #     run_transferability_attack(base_nn, base_processor_type, target_nn, target_processor_type)
+    #     print()
+
+

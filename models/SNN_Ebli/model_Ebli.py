@@ -58,13 +58,13 @@ class SuperpixelEbli(nn.Module):
         out1_1 = self.C1_1(L[1], X[1])
         out1_2 = self.C1_2(L[1], nn.LeakyReLU()(out1_1))
         out1_3 = self.C1_3(L[1], nn.LeakyReLU()(out1_2))
-        out1 = self.layer0(torch.cat([out1_1, out1_2, out1_3], dim=1))
+        out1 = self.layer1(torch.cat([out1_1, out1_2, out1_3], dim=1))
         out1 = global_mean_pool(out1, batch[1])
 
         out2_1 = self.C2_1(L[2], X[2])
         out2_2 = self.C2_2(L[2], nn.LeakyReLU()(out2_1))
         out2_3 = self.C2_3(L[2], nn.LeakyReLU()(out2_2))
-        out2 = self.layer0(torch.cat([out2_1, out2_2, out2_3], dim=1))
+        out2 = self.layer2(torch.cat([out2_1, out2_2, out2_3], dim=1))
         out2 = global_mean_pool(out2, batch[2])
 
         # return F.softmax((out0 + out1 + out2)/3)
