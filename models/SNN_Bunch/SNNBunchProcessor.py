@@ -4,7 +4,7 @@ import numpy as np
 from models.ProcessorTemplate import NNProcessor
 from models.nn_utils import convert_indices_and_values_to_sparse,\
     batch_sparse_matrix, batch_all_feature_and_lapacian_pair
-from models.nn_utils import chebyshev, unpack_feature_dct_to_L_X_B, repair_sparse, sparse_diag_identity, sparse_diag
+from models.nn_utils import chebyshev, unpack_feature_dct_to_L_X_B, repair_sparse, sparse_diag_identity, sparse_diag, normalise
 
 def compute_d2(B):
     D2diag = torch.maximum(torch.diag(B), torch.ones(B.shape[0]))
@@ -56,14 +56,14 @@ class SNNBunchProcessor(NNProcessor):
     # This model is based on model described by Eric Bunch et al. in Simplicial 2-Complex Convolutional Neural Networks
     # Github here https://github.com/AmFamMLTeam/simplicial-2-complex-cnns
 
-    def _process(self, scData):
+    def process(self, scData):
         def to_dense(matrix):
             indices = matrix[0:2]
             values = matrix[2:3].squeeze()
             return torch.sparse_coo_tensor(indices, values)
 
-        B1, B2 = to_dense(scData.b1).to('cpu'), to_dense(scData.b2).to('cpu')
-        X0, X1, X2 = scData.X0.to('cpu'), scData.X1.to('cpu'), scData.X2.to('cpu')
+        B1, B2 = to_dense(scData.b1).cpu(), to_dense(scData.b2).cpu()
+        X0, X1, X2 = scData.X0.cpu(), scData.X1.cpu(), scData.X2.cpu()
         label = scData.label
         x0, x1, x2 = X0.shape[0], X1.shape[0], X2.shape[0]
         B1 = repair_sparse(B1, (X0.shape[0], X1.shape[0])).to_dense()
@@ -107,18 +107,18 @@ class SNNBunchProcessor(NNProcessor):
 
         return SimplicialObject(X0, X1, X2, L0, L1, L2, B2D3, D2B1TD1inv, D1invB1, B2TD2inv, label)
 
-    def process(self, scData):
+    def _process(self, scData):
         # This does processing in a sparse format
         def to_sparse(matrix, size):
             indices = matrix[0:2]
             values = matrix[2:3].squeeze()
             return torch.sparse_coo_tensor(indices, values, size)
 
-        X0, X1, X2 = scData.X0.to('cpu'), scData.X1.to('cpu'), scData.X2.to('cpu')
+        X0, X1, X2 = scData.X0.cpu(), scData.X1.cpu(), scData.X2.cpu()
         label = scData.label
 
         x0, x1, x2 = X0.shape[0], X1.shape[0], X2.shape[0]
-        B1, B2 = to_sparse(scData.b1, (x0, x1)).to('cpu'), to_sparse(scData.b2, (x1, x2)).to('cpu')
+        B1, B2 = to_sparse(scData.b1, (x0, x1)).cpu(), to_sparse(scData.b2, (x1, x2)).cpu()
 
 
         L0 = torch.sparse.mm(B1, B1.t())
@@ -240,17 +240,17 @@ class SNNBunchProcessor(NNProcessor):
             slices["B2TD2inv"].append(d4_total)
             slices["label"].append(label_total)
 
-        X0 = torch.cat(X0, dim=0).to('cpu')
-        X1 = torch.cat(X1, dim=0).to('cpu')
-        X2 = torch.cat(X2, dim=0).to('cpu')
-        L0 = torch.cat(L0, dim=-1).to('cpu')
-        L1 = torch.cat(L1, dim=-1).to('cpu')
-        L2 = torch.cat(L2, dim=-1).to('cpu')
-        D1 = torch.cat(D1, dim=-1).to('cpu')
-        D2 = torch.cat(D2, dim=-1).to('cpu')
-        D3 = torch.cat(D3, dim=-1).to('cpu')
-        D4 = torch.cat(D4, dim=-1).to('cpu')
-        label = torch.cat(label, dim=-1).to('cpu')
+        X0 = torch.cat(X0, dim=0).cpu()
+        X1 = torch.cat(X1, dim=0).cpu()
+        X2 = torch.cat(X2, dim=0).cpu()
+        L0 = torch.cat(L0, dim=-1).cpu()
+        L1 = torch.cat(L1, dim=-1).cpu()
+        L2 = torch.cat(L2, dim=-1).cpu()
+        D1 = torch.cat(D1, dim=-1).cpu()
+        D2 = torch.cat(D2, dim=-1).cpu()
+        D3 = torch.cat(D3, dim=-1).cpu()
+        D4 = torch.cat(D4, dim=-1).cpu()
+        label = torch.cat(label, dim=-1).cpu()
         # D1, D2, D3, D4 = B2D3, D2B1TD1inv, D1invB1, B2TD2inv
         data = SimplicialObject(X0, X1, X2, L0, L1, L2, D1, D2, D3, D4, label)
 

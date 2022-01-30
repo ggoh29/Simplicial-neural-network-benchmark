@@ -39,10 +39,10 @@ class SATProcessor(NNProcessor):
 
         X0, X1, X2 = scData.X0, scData.X1, scData.X2
 
-        L0 = torch.sparse.mm(b1, b1.t()).to('cpu')
-        L1_up = torch.sparse.mm(b1.t(), b1).to('cpu')
-        L1_down = torch.sparse.mm(b2, b2.t()).to('cpu')
-        L2 = torch.sparse.mm(b2.t(), b2).to('cpu')
+        L0 = torch.sparse.mm(b1, b1.t()).cpu()
+        L1_up = torch.sparse.mm(b1.t(), b1).cpu()
+        L1_down = torch.sparse.mm(b2, b2.t()).cpu()
+        L2 = torch.sparse.mm(b2.t(), b2).cpu()
 
         # splitting the sparse tensor as pooling cannot return sparse and to make preparation for minibatching easier
         assert (X0.size()[0] == L0.size()[0])
@@ -112,14 +112,14 @@ class SATProcessor(NNProcessor):
 
         del data_list
 
-        X0 = torch.cat(X0, dim=0).to('cpu')
-        X1 = torch.cat(X1, dim=0).to('cpu')
-        X2 = torch.cat(X2, dim=0).to('cpu')
-        L0 = torch.cat(L0, dim=-1).to('cpu')
-        L1_up = torch.cat(L1_up, dim=-1).to('cpu')
-        L1_down = torch.cat(L1_dn, dim=-1).to('cpu')
-        L2 = torch.cat(L2, dim=-1).to('cpu')
-        label = torch.cat(label, dim=-1).to('cpu')
+        X0 = torch.cat(X0, dim=0).cpu()
+        X1 = torch.cat(X1, dim=0).cpu()
+        X2 = torch.cat(X2, dim=0).cpu()
+        L0 = torch.cat(L0, dim=-1).cpu()
+        L1_up = torch.cat(L1_up, dim=-1).cpu()
+        L1_down = torch.cat(L1_dn, dim=-1).cpu()
+        L2 = torch.cat(L2, dim=-1).cpu()
+        label = torch.cat(label, dim=-1).cpu()
 
         data = SimplicialObject(X0, X1, X2, L0, L1_up, L1_down, L2, label)
 

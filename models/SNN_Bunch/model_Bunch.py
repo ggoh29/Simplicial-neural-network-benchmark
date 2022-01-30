@@ -33,8 +33,8 @@ class SNN_Bunch_Layer(nn.Module):
     # edge to node
     e2n = self.e2n_weights(X1)  # Y10 = X1*W10
     e2n = torch.sparse.mm(D1invB1, e2n)  # D1invB1*Y10
-    # edge to edge
 
+    # edge to edge
     e2e = self.e2e_weights(X1)  # Y11 = X1*W11
     e2e = torch.sparse.mm(L1, e2e)  # L1*Y11
 

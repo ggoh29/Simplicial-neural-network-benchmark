@@ -13,6 +13,7 @@ import time
 from AdversarialSuperpixelDataset.fgsm import aggregate_grad, set_grad, add_edge_and_tri_features, fgsm_attack, \
     add_edge_and_tri_offset
 import os
+from tqdm import tqdm
 
 batch_size = 8
 superpixel_size = 75
@@ -35,7 +36,7 @@ def make_smaller_dataset_10_classes(data):
     return data_out
 
 def load_trained_NN(NN, dataset, processor_type):
-    if not os.path.isfile(f'../data/{NN.__class__.__name__}_nn.pkl'):
+    if not os.path.isfile(f'../data/{NN.__class__.__name__}_nn1.pkl'):
         train_data = SuperpixelSCDataset('../data', dataset, superpixel_size, edgeFlow, processor_type, train=True)
         train_dataset = DataLoader(train_data, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=8,
                                    shuffle=True, pin_memory=True)
@@ -45,8 +46,8 @@ def load_trained_NN(NN, dataset, processor_type):
 
         average_time, loss, final_loss, train_acc = train(NN, 100, train_dataset, optimizer, criterion, processor_type)
         print(train_acc)
-        torch.save(NN.state_dict(), f'../data/{NN.__class__.__name__}_nn.pkl')
-    NN.load_state_dict(torch.load(f'../data/{NN.__class__.__name__}_nn.pkl'))
+        torch.save(NN.state_dict(), f'../data/{NN.__class__.__name__}_nn1.pkl')
+    NN.load_state_dict(torch.load(f'../data/{NN.__class__.__name__}_nn1.pkl'))
     return NN
 
 
@@ -91,7 +92,7 @@ def gen_adversarial_dataset(NN, dataloader, full_target_labels, batch_size, epsi
 
     start_initial_acc = 0
 
-    for epoch in range(no_epoch):
+    for epoch in tqdm(range(no_epoch)):
         initial_acc = 0
         final_acc = 0
         adv_acc = 0
@@ -242,10 +243,10 @@ if __name__ == "__main__":
             NN = NN(5, 10, 15, output_size)
             run_direct_attack(processor_type, NN.to(DEVICE))
     # for _ in range(5):
-    #     base_processor_type, base_nn = superpixel_Ebli_nn
-    #     target_processor_type, target_nn = superpixel_gnn
-    #     base_nn = base_nn(5, 10, 15, output_size).to(DEVICE)
-    #     target_nn = target_nn(5, output_size).to(DEVICE)
+    #     base_processor_type, base_nn = superpixel_gat
+    #     target_processor_type, target_nn = superpixel_Bunch_nn
+    #     base_nn = base_nn(5, output_size).to(DEVICE)
+    #     target_nn = target_nn(5, 10, 15, output_size).to(DEVICE)
     #     run_transferability_attack(base_nn, base_processor_type, target_nn, target_processor_type)
     #     print()
 

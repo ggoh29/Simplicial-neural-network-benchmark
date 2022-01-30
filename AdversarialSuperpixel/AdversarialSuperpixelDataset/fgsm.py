@@ -77,7 +77,8 @@ def aggregate_grad(features, X_grad, blank_grad, size):
         index_lst.append(index)
         slice = torch.index_select(X_grad, 1, torch.tensor(slices[j]))
         blank_grad = blank_grad.index_add_(0, index, slice)
-    indexes = torch.cat(index_lst, 0)
-    indexes_u = indexes.unique(sorted=True)
-    indexes = torch.stack([(indexes == index_u).sum() for index_u in indexes_u]).unsqueeze(1)
-    return torch.div(blank_grad, indexes)
+    return blank_grad
+    # indexes = torch.cat(index_lst, 0)
+    # indexes_u = indexes.unique(sorted=True)
+    # indexes = torch.stack([(indexes == index_u).sum() for index_u in indexes_u]).unsqueeze(1)
+    # return torch.div(blank_grad, indexes)

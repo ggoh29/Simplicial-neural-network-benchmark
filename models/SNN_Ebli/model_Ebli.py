@@ -55,6 +55,7 @@ class SuperpixelEbli(nn.Module):
         out0 = self.layer0(torch.cat([out0_1, out0_2, out0_3], dim = 1))
         out0 = global_mean_pool(out0, batch[0])
 
+
         out1_1 = self.C1_1(L[1], X[1])
         out1_2 = self.C1_2(L[1], nn.LeakyReLU()(out1_1))
         out1_3 = self.C1_3(L[1], nn.LeakyReLU()(out1_2))
