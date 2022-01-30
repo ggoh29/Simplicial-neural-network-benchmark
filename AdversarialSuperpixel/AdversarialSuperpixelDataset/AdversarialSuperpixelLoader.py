@@ -28,7 +28,7 @@ class AdversarialSuperpixelSCDataset(InMemoryDataset):
         self.train_str = {True: "train", False: "test"}[train]
         self.train = train
 
-        self.name = f"{dataset_dct[dataset_name]}_{superpix_size}_{edgeflow_type.__name__}_{processor_type.__class__.__name__}"
+        self.name = f"{dataset_dct[dataset_name]}_{superpix_size}_{edgeflow_type.__name__}_{processor_type.__class__.__name__}1"
         folder = f"{root}/{self.name}/{self.train_str}"
 
         self.processor_type = processor_type

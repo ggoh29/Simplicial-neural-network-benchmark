@@ -14,6 +14,7 @@ class SATLayer(nn.Module):
         super().__init__()
         self.a_1 = nn.Linear(output_size, 1)
         self.a_2 = nn.Linear(output_size, 1)
+        self.a_3 = nn.Linear(1, 1)
         self.layer = nn.Linear(input_size, output_size)
 
     def forward(self, features, adj):
@@ -25,11 +26,12 @@ class SATLayer(nn.Module):
         features = self.layer(features)
 
         indices = adj.coalesce().indices()
+        values = self.a_3(adj.coalesce().values().unsqueeze(1)).squeeze(1)
 
         a_1 = self.a_1(features)
         a_2 = self.a_2(features)
 
-        v = (a_1 + a_2.T)[indices[0, :], indices[1, :]]
+        v = (a_1 + a_2.T)[indices[0, :], indices[1, :]] + values
         v = nn.LeakyReLU()(v)
         e = torch.sparse_coo_tensor(indices, v)
         attention = torch.sparse.softmax(e, dim = 1)

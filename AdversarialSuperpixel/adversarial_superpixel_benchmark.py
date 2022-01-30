@@ -237,17 +237,17 @@ def run_transferability_attack(base_nn, base_processor_type, target_nn, target_p
 
 if __name__ == "__main__":
     # NN_list = [superpixel_gnn, superpixel_gat, superpixel_Ebli_nn, superpixel_Bunch_nn, superpixel_sat_nn]
-    NN_list = [superpixel_Ebli_nn]
-    for _ in range(5):
-        for processor_type, NN in NN_list:
-            NN = NN(5, 10, 15, output_size)
-            run_direct_attack(processor_type, NN.to(DEVICE))
+    # NN_list = [superpixel_Ebli_nn]
     # for _ in range(5):
-    #     base_processor_type, base_nn = superpixel_gat
-    #     target_processor_type, target_nn = superpixel_Bunch_nn
-    #     base_nn = base_nn(5, output_size).to(DEVICE)
-    #     target_nn = target_nn(5, 10, 15, output_size).to(DEVICE)
-    #     run_transferability_attack(base_nn, base_processor_type, target_nn, target_processor_type)
-    #     print()
+    #     for processor_type, NN in NN_list:
+    #         NN = NN(5, 10, 15, output_size)
+    #         run_direct_attack(processor_type, NN.to(DEVICE))
+    for _ in range(5):
+        base_processor_type, base_nn = superpixel_sat_nn
+        target_processor_type, target_nn = superpixel_Ebli_nn
+        base_nn = base_nn(5, 10, 15, output_size).to(DEVICE)
+        target_nn = target_nn(5, 10, 15, output_size).to(DEVICE)
+        run_transferability_attack(base_nn, base_processor_type, target_nn, target_processor_type)
+        print()
 
 

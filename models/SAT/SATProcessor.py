@@ -2,7 +2,17 @@ import torch
 from models.ProcessorTemplate import NNProcessor
 from utils import ensure_input_is_tensor
 from models.nn_utils import to_sparse_coo
-from models.nn_utils import batch_all_feature_and_lapacian_pair, convert_indices_and_values_to_sparse, normalise
+from models.nn_utils import batch_all_feature_and_lapacian_pair, convert_indices_and_values_to_sparse
+
+def normalise_lap(L, k):
+    indices = L.coalesce().indices()
+    values = torch.ones(indices.shape[1])
+    L_ = torch.sparse_coo_tensor(indices, values)
+    D = torch.sparse.sum(L_, dim=1).to_dense() - k - 1
+    D = torch.nan_to_num(1 / torch.sqrt(D), nan=0., posinf=0., neginf=0.)
+    i = [i for i in range(D.shape[0])]
+    D = torch.sparse_coo_tensor(torch.tensor([i, i]), D)
+    return torch.sparse.mm(torch.sparse.mm(D, L), D)
 
 
 class SimplicialObject:
@@ -43,6 +53,11 @@ class SATProcessor(NNProcessor):
         L1_up = torch.sparse.mm(b1.t(), b1).cpu()
         L1_down = torch.sparse.mm(b2, b2.t()).cpu()
         L2 = torch.sparse.mm(b2.t(), b2).cpu()
+
+        L0 = normalise_lap(L0, 0)
+        L1_up = normalise_lap(L1_up, 1)
+        L1_down = normalise_lap(L1_down, 1)
+        L2 = normalise_lap(L2, 2)
 
         # splitting the sparse tensor as pooling cannot return sparse and to make preparation for minibatching easier
         assert (X0.size()[0] == L0.size()[0])
