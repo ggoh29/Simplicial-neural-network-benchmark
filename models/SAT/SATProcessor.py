@@ -55,9 +55,9 @@ class SATProcessor(NNProcessor):
         L2 = torch.sparse.mm(b2.t(), b2).cpu()
 
         L0 = normalise_lap(L0, 0)
-        L1_up = normalise_lap(L1_up, 1)
-        L1_down = normalise_lap(L1_down, 1)
-        L2 = normalise_lap(L2, 2)
+        L1_up = normalise_lap(L1_up, 0)
+        L1_down = normalise_lap(L1_down, 0)
+        L2 = normalise_lap(L2, 0)
 
         # splitting the sparse tensor as pooling cannot return sparse and to make preparation for minibatching easier
         assert (X0.size()[0] == L0.size()[0])
