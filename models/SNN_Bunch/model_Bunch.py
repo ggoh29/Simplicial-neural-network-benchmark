@@ -67,9 +67,9 @@ class SuperpixelBunch(nn.Module):
     self.layer2 = SNN_Bunch_Layer(f_size, f_size, f_size, f_size, bias)
     self.layer3 = SNN_Bunch_Layer(f_size, f_size, f_size, f_size, bias)
 
-    self.combined1 = nn.Linear(3 * f_size, output_size)
-    self.combined2 = nn.Linear(3 * f_size, output_size)
-    self.combined3 = nn.Linear(3 * f_size, output_size)
+    self.combined1 = nn.Linear(3 * f_size, output_size, bias)
+    self.combined2 = nn.Linear(3 * f_size, output_size, bias)
+    self.combined3 = nn.Linear(3 * f_size, output_size, bias)
 
     self.output = nn.Linear(output_size * 3, output_size, bias)
 

@@ -56,7 +56,7 @@ class SNNBunchProcessor(NNProcessor):
     # This model is based on model described by Eric Bunch et al. in Simplicial 2-Complex Convolutional Neural Networks
     # Github here https://github.com/AmFamMLTeam/simplicial-2-complex-cnns
 
-    def process(self, scData):
+    def _process(self, scData):
         def to_dense(matrix):
             indices = matrix[0:2]
             values = matrix[2:3].squeeze()
@@ -69,9 +69,9 @@ class SNNBunchProcessor(NNProcessor):
         B1 = repair_sparse(B1, (X0.shape[0], X1.shape[0])).to_dense()
         B2 = repair_sparse(B2, (X1.shape[0], X2.shape[0])).to_dense()
 
-        L0 = B1 @ B1.T
+        # L0 = B1 @ B1.T
         B1_sum = torch.sum(torch.abs(B1), 1)
-        d0 = torch.diag(B1_sum)
+        # d0 = torch.diag(B1_sum)
         B1_sum_inv = torch.nan_to_num(1. / B1_sum, nan=0., posinf=0., neginf=0.)
         d0_inv = torch.diag(B1_sum_inv)
 
@@ -97,6 +97,14 @@ class SNNBunchProcessor(NNProcessor):
         D1invB1 = (1 / np.sqrt(2.)) * D1_inv @ B1
         B2TD2inv = B2.T @ D5inv
 
+        # L0 = (B1 @ B1.T).cpu().to_sparse()
+        # L1 = (B1.T @ B1 + B2 @ B2.T).cpu().to_sparse()
+        # L2 = (B2.T @ B2).cpu().to_sparse()
+        #
+        # L0 = normalise(L0)
+        # L1 = normalise(L1)
+        # L2 = normalise(L2)
+
         # L0 = (torch.eye(x0) - L0)
         # L1 = (torch.eye(x1) - L1)
         # L2 = (torch.eye(x2) - L2)
@@ -107,7 +115,7 @@ class SNNBunchProcessor(NNProcessor):
 
         return SimplicialObject(X0, X1, X2, L0, L1, L2, B2D3, D2B1TD1inv, D1invB1, B2TD2inv, label)
 
-    def _process(self, scData):
+    def process(self, scData):
         # This does processing in a sparse format
         def to_sparse(matrix, size):
             indices = matrix[0:2]

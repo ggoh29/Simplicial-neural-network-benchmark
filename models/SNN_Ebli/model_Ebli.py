@@ -49,23 +49,24 @@ class SuperpixelEbli(nn.Module):
     def forward(self, features_dct):
         L, X, batch = unpack_feature_dct_to_L_X_B(features_dct)
 
-        out0_1 = self.C0_1(L[0], X[0])
-        out0_2 = self.C0_2(L[0], nn.LeakyReLU()(out0_1))
-        out0_3 = self.C0_3(L[0], nn.LeakyReLU()(out0_2))
-        out0 = self.layer0(torch.cat([out0_1, out0_2, out0_3], dim = 1))
-        out0 = global_mean_pool(out0, batch[0])
+        out0_1 = nn.LeakyReLU()(self.C0_1(L[0], X[0]))
+        out0_2 = nn.LeakyReLU()(self.C0_2(L[0], out0_1))
+        out0_3 = nn.LeakyReLU()(self.C0_3(L[0], out0_2))
 
+        out1_1 = nn.LeakyReLU()(self.C1_1(L[1], X[1]))
+        out1_2 = nn.LeakyReLU()(self.C1_2(L[1], out1_1))
+        out1_3 = nn.LeakyReLU()(self.C1_3(L[1], out1_2))
 
-        out1_1 = self.C1_1(L[1], X[1])
-        out1_2 = self.C1_2(L[1], nn.LeakyReLU()(out1_1))
-        out1_3 = self.C1_3(L[1], nn.LeakyReLU()(out1_2))
+        out2_1 = nn.LeakyReLU()(self.C2_1(L[2], X[2]))
+        out2_2 = nn.LeakyReLU()(self.C2_2(L[2], out2_1))
+        out2_3 = nn.LeakyReLU()(self.C2_3(L[2], out2_2))
+
+        out0 = self.layer0(torch.cat([out0_1, out0_2, out0_3], dim=1))
         out1 = self.layer1(torch.cat([out1_1, out1_2, out1_3], dim=1))
-        out1 = global_mean_pool(out1, batch[1])
-
-        out2_1 = self.C2_1(L[2], X[2])
-        out2_2 = self.C2_2(L[2], nn.LeakyReLU()(out2_1))
-        out2_3 = self.C2_3(L[2], nn.LeakyReLU()(out2_2))
         out2 = self.layer2(torch.cat([out2_1, out2_2, out2_3], dim=1))
+
+        out0 = global_mean_pool(out0, batch[0])
+        out1 = global_mean_pool(out1, batch[1])
         out2 = global_mean_pool(out2, batch[2])
 
         # return F.softmax((out0 + out1 + out2)/3)
