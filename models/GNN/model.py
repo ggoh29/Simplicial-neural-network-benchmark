@@ -32,7 +32,7 @@ class SuperpixelGCN(nn.Module):
         return F.softmax(self.layer_final(x), dim=1)
 
 
-class PLanetoidGCN(nn.Module):
+class PlanetoidGCN(nn.Module):
     def __init__(self, input_size, output_size):
         super().__init__()
         self.act = nn.PReLU()

@@ -4,6 +4,7 @@ from utils import ensure_input_is_tensor
 from models.nn_utils import to_sparse_coo
 from models.nn_utils import batch_all_feature_and_lapacian_pair, convert_indices_and_values_to_sparse
 
+
 def normalise_lap(L, k):
     indices = L.coalesce().indices()
     values = torch.ones(indices.shape[1])
@@ -41,7 +42,6 @@ class SimplicialObject:
         return all([x0, x1, x2, l0, l1_u, l1_d, l2, label])
 
 
-
 class SATProcessor(NNProcessor):
 
     def process(self, scData):
@@ -54,10 +54,10 @@ class SATProcessor(NNProcessor):
         L1_down = torch.sparse.mm(b2, b2.t()).cpu()
         L2 = torch.sparse.mm(b2.t(), b2).cpu()
 
-        L0 = normalise_lap(L0, 0)
-        L1_up = normalise_lap(L1_up, 0)
-        L1_down = normalise_lap(L1_down, 0)
-        L2 = normalise_lap(L2, 0)
+        # L0 = normalise_lap(L0, 0)
+        # L1_up = normalise_lap(L1_up, 0)
+        # L1_down = normalise_lap(L1_down, 0)
+        # L2 = normalise_lap(L2, 0)
 
         # splitting the sparse tensor as pooling cannot return sparse and to make preparation for minibatching easier
         assert (X0.size()[0] == L0.size()[0])
@@ -83,9 +83,9 @@ class SATProcessor(NNProcessor):
                   "X2": [0],
                   "L0": [0],
                   "L1_up": [0],
-                  "L1_down" : [0],
+                  "L1_down": [0],
                   "L2": [0],
-                  "label" : [0]}
+                  "label": [0]}
 
         for data in data_list:
             x0, x1, x2 = data.X0, data.X1, data.X2
@@ -187,7 +187,6 @@ class SATProcessor(NNProcessor):
 
     def clean_feature_dct(self, feature_dct):
         return convert_indices_and_values_to_sparse(feature_dct, 'lapacian_indices', 'lapacian_values', 'lapacian')
-
 
     def repair(self, feature_dct):
         del feature_dct['features'][2]

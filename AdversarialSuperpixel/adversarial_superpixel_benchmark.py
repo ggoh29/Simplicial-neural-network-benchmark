@@ -93,7 +93,9 @@ def gen_adversarial_dataset(NN, dataloader, full_target_labels, batch_size, epsi
 
     start_initial_acc = 0
 
+    mean = []
     for epoch in tqdm(range(no_epoch)):
+        m = []
         initial_acc = 0
         final_acc = 0
         adv_acc = 0
@@ -106,7 +108,7 @@ def gen_adversarial_dataset(NN, dataloader, full_target_labels, batch_size, epsi
             feature_dct = add_edge_and_tri_features(feature_dct)
             feature_dct = {key: convert_to_device(feature_dct[key]) for key in feature_dct}
 
-            feature_dct = set_grad(feature_dct)
+            set_grad(feature_dct)
             prediction = NN(feature_dct)
             initial_pred = prediction.argmax(dim=1)
             initial_acc += test_labels.eq(initial_pred).sum().item() / batch_size
@@ -133,6 +135,8 @@ def gen_adversarial_dataset(NN, dataloader, full_target_labels, batch_size, epsi
 
                 data_grad = X0_grad
 
+            m.append(data_grad)
+
             feature_dct = copy.deepcopy(batched_feature_dct)
             feature_dct = fgsm_attack(feature_dct, epsilon, data_grad, targeted)
             feature_dct = add_edge_and_tri_features(feature_dct)
@@ -148,9 +152,15 @@ def gen_adversarial_dataset(NN, dataloader, full_target_labels, batch_size, epsi
         if epoch == 0:
             start_initial_acc = initial_acc / (i + 1)
 
+        m = torch.cat(m, dim = 0)
+        m = m.cpu()
+        m = torch.sum(m.pow(2))
+        mean.append(m.item())
+
         final_acc /= (i + 1)
         adv_acc /= (i + 1)
 
+    print(mean)
     print(
         f"Initial accuracy of {start_initial_acc}, final accuracy of {final_acc}, target accuracy of {adv_acc} of {NN.__class__.__name__}")
     return initial_acc, final_acc, full_batched_feature_dct
@@ -247,17 +257,17 @@ def run_transferability_attack(base_nn, target_nn, target_processor_type, full_b
 
 if __name__ == "__main__":
     # NN_list = [superpixel_gnn, superpixel_gat, superpixel_Ebli_nn, superpixel_Bunch_nn, superpixel_sat_nn]
-    # NN_list = [superpixel_sat_nn]
-    # for _ in range(5):
+    # NN_list = [superpixel_gat]
+    # for _ in range(1):
     #     for processor_type, NN in NN_list:
-    #         NN = NN(5, 10, 15, output_size)
+    #         NN = NN(5, output_size)
     #         run_direct_attack(processor_type, NN.to(DEVICE))
     for i in range(1, 6):
-        base_processor_type, base_nn = superpixel_gat
+        base_processor_type, base_nn = superpixel_gnn
         base_nn = base_nn(5, output_size).to(DEVICE)
         full_batched_feature_dct, target_labels = gen_transferability_attack(base_nn, base_processor_type,
                                                                              epsilon=0.001 * i, targeted = True)
-        for target_gnn in [superpixel_gnn, superpixel_Ebli_nn, superpixel_Bunch_nn, superpixel_sat_nn]:
+        for target_gnn in [superpixel_gat, superpixel_Ebli_nn, superpixel_Bunch_nn, superpixel_sat_nn]:
             target_processor_type, target_nn = target_gnn
             if target_nn in {superpixel_gnn[1], superpixel_gat[1]}:
                 target_nn = target_nn(5, output_size).to(DEVICE)

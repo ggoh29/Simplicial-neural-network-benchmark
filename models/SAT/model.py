@@ -3,8 +3,6 @@ import torch.nn as nn
 from torch_geometric.nn import global_mean_pool
 import torch.nn.functional as F
 from models.nn_utils import unpack_feature_dct_to_L_X_B
-import functools
-from multiprocessing import Pool
 from constants import DEVICE
 
 
@@ -31,7 +29,7 @@ class SATLayer(nn.Module):
         a_1 = self.a_1(features)
         a_2 = self.a_2(features)
 
-        v = (a_1 + a_2.T)[indices[0, :], indices[1, :]] + values
+        v = (a_1 + a_2.T)[indices[0, :], indices[1, :]]
         v = nn.LeakyReLU()(v)
         e = torch.sparse_coo_tensor(indices, v)
         attention = torch.sparse.softmax(e, dim = 1)

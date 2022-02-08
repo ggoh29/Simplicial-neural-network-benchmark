@@ -49,7 +49,7 @@ def add_edge_and_tri_features(feature_dct):
     return feature_dct
 
 
-def fgsm_attack(feature_dct, epsilon, data_grad, targeted=False):
+def fgsm_attack(feature_dct, epsilon, data_grad, targeted=True):
     pixel_index = torch.tensor([0, 1, 2])
     data_grad = torch.index_select(data_grad.cpu(), 1, pixel_index)
     sign_data_grad = data_grad.sign() * (1 - int(targeted) * 2)
@@ -58,7 +58,7 @@ def fgsm_attack(feature_dct, epsilon, data_grad, targeted=False):
     X0_pixels = torch.index_select(X0, 1, pixel_index) + epsilon * sign_data_grad
     X0_pixels = torch.clamp(X0_pixels, 0, 1)
     X0 = torch.cat([X0_pixels, X0_coordinates], dim=1)
-    feature_dct['features'][0] = X0
+    feature_dct['features'][0] = X0.detach()
     return feature_dct
 
 
@@ -71,7 +71,6 @@ def set_grad(feature_dct):
 def aggregate_grad(features, X_grad, blank_grad, size):
     slices = [[i for i in range(5)], [i for i in range(5, 10)], [i for i in range(10, 15)]]
     index_lst = []
-
     for j in range(size):
         index = features[:, j]
         index_lst.append(index)

@@ -2,18 +2,20 @@ from utils import ensure_input_is_tensor
 import torch
 import numpy as np
 from models.ProcessorTemplate import NNProcessor
-from models.nn_utils import convert_indices_and_values_to_sparse,\
+from models.nn_utils import convert_indices_and_values_to_sparse, \
     batch_sparse_matrix, batch_all_feature_and_lapacian_pair
-from models.nn_utils import chebyshev, unpack_feature_dct_to_L_X_B, repair_sparse, sparse_diag_identity, sparse_diag, normalise
+from models.nn_utils import  unpack_feature_dct_to_L_X_B, repair_sparse, sparse_diag_identity, sparse_diag
+
 
 def compute_d2(B):
     D2diag = torch.maximum(torch.diag(B), torch.ones(B.shape[0]))
     return torch.diag(D2diag)
 
+
 def compute_d1(B, D):
     B_v_abs, B_i = torch.abs(B.coalesce().values()), B.coalesce().indices()
     B_abs = torch.sparse_coo_tensor(B_i, B_v_abs)
-    diag = torch.sparse.sum(torch.sparse.mm(B_abs, D), dim = 1).to_dense()
+    diag = torch.sparse.sum(torch.sparse.mm(B_abs, D), dim=1).to_dense()
     return 2 * torch.diag(diag)
 
 
@@ -34,7 +36,6 @@ class SimplicialObject:
         self.B2TD2inv = ensure_input_is_tensor(B2TD2inv)
 
         self.label = label
-
 
     def __eq__(self, other):
         x0 = torch.allclose(self.X0, other.X0, atol=1e-5)
@@ -97,14 +98,6 @@ class SNNBunchProcessor(NNProcessor):
         D1invB1 = (1 / np.sqrt(2.)) * D1_inv @ B1
         B2TD2inv = B2.T @ D5inv
 
-        # L0 = (B1 @ B1.T).cpu().to_sparse()
-        # L1 = (B1.T @ B1 + B2 @ B2.T).cpu().to_sparse()
-        # L2 = (B2.T @ B2).cpu().to_sparse()
-        #
-        # L0 = normalise(L0)
-        # L1 = normalise(L1)
-        # L2 = normalise(L2)
-
         # L0 = (torch.eye(x0) - L0)
         # L1 = (torch.eye(x1) - L1)
         # L2 = (torch.eye(x2) - L2)
@@ -128,13 +121,12 @@ class SNNBunchProcessor(NNProcessor):
         x0, x1, x2 = X0.shape[0], X1.shape[0], X2.shape[0]
         B1, B2 = to_sparse(scData.b1, (x0, x1)).cpu(), to_sparse(scData.b2, (x1, x2)).cpu()
 
-
         L0 = torch.sparse.mm(B1, B1.t())
         B1_v_abs, B1_i = torch.abs(B1.coalesce().values()), B1.coalesce().indices()
-        B1_sum = torch.sparse.sum(torch.sparse_coo_tensor(B1_i, B1_v_abs, (x0, x1)), dim = 1)
+        B1_sum = torch.sparse.sum(torch.sparse_coo_tensor(B1_i, B1_v_abs, (x0, x1)), dim=1)
         B1_sum_values = B1_sum.to_dense()
         B1_sum_indices = torch.tensor([i for i in range(x0)])
-        d0_diag_indices = torch.stack([B1_sum_indices, B1_sum_indices], dim = 0)
+        d0_diag_indices = torch.stack([B1_sum_indices, B1_sum_indices], dim=0)
         d0 = torch.sparse_coo_tensor(d0_diag_indices, B1_sum_values, (x0, x0))
         B1_sum_inv_values = torch.nan_to_num(1. / B1_sum_values, nan=0., posinf=0., neginf=0.)
         d0_inv = torch.sparse_coo_tensor(d0_diag_indices, B1_sum_inv_values, (x0, x0))
@@ -147,27 +139,30 @@ class SNNBunchProcessor(NNProcessor):
 
         D1_inv = torch.sparse_coo_tensor(d0_diag_indices, 0.5 * B1_sum_inv_values, (x0, x0))
         B2_v_abs, B2_i = torch.abs(B2.coalesce().values()), B2.coalesce().indices()
-        D2diag_1 = torch.sparse.sum(torch.sparse_coo_tensor(B2_i, B2_v_abs, (x1, x1)), dim = 1).to_dense()
+        D2diag_1 = torch.sparse.sum(torch.sparse_coo_tensor(B2_i, B2_v_abs, (x1, x1)), dim=1).to_dense()
         D2diag = torch.maximum(D2diag_1, torch.ones(D2diag_1.shape[0]))
         D2_indices = [i for i in range(D2diag.shape[0])]
         D2_indices = torch.tensor([D2_indices, D2_indices])
         D2 = torch.sparse_coo_tensor(D2_indices, D2diag, (x1, x1))
-        D2_inv = torch.sparse_coo_tensor(D2_indices, 1/D2diag, (x1, x1))
+        D2_inv = torch.sparse_coo_tensor(D2_indices, 1 / D2diag, (x1, x1))
         D3_values = (1 / 3.) * torch.ones(B2.shape[1])
         D3_indices = [i for i in range(B2.shape[1])]
         D3_indices = torch.tensor([D3_indices, D3_indices])
         D3 = torch.sparse_coo_tensor(D3_indices, D3_values, (x2, x2))
         A_1u = D2 - torch.sparse.mm(torch.sparse.mm(B2, D3), B2.t())
         A_1d = D2_inv - torch.sparse.mm(torch.sparse.mm(B1.t(), D1_inv), B1)
-        A_1u_norm = torch.sparse.mm((sparse_diag_identity(A_1u.shape[0]) + A_1u), (torch.sparse_coo_tensor(D2_indices, 1 / (D2diag + 1), (x1, x1))))
-        A_1d_norm = torch.sparse.mm((D2 + sparse_diag_identity(D2.shape[0])), (A_1d + sparse_diag_identity(A_1d.shape[0])))
+        A_1u_norm = torch.sparse.mm((sparse_diag_identity(A_1u.shape[0]) + A_1u),
+                                    (torch.sparse_coo_tensor(D2_indices, 1 / (D2diag + 1), (x1, x1))))
+        A_1d_norm = torch.sparse.mm((D2 + sparse_diag_identity(D2.shape[0])),
+                                    (A_1d + sparse_diag_identity(A_1d.shape[0])))
         L1 = A_1u_norm + A_1d_norm
 
         B2_sum = D2diag_1
         B2_sum_inv = 1 / (B2_sum + 1)
         D5inv = sparse_diag(B2_sum_inv)
         A_2d = sparse_diag_identity(B2.shape[1]) + torch.sparse.mm(torch.sparse.mm(B2.t(), D5inv), B2)
-        A_2d_norm = torch.sparse.mm((2 * sparse_diag_identity(B2.shape[1])), (A_2d + sparse_diag_identity(A_2d.shape[0])))
+        A_2d_norm = torch.sparse.mm((2 * sparse_diag_identity(B2.shape[1])),
+                                    (A_2d + sparse_diag_identity(A_2d.shape[0])))
         L2 = A_2d_norm
 
         B2D3 = torch.sparse.mm(B2, D3)
@@ -199,7 +194,7 @@ class SNNBunchProcessor(NNProcessor):
                   "D2B1TD1inv": [0],
                   "D1invB1": [0],
                   "B2TD2inv": [0],
-                  "label" : [0]}
+                  "label": [0]}
 
         for data in data_list:
             x0, x1, x2 = data.X0, data.X1, data.X2
@@ -337,7 +332,6 @@ class SNNBunchProcessor(NNProcessor):
         feature_dct = convert_indices_and_values_to_sparse(feature_dct, 'lapacian_indices', 'lapacian_values',
                                                            'lapacian')
         return convert_indices_and_values_to_sparse(feature_dct, 'd_indices', 'd_values', 'others')
-
 
     def repair(self, feature_dct):
         # The last few rows/columns of the matrix might be empty and this info is lost when you convert it to a sparse matrix

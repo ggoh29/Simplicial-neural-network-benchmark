@@ -1,9 +1,11 @@
 import torch
 from models.ProcessorTemplate import NNProcessor
-from utils import sparse_to_tensor, ensure_input_is_tensor
+from utils import ensure_input_is_tensor
 from models.nn_utils import to_sparse_coo
-from models.nn_utils import batch_all_feature_and_lapacian_pair, convert_indices_and_values_to_sparse, normalise, repair_sparse
+from models.nn_utils import batch_all_feature_and_lapacian_pair, convert_indices_and_values_to_sparse, normalise, \
+    repair_sparse
 import numpy as np
+
 
 class SimplicialObject:
 
@@ -58,43 +60,6 @@ class SNNEbliProcessor(NNProcessor):
         label = scData.label
 
         return SimplicialObject(X0, X1, X2, L0, L1, L2, label)
-
-    # def _process(self, scData):
-    #     def to_dense(matrix):
-    #         indices = matrix[0:2]
-    #         values = matrix[2:3].squeeze()
-    #         return torch.sparse_coo_tensor(indices, values)
-    #
-    #     B1, B2 = to_dense(scData.b1).cpu(), to_dense(scData.b2).cpu()
-    #     X0, X1, X2 = scData.X0.cpu(), scData.X1.cpu(), scData.X2.cpu()
-    #     label = scData.label
-    #     x0, x1, x2 = X0.shape[0], X1.shape[0], X2.shape[0]
-    #     B1 = repair_sparse(B1, (X0.shape[0], X1.shape[0])).to_dense()
-    #     B2 = repair_sparse(B2, (X1.shape[0], X2.shape[0])).to_dense()
-    #
-    #     B1_sum = torch.sum(torch.abs(B1), 1)
-    #     B1_sum_inv = torch.nan_to_num(1. / B1_sum, nan=0., posinf=0., neginf=0.)
-    #     d0_inv = torch.diag(B1_sum_inv)
-    #
-    #     D1_inv = torch.diag(0.5 * B1_sum_inv)
-    #     D2diag = torch.sum(torch.abs(B2), 1)
-    #     D2diag = torch.maximum(D2diag, torch.tensor([1 for _ in range(D2diag.shape[0])]))
-    #     D2 = torch.diag(D2diag)
-    #     D2_inv = torch.diag(1 / D2diag)
-    #     D3 = (1 / 3.) * torch.eye(n=B2.shape[1])
-    #
-    #     L0 = B1 @ torch.eye(x1) @ B1.T @ d0_inv
-    #     L1 = D2 @ B1.T @ D1_inv @ B1 + B2 @ D3 @ B2.T @ D2_inv
-    #
-    #     B2_sum = torch.sum(torch.abs(B2), 1)
-    #     B2_sum_inv = 1 / (B2_sum + 1)
-    #     D5inv = torch.diag(B2_sum_inv)
-    #
-    #     L2 = torch.eye(x2) @ B2.T @ D5inv @ B2
-    #
-    #     L0, L1, L2 = L0.to_sparse(), L1.to_sparse(), L2.to_sparse()
-    #
-    #     return SimplicialObject(X0, X1, X2, L0, L1, L2,  label)
 
     def collate(self, data_list):
         X0, X1, X2 = [], [], []
@@ -202,7 +167,6 @@ class SNNEbliProcessor(NNProcessor):
 
     def clean_feature_dct(self, feature_dct):
         return convert_indices_and_values_to_sparse(feature_dct, 'lapacian_indices', 'lapacian_values', 'lapacian')
-
 
     def repair(self, feature_dct):
         return feature_dct

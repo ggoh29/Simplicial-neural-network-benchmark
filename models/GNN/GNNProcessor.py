@@ -1,9 +1,9 @@
-from utils import sparse_to_tensor, ensure_input_is_tensor
+from utils import ensure_input_is_tensor
 import torch
 from models.nn_utils import to_sparse_coo
 from models.ProcessorTemplate import NNProcessor
 from models.nn_utils import batch_feature_and_lapacian_pair, convert_indices_and_values_to_sparse, \
-    scipy_sparse_to_torch_sparse, repair_sparse, unpack_feature_dct_to_L_X_B
+    repair_sparse, unpack_feature_dct_to_L_X_B
 
 
 class GraphObject:

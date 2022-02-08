@@ -1,4 +1,4 @@
-from models.GNN.model import SuperpixelGCN, SuperpixelGAT, PlanetoidGAT, PLanetoidGCN
+from models.GNN.model import SuperpixelGCN, SuperpixelGAT, PlanetoidGAT, PlanetoidGCN
 from models.GNN.GNNProcessor import GNNProcessor
 from models.SNN_Ebli.model_Ebli import SuperpixelEbli
 from models.SNN_Ebli.SNNEbliProcessor import SNNEbliProcessor
@@ -14,5 +14,5 @@ superpixel_gnn = [GNNProcessor(), SuperpixelGCN]
 superpixel_gat = [GNNProcessor(), SuperpixelGAT]
 
 planetoid_Bunch_nn = [SNNBunchProcessor(), PlanetoidBunch]
-planetoid_gnn = [GNNProcessor(), PLanetoidGCN]
+planetoid_gnn = [GNNProcessor(), PlanetoidGCN]
 planetoid_gat = [GNNProcessor(), PlanetoidGAT]
