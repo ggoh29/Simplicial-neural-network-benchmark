@@ -10,7 +10,7 @@ import copy
 def convert_to_device(lst):
     return [i.to(DEVICE) for i in lst]
 
-def corruption_function(feature_dct, processor_type, p = 0.005):
+def corruption_function(feature_dct, processor_type, p = 0.001):
     L, X, batch = unpack_feature_dct_to_L_X_B(feature_dct)
     X0 = X[0]
     nb_nodes = X0.shape[0]

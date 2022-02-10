@@ -7,12 +7,12 @@ from Planetoid.DGI.logreg import LogReg
 from constants import DEVICE
 
 2708, 79
-dataset = 'CiteSeer'
+dataset = 'Cora'
 dataset_features_dct = {'Cora' : 1433, 'CiteSeer' : 3703, 'PubMed' : 500, 'fake' : 2708}
 dataset_classes_dct = {'Cora' : 7, 'CiteSeer' : 6, 'PubMed' : 3 , 'fake' : 3}
 input_size = dataset_features_dct[dataset]
 output_size = 512
-nb_epochs = 150
+nb_epochs = 200
 test_epochs = 50
 lr = 0.001
 l2_coef = 0.0
@@ -60,7 +60,7 @@ if __name__ == "__main__":
             best = loss
             best_t = epoch
             cnt_wait = 0
-            torch.save(model.state_dict(), 'Planetoid/best_dgi.pkl')
+            torch.save(model.state_dict(), './best_dgi.pkl')
             if epoch != 0:
                 bl = True
         else:
@@ -75,15 +75,15 @@ if __name__ == "__main__":
         optimiser.step()
 
     print('Loading {}th epoch'.format(best_t))
-    model.load_state_dict(torch.load('best_dgi.pkl'))
+    model.load_state_dict(torch.load('./best_dgi.pkl'))
 
     embeds, _ = model.embed(data_dct)
     # embeds = data_dct['features'][0].to(DEVICE)
     # output_size = 79
-    with open("./embeddings.py", 'w') as f:
-        f.write(f'embeddings = {embeds.tolist()}')
-    with open("./labels.py", 'w') as f:
-        f.write(f'labels = {data.get_labels().tolist()}')
+    # with open("./embeddings.py", 'w') as f:
+    #     f.write(f'embeddings = {embeds.tolist()}')
+    # with open("./labels.py", 'w') as f:
+    #     f.write(f'labels = {data.get_labels().tolist()}')
     train_embs = data.get_train_embeds(embeds)
     val_embs = data.get_val_embeds(embeds)
     test_embs = data.get_test_embeds(embeds)

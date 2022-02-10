@@ -36,7 +36,7 @@ class PlanetoidGCN(nn.Module):
     def __init__(self, input_size, output_size):
         super().__init__()
         self.act = nn.PReLU()
-        self.conv1 = GCNConv(input_size, output_size)
+        self.conv1 = GCNConv(input_size, output_size, add_self_loops=False)
 
     def forward(self, feature_dct):
         L, X, batch = unpack_feature_dct_to_L_X_B(feature_dct)

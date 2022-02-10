@@ -9,7 +9,7 @@ import numpy as np
 from datetime import timedelta
 import time
 
-batch_size = 8
+batch_size = 16
 superpixel_size = 75
 dataset = datasets.MNIST
 # dataset = datasets.CIFAR10
@@ -110,8 +110,8 @@ def run(processor_type, NN, output_suffix):
 
 if __name__ == "__main__":
     # NN_list = [superpixel_gnn, superpixel_gat, superpixel_Ebli_nn, superpixel_Bunch_nn]
-    NN_list = [superpixel_Ebli_nn]
-    for output_suffix in range(5):
+    NN_list = [superpixel_gnn]
+    for output_suffix in range(1):
         for processor_type, NN in NN_list:
-            NN = NN(5, 10, 15, output_size)
+            NN = NN(5, output_size)
             run(processor_type, NN.to(DEVICE), output_suffix)
