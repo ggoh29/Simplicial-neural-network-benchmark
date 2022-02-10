@@ -1,5 +1,5 @@
-from SuperpixelDataset.SuperpixelLoader import SuperpixelSCDataset
-from SuperpixelDataset.EdgeFlow import PixelBasedEdgeFlow
+from Superpixel.SuperpixelDataset.SuperpixelLoader import SuperpixelSCDataset
+from Superpixel.SuperpixelDataset.EdgeFlow import PixelBasedEdgeFlow
 from torch.utils.data import DataLoader
 from constants import DEVICE
 from models import superpixel_sat_nn, superpixel_gat, superpixel_gnn, superpixel_Bunch_nn, superpixel_Ebli_nn

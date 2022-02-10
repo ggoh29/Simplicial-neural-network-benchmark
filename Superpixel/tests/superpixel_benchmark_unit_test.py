@@ -4,7 +4,7 @@ import torch
 from constants import TEST_MNIST_IMAGE_1, DEVICE
 from utils import tensor_to_sparse
 from Superpixel.SuperpixelDataset.EdgeFlow import PixelBasedEdgeFlow
-from Superpixel.superpixel_benchmark import test, train
+from superpixel_benchmark import test, train
 from torchvision import datasets
 from Superpixel.SuperpixelDataset.SuperpixelLoader import SuperpixelSCDataset
 from torch.utils.data import DataLoader
