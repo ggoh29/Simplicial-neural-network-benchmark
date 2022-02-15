@@ -14,7 +14,7 @@ superpixel_size = 75
 dataset = datasets.MNIST
 # dataset = datasets.CIFAR10
 edgeFlow = PixelBasedEdgeFlow
-# edgeFlow = RandomBasedEdgeFlow
+# edgeFlow = RandomBasedEdgeFlow;
 
 output_size = 10
 
@@ -110,7 +110,7 @@ def run(processor_type, NN, output_suffix):
 
 if __name__ == "__main__":
     # NN_list = [superpixel_gnn, superpixel_gat, superpixel_Ebli_nn, superpixel_Bunch_nn]
-    NN_list = [superpixel_gnn]
+    NN_list = [superpixel_gat]
     for output_suffix in range(1):
         for processor_type, NN in NN_list:
             NN = NN(5, output_size)

@@ -25,7 +25,7 @@ class SATLayer(nn.Module):
 
         indices = adj.coalesce().indices()
         values = adj.coalesce().values()
-        values[values > 1] = 0
+        # values[values > 1] = 0
         values = self.a_3(values.unsqueeze(1)).squeeze(1)
 
         a_1 = self.a_1(features)

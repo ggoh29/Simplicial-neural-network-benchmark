@@ -14,10 +14,10 @@ def Bunch_github_processing(B1, B2):
     B1_sum_inv = 1. / B1_sum
     B1_sum_inv[np.isinf(B1_sum_inv) | np.isneginf(B1_sum_inv)] = 0
     D0_inv = sparse.diags(B1_sum_inv.A.reshape(-1), 0)
-    L0 = L0 @ D0_inv
+    L0 = D0_inv@L0
     L0factor = (-1) * sparse.diags((1 / (B1_sum_inv + 1)).A.reshape(-1), 0)
     L0bias = sparse.identity(n=D0.shape[0])
-    L0 = L0 @ L0factor + L0bias
+    L0 = L0factor @ L0 + L0bias
     D1_inv = sparse.diags((B1_sum_inv * 0.5).A.reshape(-1), 0)
     D2diag = np.max(
         (

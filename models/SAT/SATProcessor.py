@@ -59,7 +59,6 @@ class SATProcessor(NNProcessor):
         # L1_down = normalise_lap(L1_down, 0)
         # L2 = normalise_lap(L2, 0)
 
-        # splitting the sparse tensor as pooling cannot return sparse and to make preparation for minibatching easier
         assert (X0.size()[0] == L0.size()[0])
         assert (X1.size()[0] == L1_up.size()[0])
         assert (X1.size()[0] == L1_down.size()[0])

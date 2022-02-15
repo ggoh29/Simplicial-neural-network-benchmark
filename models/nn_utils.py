@@ -164,7 +164,6 @@ def batch_feature_and_lapacian_pair(x_list, L_i_list, L_v_list):
     sizes = [*map(lambda x: x.size()[0], x_list)]
 
     I_cat, V_cat = batch_sparse_matrix(L_i_list, L_v_list, sizes, sizes)
-    # lapacian_batch = torch.sparse_coo_tensor(L_cat, V_cat)
     batch = [[i for _ in range(sizes[i])] for i in range(len(sizes))]
     batch = torch.tensor([i for sublist in batch for i in sublist])
     return feature_batch, I_cat, V_cat, batch
