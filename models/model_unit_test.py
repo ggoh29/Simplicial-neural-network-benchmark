@@ -102,8 +102,7 @@ class MyTestCase(unittest.TestCase):
         D2B1TD1inv = to_sparse_coo(sc_object.D2B1TD1inv).to_dense()
         D1invB1 = to_sparse_coo(sc_object.D1invB1).to_dense()
         B2TD2inv = to_sparse_coo(sc_object.B2TD2inv).to_dense()
-        print(L0)
-        print(L0_b)
+
         self.assertTrue(torch.allclose(L0, L0_b, atol=1e-5))
         self.assertTrue(torch.allclose(L1, L1_b, atol=1e-5))
         self.assertTrue(torch.allclose(L2, L2_b, atol=1e-5))

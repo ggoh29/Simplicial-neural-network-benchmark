@@ -25,7 +25,7 @@ class SATLayer(nn.Module):
 
         indices = adj.coalesce().indices()
         values = adj.coalesce().values()
-        # values[values > 1] = 0
+        values[values > 1] = 0
         values = self.a_3(values.unsqueeze(1)).squeeze(1)
 
         a_1 = self.a_1(features)
@@ -33,8 +33,12 @@ class SATLayer(nn.Module):
 
         v = (a_1 + a_2.T)[indices[0, :], indices[1, :]] + values
         v = nn.LeakyReLU()(v)
+        s = torch.sign(v)
+        v = torch.abs(v)
         e = torch.sparse_coo_tensor(indices, v)
         attention = torch.sparse.softmax(e, dim = 1)
+        a_v = torch.mul(attention.coalesce().values(), s)
+        attention = torch.sparse_coo_tensor(indices, a_v)
 
         output = torch.sparse.mm(attention, features)
 

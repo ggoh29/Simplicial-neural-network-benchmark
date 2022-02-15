@@ -15,7 +15,7 @@ from AdversarialSuperpixelDataset.fgsm import aggregate_grad, set_grad, add_edge
 import os
 from tqdm import tqdm
 
-batch_size = 16
+batch_size = 32
 superpixel_size = 75
 dataset = datasets.MNIST
 edgeFlow = PixelBasedEdgeFlow
@@ -88,7 +88,7 @@ def train(NN, epoch_size, dataloader, optimizer, criterion, processor_type):
 
 def gen_adversarial_dataset(NN, dataloader, full_target_labels, batch_size, epsilon=0.001, targeted=False):
     NN.eval()
-    no_epoch = 250
+    no_epoch = 1
     full_batched_feature_dct, full_test_labels = [*map(list, zip(*dataloader))]
 
     start_initial_acc = 0
@@ -260,7 +260,7 @@ def run_transferability_attack(base_nn, target_nn, target_processor_type, full_b
 
 if __name__ == "__main__":
     # NN_list = [superpixel_gnn, superpixel_gat, superpixel_Ebli_nn, superpixel_Bunch_nn, superpixel_sat_nn]
-    NN_list = [superpixel_Bunch_nn]
+    NN_list = [superpixel_sat_nn]
     for _ in range(1):
         for processor_type, NN in NN_list:
             NN = NN(5, 10, 15, output_size)
