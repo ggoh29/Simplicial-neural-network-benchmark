@@ -45,7 +45,7 @@ class SuperpixelSCDataset(InMemoryDataset):
 
     def download(self):
         # Instantiating this will download and process the graph dataset_processor.
-        self.data_download = self.dataset(root='../data', train=self.train, download=True,
+        self.data_download = self.dataset(root='./data', train=self.train, download=True,
                                           transform=transforms.ToTensor())
 
     @property

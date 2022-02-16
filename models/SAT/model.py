@@ -32,7 +32,6 @@ class SATLayer(nn.Module):
         a_2 = self.a_2(features)
 
         v = (a_1 + a_2.T)[indices[0, :], indices[1, :]] + values
-        v = nn.LeakyReLU()(v)
         s = torch.sign(v)
         v = torch.abs(v)
         e = torch.sparse_coo_tensor(indices, v)

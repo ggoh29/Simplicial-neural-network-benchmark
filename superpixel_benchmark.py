@@ -81,12 +81,12 @@ def run(processor_type, NN, output_suffix):
     params = sum([np.prod(p.size()) for p in model_parameters])
     print(params)
 
-    train_data = SuperpixelSCDataset('../data', dataset, superpixel_size, edgeFlow, processor_type, train=True)
+    train_data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=True)
     train_dataset = DataLoader(train_data, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=4,
                                shuffle=True, pin_memory=True)
     write_file_name = f"./results/{train_data.get_name()}_{NN.__class__.__name__}_{output_suffix}"
 
-    test_data = SuperpixelSCDataset('../data', dataset, superpixel_size, edgeFlow, processor_type, train=False)
+    test_data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=False)
     test_dataset = DataLoader(test_data, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=4,
                               shuffle=True, pin_memory=True)
 
