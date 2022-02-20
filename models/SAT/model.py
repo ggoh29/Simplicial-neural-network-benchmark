@@ -47,8 +47,8 @@ class SATLayer(nn.Module):
 class SuperpixelSAT(nn.Module):
     def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size):
         super().__init__()
-
-        f_size = 30
+        # 10k = 30, 50k = 80
+        f_size = 80
         k_heads = 2
         self.layer0_1 = torch.nn.ModuleList([SATLayer(num_node_feats, f_size // k_heads) for _ in range(k_heads)])
         self.layer0_2 = torch.nn.ModuleList([SATLayer(f_size, f_size // k_heads) for _ in range(k_heads)])

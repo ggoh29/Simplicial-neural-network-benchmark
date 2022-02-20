@@ -77,7 +77,7 @@ class SuperpixelGAT(nn.Module):
     def __init__(self, input_size, output_size, k_heads=2):
         super().__init__()
         # 10k = 60, 50k = 148
-        f_size = 148
+        f_size = 60
         assert f_size % k_heads == 0, f"k_heads needs to be a factor of feature size which is currently {f_size}."
         self.gat1 = torch.nn.ModuleList([GATLayer(input_size, f_size // k_heads) for _ in range(k_heads)])
         self.gat2 = torch.nn.ModuleList([GATLayer(f_size, f_size // k_heads) for _ in range(k_heads)])

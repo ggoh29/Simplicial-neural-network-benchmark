@@ -260,7 +260,7 @@ def run_transferability_attack(base_nn, target_nn, target_processor_type, full_b
 
 if __name__ == "__main__":
     # NN_list = [superpixel_gnn, superpixel_gat, superpixel_Ebli_nn, superpixel_Bunch_nn, superpixel_sat_nn]
-    NN_list = [superpixel_sat_nn]
+    NN_list = [superpixel_Bunch_nn]
     for _ in range(1):
         for processor_type, NN in NN_list:
             NN = NN(5, 10, 15, output_size)

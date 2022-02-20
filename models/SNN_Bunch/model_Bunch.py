@@ -59,7 +59,8 @@ class SuperpixelBunch(nn.Module):
 
     def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size, bias=True):
         super().__init__()
-        f_size = 20
+        # 10k = 20, 50k = 54
+        f_size = 21
         self.layer1 = SNN_Bunch_Layer(num_node_feats, num_edge_feats, num_triangle_feats, f_size, bias)
         self.layer2 = SNN_Bunch_Layer(f_size, f_size, f_size, f_size, bias)
         self.layer3 = SNN_Bunch_Layer(f_size, f_size, f_size, f_size, bias)
