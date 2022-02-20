@@ -68,6 +68,7 @@ def train(NN, epoch_size, train_data, optimizer, criterion, processor_type):
         train_running_loss = (train_running_loss * epoch + epoch_train_running_loss) / (epoch + 1)
         if validation_acc > best_val_acc:
             torch.save(NN.state_dict(), f'./data/{NN.__class__.__name__}_nn.pkl')
+            best_val_acc = validation_acc
         print(
             f"Epoch {epoch} | Running loss {train_running_loss} "
             f"| Train accuracy {training_acc} | Validation accuracy {validation_acc}")
