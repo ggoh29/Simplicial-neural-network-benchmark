@@ -35,8 +35,8 @@ def train(NN, epoch_size, train_data, optimizer, criterion, processor_type):
     for epoch in range(epoch_size):
         t1 = time.perf_counter()
         epoch_train_running_loss = 0
-        train_acc = 0
-        val_acc = 0
+        train_acc, training_acc = 0, 0
+        val_acc, validation_acc = 0, 0
         i, j = 0, 0
         NN.train()
         for features_dct, train_labels in train_dataset:
@@ -50,8 +50,9 @@ def train(NN, epoch_size, train_data, optimizer, criterion, processor_type):
             loss.backward()
             optimizer.step()
             epoch_train_running_loss += loss.detach().item()
-            train_acc += (torch.argmax(prediction, 1).flatten() == train_labels).type(torch.float).mean().item()
+            train_acc = (torch.argmax(prediction, 1).flatten() == train_labels).type(torch.float).mean().item()
             i += 1
+            training_acc += (train_acc - training_acc)/i
         t2 = time.perf_counter()
         NN.eval()
         for features_dct, val_labels in val_dataset:
@@ -60,20 +61,18 @@ def train(NN, epoch_size, train_data, optimizer, criterion, processor_type):
             features_dct = {key: convert_to_device(features_dct[key]) for key in features_dct}
             val_labels = val_labels.to(DEVICE)
             prediction = NN(features_dct)
-            val_acc += (torch.argmax(prediction, 1).flatten() == val_labels).type(torch.float).mean().item()
+            val_acc = (torch.argmax(prediction, 1).flatten() == val_labels).type(torch.float).mean().item()
             j += 1
+            validation_acc += (val_acc - validation_acc)/j
         t = (t * epoch + (t2 - t1)) / (epoch + 1)
         epoch_train_running_loss /= i
         train_running_loss = (train_running_loss * epoch + epoch_train_running_loss) / (epoch + 1)
-        acc = train_acc / i
-        validation_acc = val_acc / j
         if validation_acc > best_val_acc:
             torch.save(NN.state_dict(), f'./data/{NN.__class__.__name__}_nn.pkl')
         print(
             f"Epoch {epoch} | Running loss {train_running_loss} "
-            f"| Train accuracy {acc} | Validation accuracy {validation_acc}")
-        acc = train_acc / i
-    return t, train_running_loss, acc, validation_acc
+            f"| Train accuracy {training_acc} | Validation accuracy {validation_acc}")
+    return t, train_running_loss, training_acc, validation_acc
 
 
 def test(NN, dataloader, processor_type):
