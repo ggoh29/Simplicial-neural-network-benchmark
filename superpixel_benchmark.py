@@ -54,26 +54,26 @@ def train(NN, epoch_size, train_data, optimizer, criterion, processor_type):
             i += 1
         t2 = time.perf_counter()
         NN.eval()
-        for features_dct, train_labels in val_dataset:
+        for features_dct, val_labels in val_dataset:
             features_dct = processor_type.clean_feature_dct(features_dct)
             features_dct = processor_type.repair(features_dct)
             features_dct = {key: convert_to_device(features_dct[key]) for key in features_dct}
-            train_labels = train_labels.to(DEVICE)
+            val_labels = val_labels.to(DEVICE)
             prediction = NN(features_dct)
-            val_acc += (torch.argmax(prediction, 1).flatten() == train_labels).type(torch.float).mean().item()
+            val_acc += (torch.argmax(prediction, 1).flatten() == val_labels).type(torch.float).mean().item()
             j += 1
         t = (t * epoch + (t2 - t1)) / (epoch + 1)
         epoch_train_running_loss /= i
         train_running_loss = (train_running_loss * epoch + epoch_train_running_loss) / (epoch + 1)
         acc = train_acc / i
-        val_acc = val_acc / j
-        if val_acc > best_val_acc:
+        validation_acc = val_acc / j
+        if validation_acc > best_val_acc:
             torch.save(NN.state_dict(), f'./data/{NN.__class__.__name__}_nn.pkl')
         print(
             f"Epoch {epoch} | Running loss {train_running_loss} "
-            f"| Train accuracy {acc} | Validation accuracy {val_acc}")
+            f"| Train accuracy {acc} | Validation accuracy {validation_acc}")
         acc = train_acc / i
-    return t, train_running_loss, acc, val_acc
+    return t, train_running_loss, acc, validation_acc
 
 
 def test(NN, dataloader, processor_type):
