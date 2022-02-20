@@ -67,25 +67,17 @@ class SuperpixelSCDataset(InMemoryDataset):
     def get_name(self):
         return self.name
 
-    def get_train_set(self):
+    def get_val_train_split(self):
         data = [self.__getitem__(i) for i in range(len(self))]
         l = len(data)
         data = [*sorted(data, key=lambda i: i.label.item())]
-        data_out = []
+        train_split = []
+        val_split = []
         r = 60000/55000
-        for i in range(10):
-            data_out += data[i * l // 10: int((i * r + 1) * l // (10 * r))]
-        return data_out
 
-    def get_val_set(self):
-        data = [self.__getitem__(i) for i in range(len(self))]
-
-        l = len(data)
-        data = [*sorted(data, key=lambda i: i.label.item())]
-        data_out = []
-        r = 60000/5000
         for i in range(10):
-            data_out += data[i * l // 10: int((i * r + 1) * l // (10 * r))]
-        return data_out
+            train_split += data[i * l // 10: int((i * r + 1) * l // (10 * r))]
+            val_split += data[int((i * r + 1) * l // (10 * r)) : (i + 1) * l // 10]
+        return train_split, val_split
 
 

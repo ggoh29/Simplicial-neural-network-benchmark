@@ -25,10 +25,9 @@ def train(NN, epoch_size, train_data, optimizer, criterion, processor_type):
     train_running_loss = 0
     t = 0
     best_val_acc = 0
-    train_dataset = train_data.get_train_set()
+    train_dataset, val_dataset = train_data.get_val_train_split()
     train_dataset = DataLoader(train_dataset, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=8,
                                shuffle=True, pin_memory=True)
-    val_dataset = train_data.get_val_set()
     val_dataset = DataLoader(val_dataset, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=8,
                              shuffle=True, pin_memory=True)
 
