@@ -86,6 +86,15 @@ class OrientatedImageProcessor(ImageProcessor):
 
         X1_i, X1_j = X0[X1[:, 0]], X0[X1[:, 1]]
         X1 = X1_i - X1_j
+        X1_pixels = torch.index_select(X1, 1, torch.tensor([0, 1, 2]))
+        X1_dist = torch.index_select(X1, 1, torch.tensor([3, 4]))
+        X1_dist_i, X1_dist_j = X1_dist[:, 0], X1_dist[:, 1]
+        X1_dist = torch.pow(torch.pow(X1_dist_i, 2) + torch.pow(X1_dist_j, 2), 0.5)
+        X1 = torch.div(X1_pixels, X1_dist.unsqueeze(1))
+
+        X0 = torch.zeros((X0.shape[0], 3))
+
+        X2 = torch.zeros(X2.shape)
 
         b1 = edge_to_node_matrix(edges, nodes)
         b1 = b1.to_sparse()

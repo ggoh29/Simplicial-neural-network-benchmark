@@ -24,20 +24,20 @@ class SATLayer(nn.Module):
         features = self.layer(features)
 
         indices = adj.coalesce().indices()
-        values = adj.coalesce().values()
-        values[values > 1] = 0
-        values = self.a_3(values.unsqueeze(1)).squeeze(1)
+        # values = adj.coalesce().values()
+        # values[values > 1] = 0
+        # values = self.a_3(values.unsqueeze(1)).squeeze(1)
 
         a_1 = self.a_1(features)
         a_2 = self.a_2(features)
 
-        v = (a_1 + a_2.T)[indices[0, :], indices[1, :]] + values
-        s = torch.sign(v)
-        v = torch.abs(v)
+        v = (a_1 + a_2.T)[indices[0, :], indices[1, :]]
+        # s = torch.sign(v)
+        # v = torch.abs(v)
         e = torch.sparse_coo_tensor(indices, v)
         attention = torch.sparse.softmax(e, dim = 1)
-        a_v = torch.mul(attention.coalesce().values(), s)
-        attention = torch.sparse_coo_tensor(indices, a_v)
+        # a_v = torch.mul(attention.coalesce().values(), s)
+        # attention = torch.sparse_coo_tensor(indices, a_v)
 
         output = torch.sparse.mm(attention, features)
 
@@ -48,7 +48,7 @@ class SuperpixelSAT(nn.Module):
     def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size):
         super().__init__()
         # 10k = 30, 50k = 80
-        f_size = 80
+        f_size = 32
         k_heads = 2
         self.layer0_1 = torch.nn.ModuleList([SATLayer(num_node_feats, f_size // k_heads) for _ in range(k_heads)])
         self.layer0_2 = torch.nn.ModuleList([SATLayer(f_size, f_size // k_heads) for _ in range(k_heads)])
