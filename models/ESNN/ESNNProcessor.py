@@ -32,7 +32,7 @@ class SimplicialObject:
         return all([x0, x1, x2, l0, l1, l2, label])
 
 
-class SNNEbliProcessor(NNProcessor):
+class ESNNProcessor(NNProcessor):
 
     # This model is based on model described by Stefanie Ebli et al. in Simplicial Neural Networks
     # Github here https://github.com/stefaniaebli/simplicial_neural_networks?utm_source=catalyzex.com

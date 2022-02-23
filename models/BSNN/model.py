@@ -128,5 +128,4 @@ class PlanetoidBunch(nn.Module):
         X0, X1, X2 = self.layer1(X0, X1, X2, L0, L1, L2, B2D3, D2B1TD1inv, D1invB1, B2TD2inv)
 
         X0 = (X0 + torch.sparse.mm(D1invB1, X1) + torch.sparse.mm(D1invB1, self.tri_layer(torch.sparse.mm(B2D3, X2)))) / 3
-
         return X0

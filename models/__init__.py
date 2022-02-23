@@ -1,18 +1,18 @@
 from models.GNN.model import SuperpixelGCN, SuperpixelGAT, PlanetoidGAT, PlanetoidGCN
 from models.GNN.GNNProcessor import GNNProcessor
-from models.SNN_Ebli.model_Ebli import SuperpixelEbli
-from models.SNN_Ebli.SNNEbliProcessor import SNNEbliProcessor
-from models.SNN_Bunch.model_Bunch import SuperpixelBunch, PlanetoidBunch
-from models.SNN_Bunch.SNNBunchProcessor import SNNBunchProcessor
+from models.ESNN.model import SuperpixelEbli
+from models.ESNN.ESNNProcessor import ESNNProcessor
+from models.BSNN.model import SuperpixelBunch, PlanetoidBunch
+from models.BSNN.BSNNProcessor import BSNNProcessor
 from models.SAT.model import SuperpixelSAT
 from models.SAT.SATProcessor import SATProcessor
 
-superpixel_Ebli_nn = [SNNEbliProcessor(), SuperpixelEbli]
-superpixel_Bunch_nn = [SNNBunchProcessor(), SuperpixelBunch]
-superpixel_sat_nn = [SATProcessor(), SuperpixelSAT]
-superpixel_gnn = [GNNProcessor(), SuperpixelGCN]
-superpixel_gat = [GNNProcessor(), SuperpixelGAT]
+superpixel_ESNN = [ESNNProcessor(), SuperpixelEbli]
+superpixel_BSNN = [BSNNProcessor(), SuperpixelBunch]
+superpixel_SAT = [SATProcessor(), SuperpixelSAT]
+superpixel_GCN = [GNNProcessor(), SuperpixelGCN]
+superpixel_GAT = [GNNProcessor(), SuperpixelGAT]
 
-planetoid_Bunch_nn = [SNNBunchProcessor(), PlanetoidBunch]
-planetoid_gnn = [GNNProcessor(), PlanetoidGCN]
-planetoid_gat = [GNNProcessor(), PlanetoidGAT]
+planetoid_BSNN = [BSNNProcessor(), PlanetoidBunch]
+planetoid_GCN = [GNNProcessor(), PlanetoidGCN]
+planetoid_GAT = [GNNProcessor(), PlanetoidGAT]

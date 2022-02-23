@@ -1,5 +1,4 @@
 import torch
-from Superpixel.SuperpixelDataset.ImageProcessor import ProcessImage
 import torchvision.transforms as transforms
 from torch_geometric.data import InMemoryDataset
 from joblib import Parallel, delayed
@@ -12,9 +11,18 @@ dataset_dct = {datasets.MNIST: "MNIST",
 
 class SuperpixelSCDataset(InMemoryDataset):
 
-    def __init__(self, root, dataset_name, superpix_size, edgeflow_type, processor_type, n_jobs=8, train=True):
+    def __init__(self, root,
+                 dataset_name,
+                 superpix_size: int,
+                 edgeflow_type,
+                 processor_type,
+                 image_processor,
+                 dataset_size: int,
+                 n_jobs: int = 8,
+                 train: bool = True):
         self.dataset = dataset_name
         self.n_jobs = n_jobs
+        self.dataset_size = dataset_size
 
         self.train_str = {True: "train", False: "test"}[train]
         self.train = train
@@ -23,7 +31,7 @@ class SuperpixelSCDataset(InMemoryDataset):
         folder = f"{root}/{self.name}/{self.train_str}"
 
         self.processor_type = processor_type
-        self.ImageProcessor = ProcessImage(superpix_size, edgeflow_type)
+        self.ImageProcessor = image_processor(superpix_size, edgeflow_type)
 
         self.pre_transform = lambda image: processor_type.process(self.ImageProcessor.image_to_features(image))
 
@@ -45,8 +53,15 @@ class SuperpixelSCDataset(InMemoryDataset):
 
     def download(self):
         # Instantiating this will download and process the graph dataset_processor.
-        self.data_download = self.dataset(root='../data', train=self.train, download=True,
+        self.data_download = self.dataset(root='./data', train=self.train, download=True,
                                           transform=transforms.ToTensor())
+        data = [*sorted(self.data_download, key=lambda i: i[1])]
+        total = len(data)
+        r = total / self.dataset_size
+        split = []
+        for i in range(10):
+            split += data[i * total // 10: int((i * r + 1) * total // (10 * r))]
+        self.data_download = split
 
     @property
     def processed_file_names(self):
@@ -67,17 +82,16 @@ class SuperpixelSCDataset(InMemoryDataset):
     def get_name(self):
         return self.name
 
-    def get_val_train_split(self):
+    def get_val_train_split(self, total=60000, train=55000):
+        assert (train < total)
         data = [self.__getitem__(i) for i in range(len(self))]
-        l = len(data)
+        assert (len(data) == total)
         data = [*sorted(data, key=lambda i: i.label.item())]
         train_split = []
         val_split = []
-        r = 60000/55000
+        r = total / train
 
         for i in range(10):
-            train_split += data[i * l // 10: int((i * r + 1) * l // (10 * r))]
-            val_split += data[int((i * r + 1) * l // (10 * r)) : (i + 1) * l // 10]
+            train_split += data[i * total // 10: int((i * r + 1) * total // (10 * r))]
+            val_split += data[int((i * r + 1) * total // (10 * r)): (i + 1) * total // 10]
         return train_split, val_split
-
-

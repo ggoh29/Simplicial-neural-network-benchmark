@@ -6,10 +6,11 @@ import numpy as np
 import networkx as nx
 from utils import triangle_to_edge_matrix, edge_to_node_matrix, tensor_to_sparse
 from constants import TEST_CIFAR10_IMAGE_1, TEST_MNIST_IMAGE_1, TEST_MNIST_IMAGE_2
-from Superpixel.SuperpixelDataset.ImageProcessor import ProcessImage
-from Superpixel.SuperpixelDataset.EdgeFlow import PixelBasedEdgeFlow
+from Superpixel.ImageProcessor import ImageProcessor
+from Superpixel.EdgeFlow import PixelBasedEdgeFlow
 from skimage import color
 from constants import DEVICE
+
 
 class MyTestCase(unittest.TestCase):
 
@@ -47,9 +48,6 @@ class MyTestCase(unittest.TestCase):
         self.assertTrue(torch.all(torch.eq(L1, L1_actual)).item())
         self.assertTrue(torch.all(torch.eq(L2, L2_actual)).item())
 
-
-
-
     def test_sparse_mm_yields_same_result_as_dense_mm(self):
         image = TEST_MNIST_IMAGE_1
 
@@ -64,7 +62,6 @@ class MyTestCase(unittest.TestCase):
         L0_coo = L0_coo.to_dense()
         self.assertTrue(torch.all(torch.eq(L0, L0_coo)).item())
 
-
     def test_sparse_add_yields_same_result_as_dense_add(self):
         image = TEST_MNIST_IMAGE_2
 
@@ -78,13 +75,12 @@ class MyTestCase(unittest.TestCase):
 
         b1_coo, b2_coo = b1.to_sparse(), b2.to_sparse()
 
-        L1= torch.matmul(b1.T, b1) + torch.matmul(b2, b2.T)
+        L1 = torch.matmul(b1.T, b1) + torch.matmul(b2, b2.T)
         L1_coo = torch.sparse.FloatTensor.add(torch.sparse.mm(b1_coo.t(), b1_coo),
-                                                torch.sparse.mm(b2_coo, b2_coo.t()))
+                                              torch.sparse.mm(b2_coo, b2_coo.t()))
 
         L1_coo = L1_coo.to_dense()
         self.assertTrue(torch.all(torch.eq(L1, L1_coo)).item())
-
 
     def test_Lapacian_0_generated_correctly(self):
         image = TEST_MNIST_IMAGE_2
@@ -102,17 +98,16 @@ class MyTestCase(unittest.TestCase):
         D = torch.tensor(D, dtype=torch.float, device=DEVICE)
 
         for x_node in rag.nodes:
-            D[x_node-1][x_node-1] += len(rag.adj[x_node])
+            D[x_node - 1][x_node - 1] += len(rag.adj[x_node])
 
         G = nx.Graph()
         G.add_edges_from(rag.edges)
-        A = nx.adjacency_matrix(G, nodelist=range(1, len(rag.nodes)+1)).todense()
+        A = nx.adjacency_matrix(G, nodelist=range(1, len(rag.nodes) + 1)).todense()
         A = torch.tensor(A, dtype=torch.float, device=DEVICE)
 
         L0_test = D - A
 
         self.assertTrue(torch.all(torch.eq(L0, L0_test)).item())
-
 
     def test_Lapacian_1_generated_correctly(self):
         image = TEST_MNIST_IMAGE_1
@@ -181,12 +176,11 @@ class MyTestCase(unittest.TestCase):
 
         self.assertTrue(torch.all(torch.eq(L1, L1_test)).item())
 
-
-    def test_edge_flow_Lapacian_0_generated_correctly(self):
+    def test_edge_flow_Laplacian_0_generated_correctly(self):
         sp_size = 100
         flow = PixelBasedEdgeFlow
 
-        PI = ProcessImage(sp_size, flow)
+        PI = ImageProcessor(sp_size, flow)
         image = TEST_MNIST_IMAGE_2
         image = torch.tensor(image, dtype=torch.float, device='cpu')
         scData = PI.image_to_features((image, 0))
@@ -213,25 +207,25 @@ class MyTestCase(unittest.TestCase):
             adj[y].append(x)
 
         for x_node in nodes:
-            D[x_node-1][x_node-1] += len(adj[x_node])
+            D[x_node - 1][x_node - 1] += len(adj[x_node])
 
         G = nx.Graph()
         G.add_edges_from(edges)
-        A = nx.adjacency_matrix(G, nodelist=range(1, len(nodes)+1)).todense()
+        A = nx.adjacency_matrix(G, nodelist=range(1, len(nodes) + 1)).todense()
         A = torch.tensor(A, dtype=torch.float, device=DEVICE)
 
         L0_test = D - A
 
         self.assertTrue(torch.all(torch.eq(L0, L0_test)).item())
 
-    def test_edge_flow_Lapacian_1_generated_correctly(self):
+    def test_edge_flow_Laplacian_1_generated_correctly(self):
         sp_size = 100
         flow = PixelBasedEdgeFlow
 
         image = TEST_MNIST_IMAGE_2
         image = torch.tensor(image, dtype=torch.float, device='cpu')
 
-        PI = ProcessImage(sp_size, flow)
+        PI = ImageProcessor(sp_size, flow)
         scData = PI.image_to_features((image, 0))
 
         image = np.array(image)
@@ -272,22 +266,22 @@ class MyTestCase(unittest.TestCase):
 
             bl = [1, 1, 1]
 
-            if (i,j) in edges:
-                e1 = (i,j)
+            if (i, j) in edges:
+                e1 = (i, j)
             else:
-                e1 = (j,i)
+                e1 = (j, i)
                 bl[0] = -1
 
-            if (j,k) in edges:
-                e2 = (j,k)
+            if (j, k) in edges:
+                e2 = (j, k)
             else:
-                e2 = (k,j)
+                e2 = (k, j)
                 bl[1] = -1
 
-            if (k,i) in edges:
-                e3 = (k,i)
+            if (k, i) in edges:
+                e3 = (k, i)
             else:
-                e3 = (i,k)
+                e3 = (i, k)
                 bl[2] = -1
 
             D[edges[e1]][edges[e1]] += 1
@@ -333,7 +327,7 @@ class MyTestCase(unittest.TestCase):
 
         rag = graph.rag_mean_color(image_rgb, superpixel)
 
-        test = {i : np.array([0.,0.,0.]) for i in rag._node}
+        test = {i: np.array([0., 0., 0.]) for i in rag._node}
         for i in range(32):
             for j in range(32):
                 test[superpixel[i][j]] += image_rgb[i][j]

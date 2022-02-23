@@ -52,7 +52,7 @@ class SimplicialObject:
         return all([x0, x1, x2, l0, l1, l2, d1, d2, d3, d4, label])
 
 
-class SNNBunchProcessor(NNProcessor):
+class BSNNProcessor(NNProcessor):
 
     # This model is based on model described by Eric Bunch et al. in Simplicial 2-Complex Convolutional Neural Networks
     # Github here https://github.com/AmFamMLTeam/simplicial-2-complex-cnns

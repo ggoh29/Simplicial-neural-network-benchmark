@@ -1,13 +1,13 @@
-from Planetoid.PlanetoidDataset.PlanetoidLoader import PlanetoidSCDataset
-from models import planetoid_gat, planetoid_gnn, planetoid_Bunch_nn
+from Planetoid.PlanetoidLoader import PlanetoidSCDataset
+from models import planetoid_Bunch_nn
 import torch.nn as nn
 import torch
-from Planetoid.DGI.DGI import DGI
-from Planetoid.DGI.logreg import LogReg
+from Planetoid.DGI import DGI
+from Planetoid.logreg import LogReg
 from constants import DEVICE
 
 2708, 79
-dataset = 'fake'
+dataset = 'Cora'
 dataset_features_dct = {'Cora' : 1433, 'CiteSeer' : 3703, 'PubMed' : 500, 'fake' : 2708}
 dataset_classes_dct = {'Cora' : 7, 'CiteSeer' : 6, 'PubMed' : 3 , 'fake' : 3}
 input_size = dataset_features_dct[dataset]
@@ -18,8 +18,8 @@ lr = 0.001
 l2_coef = 0.0
 patience = 20
 
-nn_mod = planetoid_gnn
-# nn_mod = planetoid_Bunch_nn
+# nn_mod = planetoid_gnn
+nn_mod = planetoid_Bunch_nn
 # nn_mod = planetoid_gat
 
 processor_type = nn_mod[0]

@@ -1,8 +1,9 @@
-from Superpixel.SuperpixelDataset.SuperpixelLoader import SuperpixelSCDataset
-from Superpixel.SuperpixelDataset.EdgeFlow import PixelBasedEdgeFlow
+from Superpixel.SuperpixelLoader import SuperpixelSCDataset
+from Superpixel.EdgeFlow import PixelBasedEdgeFlow, RandomBasedEdgeFlow
+from Superpixel.ImageProcessor import ImageProcessor, OrientatedImageProcessor
 from torch.utils.data import DataLoader
 from constants import DEVICE
-from models import superpixel_sat_nn, superpixel_gat, superpixel_gnn, superpixel_Bunch_nn, superpixel_Ebli_nn
+from models import superpixel_GCN, superpixel_GAT, superpixel_ESNN, superpixel_BSNN, superpixel_SAT
 import torch
 from torchvision import datasets
 import numpy as np
@@ -14,7 +15,9 @@ superpixel_size = 75
 dataset = datasets.MNIST
 # dataset = datasets.CIFAR10
 edgeFlow = PixelBasedEdgeFlow
-# edgeFlow = RandomBasedEdgeFlow;
+# edgeFlow = RandomBasedEdgeFlow
+imageprocessor = ImageProcessor
+# imageprocessor = OrientatedImageProcessor
 
 output_size = 10
 
@@ -25,7 +28,7 @@ def train(NN, epoch_size, train_data, optimizer, criterion, processor_type):
     train_running_loss = 0
     t = 0
     best_val_acc = 0
-    train_dataset, val_dataset = train_data.get_val_train_split()
+    train_dataset, val_dataset = train_data.get_val_train_split(60, 50)
     train_dataset = DataLoader(train_dataset, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=8,
                                shuffle=True, pin_memory=True)
     val_dataset = DataLoader(val_dataset, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=8,
@@ -70,8 +73,8 @@ def train(NN, epoch_size, train_data, optimizer, criterion, processor_type):
             torch.save(NN.state_dict(), f'./data/{NN.__class__.__name__}_nn.pkl')
             best_val_acc = validation_acc
         print(
-            f"Epoch {epoch} | Running loss {train_running_loss} "
-            f"| Train accuracy {training_acc} | Validation accuracy {validation_acc}")
+            f"Epoch {epoch} | Running loss {train_running_loss:.4f} "
+            f"| Train accuracy {training_acc:.4f} | Validation accuracy {validation_acc:.4f}")
     return t, train_running_loss, training_acc, validation_acc
 
 
@@ -101,11 +104,11 @@ def run(processor_type, NN, output_suffix):
     params = sum([np.prod(p.size()) for p in model_parameters])
     print(params)
 
-    train_data = SuperpixelSCDataset('../data', dataset, superpixel_size, edgeFlow, processor_type, train=True)
+    train_data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, imageprocessor, 60, train=True)
 
     write_file_name = f"./results/{train_data.get_name()}_{NN.__class__.__name__}_{output_suffix}"
 
-    test_data = SuperpixelSCDataset('../data', dataset, superpixel_size, edgeFlow, processor_type, train=False)
+    test_data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, imageprocessor, 10, train=False)
     test_dataset = DataLoader(test_data, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=8,
                               shuffle=True, pin_memory=True)
 
@@ -129,8 +132,8 @@ def run(processor_type, NN, output_suffix):
 
 
 if __name__ == "__main__":
-    # NN_list = [superpixel_gnn, superpixel_gat, superpixel_Ebli_nn, superpixel_Bunch_nn]
-    NN_list = [superpixel_gnn]
+    # NN_list = [superpixel_GCN, superpixel_GAT, superpixel_ESNN, superpixel_BSNN, superpixel_SAT]
+    NN_list = [superpixel_GAT]
     for output_suffix in range(1):
         for processor_type, NN in NN_list:
             NN = NN(5, output_size)

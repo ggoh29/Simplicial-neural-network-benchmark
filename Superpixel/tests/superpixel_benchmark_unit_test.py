@@ -1,21 +1,15 @@
 import unittest
-from Superpixel.SuperpixelDataset.ImageProcessor import ProcessImage
+from Superpixel.ImageProcessor import ImageProcessor
 import torch
 from constants import TEST_MNIST_IMAGE_1, DEVICE
 from utils import tensor_to_sparse
-from Superpixel.SuperpixelDataset.EdgeFlow import PixelBasedEdgeFlow
+from Superpixel.EdgeFlow import PixelBasedEdgeFlow
 from superpixel_benchmark import test, train
 from torchvision import datasets
-from Superpixel.SuperpixelDataset.SuperpixelLoader import SuperpixelSCDataset
+from Superpixel.SuperpixelLoader import SuperpixelSCDataset
 from torch.utils.data import DataLoader
-from models.GNN.model import GCN
-from models.GNN.GNNProcessor import GNNProcessor
-from models.SNN_Ebli.model_Ebli import SNN_Ebli
-from models.SNN_Ebli.SNNEbliProcessor import SNNEbliProcessor
-from models.SNN_Bunch.model_Bunch import SNN_Bunch
-from models.SNN_Bunch.SNNBunchProcessor import SNNBunchProcessor
+from models import superpixel_GCN, superpixel_GAT, superpixel_ESNN, superpixel_BSNN, superpixel_SAT
 from models.nn_utils import normalise, unpack_feature_dct_to_L_X_B
-from models.SAT.model import SAT
 from models.SAT.SATProcessor import SATProcessor
 
 class MyTestCase(unittest.TestCase):
@@ -23,12 +17,12 @@ class MyTestCase(unittest.TestCase):
 	def test_batching_gives_correct_result_1(self):
 		sp_size = 100
 		flow = PixelBasedEdgeFlow
-		processor = GNNProcessor()
+		processor = superpixel_GCN[0]()
 
 		image = TEST_MNIST_IMAGE_1
 		image = torch.tensor(image, dtype=torch.float, device=DEVICE)
 
-		PI = ProcessImage(sp_size, flow)
+		PI = ImageProcessor(sp_size, flow)
 		scData = PI.image_to_features((image, 0))
 
 		batch = [scData, scData, scData, scData]
@@ -56,12 +50,12 @@ class MyTestCase(unittest.TestCase):
 		sp_size = 100
 		flow = PixelBasedEdgeFlow
 		mulitplier = 5
-		processor = GNNProcessor()
+		processor = superpixel_GCN[0]()
 
 		image = TEST_MNIST_IMAGE_1
 		image = torch.tensor(image, dtype=torch.float, device=DEVICE)
 
-		PI = ProcessImage(sp_size, flow)
+		PI = ImageProcessor(sp_size, flow)
 		scData = PI.image_to_features((image, 0))
 
 		batch = [scData, scData, scData, scData]
@@ -95,10 +89,10 @@ class MyTestCase(unittest.TestCase):
 		dataset = datasets.MNIST
 		edgeFlow = PixelBasedEdgeFlow
 
-		GNN = GCN(5, 4).to(DEVICE)
-		processor_type = GNNProcessor()
+		GNN = superpixel_GCN[1](5, 10).to(DEVICE)
+		processor_type = superpixel_GCN[0]()
 
-		data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=True)
+		data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, ImageProcessor, 5000, train=True)
 		batched_dataset = DataLoader(data, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=4,
 															 shuffle=False)
 		individual_dataset = DataLoader(data, batch_size=1, collate_fn=processor_type.batch, num_workers=4,
@@ -121,10 +115,10 @@ class MyTestCase(unittest.TestCase):
 		dataset = datasets.MNIST
 		edgeFlow = PixelBasedEdgeFlow
 
-		GNN = SNN_Ebli(5, 10, 15, 10).to(DEVICE)
-		processor_type = SNNEbliProcessor()
+		GNN = superpixel_ESNN[1](5, 10, 15, 10).to(DEVICE)
+		processor_type = superpixel_ESNN[0]()
 
-		data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=True)
+		data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, ImageProcessor, 5000, train=True)
 		batched_dataset = DataLoader(data, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=4,
 															 shuffle=False)
 		individual_dataset = DataLoader(data, batch_size=1, collate_fn=processor_type.batch, num_workers=4,
@@ -146,10 +140,10 @@ class MyTestCase(unittest.TestCase):
 		dataset = datasets.MNIST
 		edgeFlow = PixelBasedEdgeFlow
 
-		GNN = SNN_Bunch(5, 10, 15, 10).to(DEVICE)
-		processor_type = SNNBunchProcessor()
+		GNN = superpixel_BSNN[1](5, 10, 15, 10).to(DEVICE)
+		processor_type = superpixel_BSNN[0]()
 
-		data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=True)
+		data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, ImageProcessor, 5000, train=True)
 		batched_dataset = DataLoader(data, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=4,
 															 shuffle=False)
 		individual_dataset = DataLoader(data, batch_size=1, collate_fn=processor_type.batch, num_workers=4,
@@ -172,10 +166,10 @@ class MyTestCase(unittest.TestCase):
 		dataset = datasets.MNIST
 		edgeFlow = PixelBasedEdgeFlow
 
-		GNN = SAT(5, 10, 15, 10).to(DEVICE)
-		processor_type = SATProcessor()
+		GNN = superpixel_SAT[1](5, 10, 15, 10).to(DEVICE)
+		processor_type = superpixel_SAT[0]()
 
-		data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=True)
+		data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, ImageProcessor, 5000, train=True)
 		batched_dataset = DataLoader(data, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=4,
 															 shuffle=False)
 		individual_dataset = DataLoader(data, batch_size=1, collate_fn=processor_type.batch, num_workers=4,

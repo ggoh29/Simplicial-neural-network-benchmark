@@ -1,12 +1,8 @@
 import unittest
-from Planetoid.PlanetoidDataset.PlanetoidLoader import PlanetoidSCDataset
-from models import planetoid_gat, planetoid_gnn, planetoid_Bunch_nn, planetoid_Ebli_nn
-from Planetoid.DGI.DGI import corruption_function
-import torch.nn as nn
+from Planetoid.PlanetoidLoader import PlanetoidSCDataset
+from models import planetoid_gnn
+from Planetoid.DGI import corruption_function
 import torch
-from Planetoid.DGI.DGI import DGI
-from Planetoid.DGI.logreg import LogReg
-from constants import DEVICE
 
 
 class MyTestCase(unittest.TestCase):

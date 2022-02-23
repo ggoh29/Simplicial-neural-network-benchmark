@@ -1,16 +1,15 @@
 import copy
-
-from AdversarialSuperpixelDataset.SuperpixelLoader import SuperpixelSCDataset
-from AdversarialSuperpixelDataset.AdversarialSuperpixelLoader import AdversarialSuperpixelSCDataset
-from AdversarialSuperpixelDataset.EdgeFlow import PixelBasedEdgeFlow
+from Superpixel.SuperpixelLoader import SuperpixelSCDataset
+from Superpixel.EdgeFlow import PixelBasedEdgeFlow
+from Superpixel.ImageProcessor import ImageProcessor, AdversarialImageProcessor
 from torch.utils.data import DataLoader
 from constants import DEVICE
-from models import superpixel_sat_nn, superpixel_gat, superpixel_gnn, superpixel_Bunch_nn, superpixel_Ebli_nn
+from models import superpixel_GCN, superpixel_GAT, superpixel_ESNN, superpixel_BSNN, superpixel_SAT
 import torch
 from torchvision import datasets
 import numpy as np
 import time
-from AdversarialSuperpixelDataset.fgsm import aggregate_grad, set_grad, add_edge_and_tri_features, fgsm_attack, \
+from Superpixel.adversarialSuperpixel.fgsm import aggregate_grad, set_grad, add_edge_and_tri_features, fgsm_attack, \
     add_edge_and_tri_offset
 import os
 from tqdm import tqdm
@@ -19,7 +18,6 @@ batch_size = 32
 superpixel_size = 75
 dataset = datasets.MNIST
 edgeFlow = PixelBasedEdgeFlow
-
 output_size = 10
 
 
@@ -27,18 +25,9 @@ def convert_to_device(lst):
     return [i.to(DEVICE) for i in lst]
 
 
-def make_smaller_dataset_10_classes(data):
-    l = len(data)
-    data = [*sorted(data, key=lambda i: i[1])]
-    data_out = []
-    for i in range(10):
-        data_out += data[i * l // 10: (i * 5 + 1) * l // 50]
-    return data_out
-
-
 def load_trained_NN(NN, dataset, processor_type):
     if not os.path.isfile(f'../data/{NN.__class__.__name__}_nn.pkl'):
-        train_data = SuperpixelSCDataset('../data', dataset, superpixel_size, edgeFlow, processor_type, train=True)
+        train_data = SuperpixelSCDataset('../data', dataset, superpixel_size, edgeFlow, processor_type, ImageProcessor, 12000, train=True)
         train_dataset = DataLoader(train_data, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=8,
                                    shuffle=True, pin_memory=True)
 
@@ -204,8 +193,8 @@ def run_direct_attack(processor_type, NN):
 
     NN = load_trained_NN(NN, dataset, processor_type)
 
-    test_data = AdversarialSuperpixelSCDataset('../data', dataset, superpixel_size, edgeFlow, processor_type,
-                                               train=False)
+    test_data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type,
+                                    AdversarialImageProcessor, 2000, train=False)
     test_dataset = DataLoader(test_data, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=8,
                               shuffle=False, pin_memory=True)
     test_dataset = [data for data in test_dataset]
@@ -221,8 +210,8 @@ def gen_transferability_attack(base_nn, base_processor_type, epsilon=0.001, targ
     """Test the attack transferability of perturbed images in which the adversarial images are generated for base_nn but
     used against target_nn"""
     base_nn = load_trained_NN(base_nn, dataset, base_processor_type)
-    base_test_data = AdversarialSuperpixelSCDataset('../data', dataset, superpixel_size, edgeFlow, base_processor_type,
-                                                    train=False)
+    base_test_data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, base_processor_type,
+                                         AdversarialImageProcessor, 2000, train=False)
     base_test_dataset = DataLoader(base_test_data, batch_size=batch_size, collate_fn=base_processor_type.batch,
                                    num_workers=8, shuffle=False, pin_memory=True)
     base_test_dataset = [data for data in base_test_dataset]
@@ -239,8 +228,8 @@ def gen_transferability_attack(base_nn, base_processor_type, epsilon=0.001, targ
 
 def run_transferability_attack(base_nn, target_nn, target_processor_type, full_batched_feature_dct, target_labels):
     target_nn = load_trained_NN(target_nn, dataset, target_processor_type)
-    target_test_data = AdversarialSuperpixelSCDataset('../data', dataset, superpixel_size, edgeFlow,
-                                                      target_processor_type, train=False)
+    target_test_data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, target_processor_type,
+                                           AdversarialImageProcessor, 2000, train=False)
     target_test_dataset = DataLoader(target_test_data, batch_size=batch_size, collate_fn=target_processor_type.batch,
                                      num_workers=8, shuffle=False, pin_memory=True)
     target_test_dataset = [data for data in target_test_dataset]
@@ -259,8 +248,8 @@ def run_transferability_attack(base_nn, target_nn, target_processor_type, full_b
 
 
 if __name__ == "__main__":
-    # NN_list = [superpixel_gnn, superpixel_gat, superpixel_Ebli_nn, superpixel_Bunch_nn, superpixel_sat_nn]
-    NN_list = [superpixel_Bunch_nn]
+    # NN_list = [superpixel_GCN, superpixel_GAT, superpixel_ESNN, superpixel_BSNN, superpixel_SAT]
+    NN_list = [superpixel_BSNN]
     for _ in range(1):
         for processor_type, NN in NN_list:
             NN = NN(5, 10, 15, output_size)

@@ -1,13 +1,13 @@
 import unittest
-from Superpixel.SuperpixelDataset.SuperpixelLoader import SuperpixelSCDataset
-from Superpixel.SuperpixelDataset.EdgeFlow import PixelBasedEdgeFlow
-from Superpixel.SuperpixelDataset.ImageProcessor import ProcessImage
+from Superpixel.SuperpixelLoader import SuperpixelSCDataset
+from Superpixel.EdgeFlow import PixelBasedEdgeFlow
+from Superpixel.ImageProcessor import ImageProcessor
 import torchvision.transforms as transforms
 from torchvision import datasets
 from tqdm import tqdm
 from models.GNN.GNNProcessor import GNNProcessor
-from models.SNN_Ebli.SNNEbliProcessor import SNNEbliProcessor
-from models.SNN_Bunch.SNNBunchProcessor import SNNBunchProcessor
+from models.ESNN.ESNNProcessor import ESNNProcessor
+from models.BSNN.BSNNProcessor import BSNNProcessor
 from models.SAT.SATProcessor import SATProcessor
 
 class MyTestCase(unittest.TestCase):
@@ -22,7 +22,7 @@ class MyTestCase(unittest.TestCase):
 
         train_data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=train)
         mnist_images = datasets.MNIST(root='./data', train=train, download=True, transform=transforms.ToTensor())
-        PI = ProcessImage(superpixel_size, PixelBasedEdgeFlow)
+        PI = ImageProcessor(superpixel_size, PixelBasedEdgeFlow)
 
         for i in tqdm(range(range_size)):
             graphObject_1 = train_data[i]
@@ -37,11 +37,11 @@ class MyTestCase(unittest.TestCase):
         dataset = datasets.MNIST
         edgeFlow = PixelBasedEdgeFlow
         train = False
-        processor_type = SNNEbliProcessor()
+        processor_type = ESNNProcessor()
 
         train_data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=train)
         mnist_images = datasets.MNIST(root='./data', train=train, download=True, transform=transforms.ToTensor())
-        PI = ProcessImage(superpixel_size, PixelBasedEdgeFlow)
+        PI = ImageProcessor(superpixel_size, PixelBasedEdgeFlow)
 
         for i in tqdm(range(range_size)):
             simplicialObject_1 = train_data[i]
@@ -56,11 +56,11 @@ class MyTestCase(unittest.TestCase):
         dataset = datasets.MNIST
         edgeFlow = PixelBasedEdgeFlow
         train = False
-        processor_type = SNNBunchProcessor()
+        processor_type = BSNNProcessor()
 
         train_data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=train)
         mnist_images = datasets.MNIST(root='./data', train=train, download=True, transform=transforms.ToTensor())
-        PI = ProcessImage(superpixel_size, PixelBasedEdgeFlow)
+        PI = ImageProcessor(superpixel_size, PixelBasedEdgeFlow)
 
         for i in tqdm(range(range_size)):
             simplicialObject_1 = train_data[i]
@@ -79,7 +79,7 @@ class MyTestCase(unittest.TestCase):
 
         train_data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=train)
         mnist_images = datasets.MNIST(root='./data', train=train, download=True, transform=transforms.ToTensor())
-        PI = ProcessImage(superpixel_size, PixelBasedEdgeFlow)
+        PI = ImageProcessor(superpixel_size, PixelBasedEdgeFlow)
 
         for i in tqdm(range(range_size)):
             simplicialObject_1 = train_data[i]
