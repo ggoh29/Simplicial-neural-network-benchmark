@@ -16,8 +16,8 @@ dataset = datasets.MNIST
 # dataset = datasets.CIFAR10
 edgeFlow = PixelBasedEdgeFlow
 # edgeFlow = RandomBasedEdgeFlow
-# imageprocessor = ImageProcessor
-imageprocessor = OrientatedImageProcessor
+imageprocessor = ImageProcessor
+# imageprocessor = OrientatedImageProcessor
 
 output_size = 10
 
@@ -28,7 +28,7 @@ def train(NN, epoch_size, train_data, optimizer, criterion, processor_type):
     train_running_loss = 0
     t = 0
     best_val_acc = 0
-    train_dataset, val_dataset = train_data.get_val_train_split(1000, 900)
+    train_dataset, val_dataset = train_data.get_val_train_split(60000, 55000)
     train_dataset = DataLoader(train_dataset, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=8,
                                shuffle=True, pin_memory=True)
     val_dataset = DataLoader(val_dataset, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=8,
@@ -104,11 +104,11 @@ def run(processor_type, NN, output_suffix):
     params = sum([np.prod(p.size()) for p in model_parameters])
     print(params)
 
-    train_data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, imageprocessor, 1000, train=True)
+    train_data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, imageprocessor, 60000, train=True)
 
     write_file_name = f"./results/{train_data.get_name()}_{NN.__class__.__name__}_{output_suffix}"
 
-    test_data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, imageprocessor, 100, train=False)
+    test_data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, imageprocessor, 10000, train=False)
     test_dataset = DataLoader(test_data, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=8,
                               shuffle=True, pin_memory=True)
 
@@ -116,7 +116,7 @@ def run(processor_type, NN, output_suffix):
     optimizer = torch.optim.Adam(NN.parameters(), lr=0.001, weight_decay=5e-4)
     criterion = torch.nn.CrossEntropyLoss()
 
-    average_time, loss, train_acc, val_acc = train(NN, 300, train_data, optimizer, criterion, processor_type)
+    average_time, loss, train_acc, val_acc = train(NN, 100, train_data, optimizer, criterion, processor_type)
 
     NN.load_state_dict(torch.load(f'./data/{NN.__class__.__name__}_nn.pkl'))
     _, test_acc = test(NN, test_dataset, processor_type)
@@ -136,5 +136,5 @@ if __name__ == "__main__":
     NN_list = [superpixel_SAT]
     for output_suffix in range(1):
         for processor_type, NN in NN_list:
-            NN = NN(5, 5, 5, output_size)
+            NN = NN(5, 10, 15, output_size)
             run(processor_type, NN.to(DEVICE), output_suffix)
