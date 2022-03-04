@@ -18,17 +18,30 @@ edgeFlow = PixelBasedEdgeFlow
 # edgeFlow = RandomBasedEdgeFlow
 imageprocessor = ImageProcessor
 # imageprocessor = OrientatedImageProcessor
+full_dataset = 60000
+train_set = 55000
+val_set = 5000
+test_set = 10000
 
 output_size = 10
 
+
 def convert_to_device(lst):
     return [i.to(DEVICE) for i in lst]
+
+
+def top_n_error_rate(prediction, actual, n):
+    pred = prediction.topk(n, 1, largest=True, sorted=True)
+    predictions = pred.indices
+    predictions = predictions - actual.unsqueeze(1)
+    return (predictions.prod(dim = 1) == 0).float().mean().item()
+
 
 def train(NN, epoch_size, train_data, optimizer, criterion, processor_type):
     train_running_loss = 0
     t = 0
     best_val_acc = 0
-    train_dataset, val_dataset = train_data.get_val_train_split(60000, 55000)
+    train_dataset, val_dataset = train_data.get_val_train_split(full_dataset, train_set)
     train_dataset = DataLoader(train_dataset, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=8,
                                shuffle=True, pin_memory=True)
     val_dataset = DataLoader(val_dataset, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=8,
@@ -72,10 +85,11 @@ def train(NN, epoch_size, train_data, optimizer, criterion, processor_type):
         if validation_acc > best_val_acc:
             torch.save(NN.state_dict(), f'./data/{NN.__class__.__name__}_nn.pkl')
             best_val_acc = validation_acc
+            associated_training_acc = training_acc
         print(
-            f"Epoch {epoch} | Running loss {train_running_loss:.4f} "
-            f"| Train accuracy {training_acc:.4f} | Validation accuracy {validation_acc:.4f}")
-    return t, train_running_loss, training_acc, validation_acc
+            f"Epoch {epoch}"
+            f"| Train accuracy {associated_training_acc:.4f} | Validation accuracy {validation_acc:.4f}")
+    return t, associated_training_acc, validation_acc
 
 
 def test(NN, dataloader, processor_type):
@@ -83,6 +97,8 @@ def test(NN, dataloader, processor_type):
 
     test_acc = 0
     i = 0
+    top_3_error = 0
+    top_5_error = 0
     predictions = []
     with torch.no_grad():
         for features_dct, test_labels in dataloader:
@@ -91,12 +107,14 @@ def test(NN, dataloader, processor_type):
             features_dct = {key: convert_to_device(features_dct[key]) for key in features_dct}
             test_labels = test_labels.to(DEVICE)
             prediction = NN(features_dct)
+            top_3_error += top_n_error_rate(prediction, test_labels, 3)
+            top_5_error += top_n_error_rate(prediction, test_labels, 5)
             test_acc += (torch.argmax(prediction, 1).flatten() == test_labels).type(torch.float).mean().item()
             predictions.append(prediction)
             i += 1
 
-    print(f"Test accuracy of {test_acc / i}")
-    return predictions, (test_acc / i)
+    print(f"Test accuracy of {test_acc / i}, top 3 error rate of {1 - (top_3_error/i)}, top 5 error rate of {1 - (top_5_error/i)}")
+    return (test_acc / i), top_3_error/i, top_5_error/i
 
 
 def run(processor_type, NN, output_suffix):
@@ -104,11 +122,11 @@ def run(processor_type, NN, output_suffix):
     params = sum([np.prod(p.size()) for p in model_parameters])
     print(params)
 
-    train_data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, imageprocessor, 60000, train=True)
+    train_data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, imageprocessor, full_dataset, train=True)
 
     write_file_name = f"./results/{train_data.get_name()}_{NN.__class__.__name__}_{output_suffix}"
 
-    test_data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, imageprocessor, 10000, train=False)
+    test_data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, imageprocessor, test_set, train=False)
     test_dataset = DataLoader(test_data, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=8,
                               shuffle=True, pin_memory=True)
 
@@ -116,14 +134,15 @@ def run(processor_type, NN, output_suffix):
     optimizer = torch.optim.Adam(NN.parameters(), lr=0.001, weight_decay=5e-4)
     criterion = torch.nn.CrossEntropyLoss()
 
-    average_time, loss, train_acc, val_acc = train(NN, 100, train_data, optimizer, criterion, processor_type)
+    average_time, train_acc, val_acc = train(NN, 100, train_data, optimizer, criterion, processor_type)
 
     NN.load_state_dict(torch.load(f'./data/{NN.__class__.__name__}_nn.pkl'))
-    _, test_acc = test(NN, test_dataset, processor_type)
+    test_acc, top_3_error, top_5_error = test(NN, test_dataset, processor_type)
 
     s = f"""Dataset: {dataset},\nModel: {NN.__class__.__name__}\n\nparams={params}\n\n
     FINAL RESULTS\nTEST ACCURACY: {test_acc:.4f}\nTRAIN ACCURACY: {train_acc:.4f}\n\n
-    Average Time Taken: {timedelta(seconds=average_time)}\nAverage Loss: {loss:.4f}\n\n\n"""
+    Average Time Taken: {timedelta(seconds=average_time)}\n\n
+    Top 3 error rate of {1 - top_3_error:.4f}, top 5 error rate of {1 - top_5_error:.4f}"""
 
     print(s)
 
@@ -133,8 +152,8 @@ def run(processor_type, NN, output_suffix):
 
 if __name__ == "__main__":
     # NN_list = [superpixel_GCN, superpixel_GAT, superpixel_ESNN, superpixel_BSNN, superpixel_SAT]
-    NN_list = [superpixel_SAT]
+    NN_list = [superpixel_GCN]
     for output_suffix in range(1):
         for processor_type, NN in NN_list:
-            NN = NN(5, 10, 15, output_size)
+            NN = NN(5, output_size)
             run(processor_type, NN.to(DEVICE), output_suffix)

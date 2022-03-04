@@ -10,6 +10,7 @@ from models.ESNN.ESNNProcessor import ESNNProcessor
 from models.BSNN.BSNNProcessor import BSNNProcessor
 from models.SAT.SATProcessor import SATProcessor
 
+
 class MyTestCase(unittest.TestCase):
 
     def test_collate_and_get_return_correct_graphObject_MNIST(self):
@@ -30,7 +31,6 @@ class MyTestCase(unittest.TestCase):
 
             self.assertTrue(graphObject_1 == graphObject_2)
 
-
     def test_collate_and_get_return_correct_SimplicialObject_Ebli_MNIST(self):
         superpixel_size = 35
         range_size = 10000
@@ -48,7 +48,6 @@ class MyTestCase(unittest.TestCase):
             simplicialObject_2 = processor_type.process(PI.image_to_features(mnist_images[i]))
 
             self.assertTrue(simplicialObject_1 == simplicialObject_2)
-
 
     def test_collate_and_get_return_correct_SimplicialObject_Bunch_MNIST(self):
         superpixel_size = 35
@@ -68,7 +67,6 @@ class MyTestCase(unittest.TestCase):
 
             self.assertTrue(simplicialObject_1 == simplicialObject_2)
 
-
     def test_collate_and_get_return_correct_SimplicialObject_SAT_MNIST(self):
         superpixel_size = 25
         range_size = 10000
@@ -86,7 +84,6 @@ class MyTestCase(unittest.TestCase):
             simplicialObject_2 = processor_type.process(PI.image_to_features(mnist_images[i]))
 
             self.assertTrue(simplicialObject_1 == simplicialObject_2)
-
 
 
 if __name__ == '__main__':
