@@ -84,6 +84,7 @@ def gen_adversarial_dataset(NN, dataloader, full_target_labels, batch_size, epsi
 
     mean = []
     acc = []
+    loss_f = torch.nn.CrossEntropyLoss()
     for epoch in tqdm(range(no_epoch)):
         m = []
         initial_acc = 0
@@ -103,9 +104,9 @@ def gen_adversarial_dataset(NN, dataloader, full_target_labels, batch_size, epsi
             initial_pred = prediction.argmax(dim=1)
             initial_acc += test_labels.eq(initial_pred).sum().item() / batch_size
             if targeted:
-                loss = torch.nn.functional.nll_loss(prediction, target_labels)
+                loss = loss_f(prediction, target_labels)
             else:
-                loss = torch.nn.functional.nll_loss(prediction, test_labels)
+                loss = loss_f(prediction, test_labels)
 
             NN.zero_grad()
             loss.backward()
@@ -249,7 +250,7 @@ def run_transferability_attack(base_nn, target_nn, target_processor_type, full_b
 
 if __name__ == "__main__":
     # NN_list = [superpixel_GCN, superpixel_GAT, superpixel_ESNN, superpixel_BSNN, superpixel_SAT]
-    NN_list = [superpixel_BSNN]
+    NN_list = [superpixel_ESNN]
     for _ in range(1):
         for processor_type, NN in NN_list:
             NN = NN(5, 10, 15, output_size)

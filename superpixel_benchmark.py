@@ -12,14 +12,14 @@ import time
 
 batch_size = 32
 superpixel_size = 75
-dataset = datasets.MNIST
-# dataset = datasets.CIFAR10
+# dataset = datasets.MNIST
+dataset = datasets.CIFAR10
 edgeFlow = PixelBasedEdgeFlow
 # edgeFlow = RandomBasedEdgeFlow
 imageprocessor = ImageProcessor
 # imageprocessor = OrientatedImageProcessor
-full_dataset = 60000
-train_set = 55000
+full_dataset = 50000
+train_set = 45000
 val_set = 5000
 test_set = 10000
 
@@ -34,7 +34,7 @@ def top_n_error_rate(prediction, actual, n):
     pred = prediction.topk(n, 1, largest=True, sorted=True)
     predictions = pred.indices
     predictions = predictions - actual.unsqueeze(1)
-    return (predictions.prod(dim = 1) == 0).float().mean().item()
+    return (predictions.prod(dim=1) == 0).float().mean().item()
 
 
 def train(NN, epoch_size, train_data, optimizer, criterion, processor_type):
@@ -67,7 +67,7 @@ def train(NN, epoch_size, train_data, optimizer, criterion, processor_type):
             epoch_train_running_loss += loss.detach().item()
             train_acc = (torch.argmax(prediction, 1).flatten() == train_labels).type(torch.float).mean().item()
             i += 1
-            training_acc += (train_acc - training_acc)/i
+            training_acc += (train_acc - training_acc) / i
         t2 = time.perf_counter()
         NN.eval()
         for features_dct, val_labels in val_dataset:
@@ -78,7 +78,7 @@ def train(NN, epoch_size, train_data, optimizer, criterion, processor_type):
             prediction = NN(features_dct)
             val_acc = (torch.argmax(prediction, 1).flatten() == val_labels).type(torch.float).mean().item()
             j += 1
-            validation_acc += (val_acc - validation_acc)/j
+            validation_acc += (val_acc - validation_acc) / j
         t = (t * epoch + (t2 - t1)) / (epoch + 1)
         epoch_train_running_loss /= i
         train_running_loss = (train_running_loss * epoch + epoch_train_running_loss) / (epoch + 1)
@@ -113,8 +113,9 @@ def test(NN, dataloader, processor_type):
             predictions.append(prediction)
             i += 1
 
-    print(f"Test accuracy of {test_acc / i}, top 3 error rate of {1 - (top_3_error/i)}, top 5 error rate of {1 - (top_5_error/i)}")
-    return (test_acc / i), top_3_error/i, top_5_error/i
+    print(
+        f"Test accuracy of {test_acc / i}, top 3 error rate of {1 - (top_3_error / i)}, top 5 error rate of {1 - (top_5_error / i)}")
+    return (test_acc / i), top_3_error / i, top_5_error / i
 
 
 def run(processor_type, NN, output_suffix):
@@ -122,14 +123,15 @@ def run(processor_type, NN, output_suffix):
     params = sum([np.prod(p.size()) for p in model_parameters])
     print(params)
 
-    train_data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, imageprocessor, full_dataset, train=True)
+    train_data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, imageprocessor,
+                                     full_dataset, train=True)
 
     write_file_name = f"./results/{train_data.get_name()}_{NN.__class__.__name__}_{output_suffix}"
 
-    test_data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, imageprocessor, test_set, train=False)
+    test_data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, imageprocessor,
+                                    test_set, train=False)
     test_dataset = DataLoader(test_data, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=8,
                               shuffle=True, pin_memory=True)
-
 
     optimizer = torch.optim.Adam(NN.parameters(), lr=0.001, weight_decay=5e-4)
     criterion = torch.nn.CrossEntropyLoss()
@@ -152,7 +154,7 @@ def run(processor_type, NN, output_suffix):
 
 if __name__ == "__main__":
     # NN_list = [superpixel_GCN, superpixel_GAT, superpixel_ESNN, superpixel_BSNN, superpixel_SAT]
-    NN_list = [superpixel_GCN]
+    NN_list = [superpixel_GAT]
     for output_suffix in range(1):
         for processor_type, NN in NN_list:
             NN = NN(5, output_size)
