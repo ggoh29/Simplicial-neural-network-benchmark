@@ -12,7 +12,6 @@ class SATLayer(nn.Module):
         super().__init__()
         self.a_1 = nn.Linear(output_size, 1)
         self.a_2 = nn.Linear(output_size, 1)
-        # self.a_3 = nn.Linear(1, 1)
         self.layer = nn.Linear(input_size, output_size)
 
     def forward(self, features, adj):
@@ -25,15 +24,12 @@ class SATLayer(nn.Module):
 
         indices = adj.coalesce().indices()
         values = adj.coalesce().values()
-        # values[values > 1] = 0
-        # values = self.a_3(values.unsqueeze(1)).squeeze(1)
 
         a_1 = self.a_1(features)
         a_2 = self.a_2(features)
 
         v = (a_1 + a_2.T)[indices[0, :], indices[1, :]]
         s = torch.sign(values)
-        # v = torch.abs(v)
         e = torch.sparse_coo_tensor(indices, v)
         attention = torch.sparse.softmax(e, dim = 1)
         a_v = torch.mul(attention.coalesce().values(), s)

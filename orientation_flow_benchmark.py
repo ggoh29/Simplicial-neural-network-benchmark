@@ -12,8 +12,8 @@ lr = 0.001
 batch_size = 8
 f = torch.nn.functional.relu
 
-# nn_mod = flow_SAT
-nn_mod = flow_ESNN
+nn_mod = flow_SAT
+# nn_mod = flow_ESNN
 
 processor_type = nn_mod[0]
 model = nn_mod[1]
