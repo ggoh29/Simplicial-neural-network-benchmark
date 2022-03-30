@@ -1,5 +1,5 @@
 import torch
-from Flow.FlowDataset import FlowSCDataset
+from OrientationFlow.FlowDataset import FlowSCDataset
 from models import flow_SAT, flow_ESNN
 from torch.utils.data import DataLoader
 from constants import DEVICE

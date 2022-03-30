@@ -1,6 +1,6 @@
 import torch
 from torch_geometric.data import InMemoryDataset
-from Flow.OrientationFlowGraph import gen_orientation_graph
+from OrientationFlow.OrientationFlowGraph import gen_orientation_graph
 from joblib import Parallel, delayed
 from tqdm import tqdm
 
