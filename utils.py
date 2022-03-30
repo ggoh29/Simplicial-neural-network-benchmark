@@ -23,9 +23,7 @@ def ensure_input_is_tensor(input):
 
 
 def edge_to_node_matrix(edges, nodes, one_indexed=True):
-    sigma1 = torch.tensor([[0 for _ in edges] for _ in nodes],
-                          dtype=torch.float,
-                          device=DEVICE)
+    sigma1 = torch.tensor([[0 for _ in edges] for _ in nodes], dtype=torch.float)
     offset = int(one_indexed)
     j = 0
     for edge in edges:
@@ -37,9 +35,7 @@ def edge_to_node_matrix(edges, nodes, one_indexed=True):
 
 
 def triangle_to_edge_matrix(triangles, edges):
-    sigma2 = torch.tensor([[0 for _ in triangles] for _ in edges],
-                          dtype=torch.float,
-                          device=DEVICE)
+    sigma2 = torch.tensor([[0 for _ in triangles] for _ in edges], dtype=torch.float)
 
     edges = [e for e in edges]
     edges = {edges[i]: i for i in range(len(edges))}

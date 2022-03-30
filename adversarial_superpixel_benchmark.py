@@ -1,5 +1,5 @@
 import copy
-from Superpixel.SuperpixelLoader import SuperpixelSCDataset
+from Superpixel.SuperpixelDataset import SuperpixelSCDataset
 from Superpixel.EdgeFlow import PixelBasedEdgeFlow
 from Superpixel.ImageProcessor import ImageProcessor, AdversarialImageProcessor
 from torch.utils.data import DataLoader
@@ -26,7 +26,7 @@ def convert_to_device(lst):
 
 
 def load_trained_NN(NN, dataset, processor_type):
-    if not os.path.isfile(f'../data/{NN.__class__.__name__}_nn.pkl'):
+    if not os.path.isfile(f'./data/{NN.__class__.__name__}_nn.pkl'):
         train_data = SuperpixelSCDataset('../data', dataset, superpixel_size, edgeFlow, processor_type, ImageProcessor, 12000, train=True)
         train_dataset = DataLoader(train_data, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=8,
                                    shuffle=True, pin_memory=True)
@@ -36,8 +36,8 @@ def load_trained_NN(NN, dataset, processor_type):
 
         average_time, loss, final_loss, train_acc = train(NN, 100, train_dataset, optimizer, criterion, processor_type)
         print(train_acc)
-        torch.save(NN.state_dict(), f'../data/{NN.__class__.__name__}_nn.pkl')
-    NN.load_state_dict(torch.load(f'../data/{NN.__class__.__name__}_nn.pkl'))
+        torch.save(NN.state_dict(), f'./data/{NN.__class__.__name__}_nn.pkl')
+    NN.load_state_dict(torch.load(f'./data/{NN.__class__.__name__}_nn.pkl'))
     return NN
 
 
@@ -77,7 +77,7 @@ def train(NN, epoch_size, dataloader, optimizer, criterion, processor_type):
 
 def gen_adversarial_dataset(NN, dataloader, full_target_labels, batch_size, epsilon=0.001, targeted=False):
     NN.eval()
-    no_epoch = 1
+    no_epoch = 250
     full_batched_feature_dct, full_test_labels = [*map(list, zip(*dataloader))]
 
     start_initial_acc = 0

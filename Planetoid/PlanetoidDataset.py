@@ -3,7 +3,7 @@ from torch_geometric.data import InMemoryDataset
 import numpy as np
 import torch
 from models.nn_utils import convert_to_SC, remove_diag_sparse, to_sparse_coo
-from Planetoid.fake_dataset import gen_dataset
+from Planetoid.FakeDataset import gen_dataset
 
 
 class PlanetoidSCDataset(InMemoryDataset):

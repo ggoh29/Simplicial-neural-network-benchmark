@@ -4,7 +4,7 @@ from torch_geometric.nn import global_mean_pool
 import torch.nn.functional as F
 from models.nn_utils import unpack_feature_dct_to_L_X_B
 from constants import DEVICE
-
+import functools
 
 class SATLayer(nn.Module):
 
@@ -99,3 +99,31 @@ class SuperpixelSAT(nn.Module):
         x = torch.cat([x0, x1, x2], dim=1)
 
         return F.softmax(self.combined_layer(x), dim=1)
+
+
+class FlowSAT(nn.Module):
+    def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size, f = F.relu):
+        super().__init__()
+        # 10k = 30, 50k = 80
+        f_size = 512
+        k_heads = 2
+
+        self.f = f
+
+        self.layer1_1 = torch.nn.ModuleList([SATLayer(num_edge_feats, f_size // k_heads) for _ in range(k_heads)])
+        self.layer1_2 = torch.nn.ModuleList([SATLayer(f_size, output_size) for _ in range(k_heads)])
+
+
+    def forward(self, features_dct):
+        L, X, batch = unpack_feature_dct_to_L_X_B(features_dct)
+
+        _, X1, _ = X
+        _, L1_u, L1_d, _ = L
+        _, batch1, _= batch
+        l1 = [L1_u, L1_d]
+
+        x1_1 = self.f(torch.cat([sat(X1, L1) for L1, sat in zip(l1, self.layer1_1)], dim=1))
+        x1_2 = self.f(functools.reduce(lambda a, b: a + b, [sat(x1_1, L1) for L1, sat in zip(l1, self.layer1_2)]))
+        x = global_mean_pool(x1_2, batch1)
+
+        return F.softmax(x, dim=1)

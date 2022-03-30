@@ -1,5 +1,5 @@
 import unittest
-from Superpixel.SuperpixelLoader import SuperpixelSCDataset
+from Superpixel.SuperpixelDataset import SuperpixelSCDataset
 from Superpixel.EdgeFlow import PixelBasedEdgeFlow
 from Superpixel.ImageProcessor import ImageProcessor
 import torchvision.transforms as transforms

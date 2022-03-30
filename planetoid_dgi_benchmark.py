@@ -1,4 +1,4 @@
-from Planetoid.PlanetoidLoader import PlanetoidSCDataset
+from Planetoid.PlanetoidDataset import PlanetoidSCDataset
 from models import planetoid_BSNN
 import torch.nn as nn
 import torch

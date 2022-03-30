@@ -1,4 +1,4 @@
-from Superpixel.SuperpixelLoader import SuperpixelSCDataset
+from Superpixel.SuperpixelDataset import SuperpixelSCDataset
 from Superpixel.EdgeFlow import PixelBasedEdgeFlow, RandomBasedEdgeFlow
 from Superpixel.ImageProcessor import ImageProcessor, OrientatedImageProcessor
 from torch.utils.data import DataLoader

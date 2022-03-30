@@ -53,9 +53,9 @@ class ESNNProcessor(NNProcessor):
         L2 = normalise(L2)
 
         # splitting the sparse tensor as pooling cannot return sparse and to make preparation for minibatching easier
-        assert (X0.size()[0] == L0.size()[0])
-        assert (X1.size()[0] == L1.size()[0])
-        assert (X2.size()[0] == L2.size()[0])
+        assert (X0.shape[0] == L0.shape[0])
+        assert (X1.shape[0] == L1.shape[0])
+        assert (X2.shape[0] == L2.shape[0])
 
         label = scData.label
 

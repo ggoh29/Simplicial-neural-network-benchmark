@@ -6,7 +6,7 @@ from utils import tensor_to_sparse
 from Superpixel.EdgeFlow import PixelBasedEdgeFlow
 from superpixel_benchmark import test, train
 from torchvision import datasets
-from Superpixel.SuperpixelLoader import SuperpixelSCDataset
+from Superpixel.SuperpixelDataset import SuperpixelSCDataset
 from torch.utils.data import DataLoader
 from models import superpixel_GCN, superpixel_GAT, superpixel_ESNN, superpixel_BSNN, superpixel_SAT
 from models.nn_utils import normalise, unpack_feature_dct_to_L_X_B

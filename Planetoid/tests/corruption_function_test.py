@@ -1,5 +1,5 @@
 import unittest
-from Planetoid.PlanetoidLoader import PlanetoidSCDataset
+from Planetoid.PlanetoidDataset import PlanetoidSCDataset
 from models import planetoid_gnn
 from Planetoid.DGI import corruption_function
 import torch
