@@ -4,7 +4,7 @@ from Superpixel.EdgeFlow import PixelBasedEdgeFlow
 from Superpixel.ImageProcessor import ImageProcessor, AdversarialImageProcessor
 from torch.utils.data import DataLoader
 from constants import DEVICE
-from models import superpixel_GCN, superpixel_GAT, superpixel_ESNN, superpixel_BSNN, superpixel_SAT
+from models import superpixel_GCN, superpixel_GAT, superpixel_ESNN, superpixel_BSNN, superpixel_SAT, superpixel_SAN
 import torch
 from torchvision import datasets
 import numpy as np
@@ -250,7 +250,7 @@ def run_transferability_attack(base_nn, target_nn, target_processor_type, full_b
 
 if __name__ == "__main__":
     # NN_list = [superpixel_GCN, superpixel_GAT, superpixel_ESNN, superpixel_BSNN, superpixel_SAT]
-    NN_list = [superpixel_ESNN]
+    NN_list = [superpixel_SAN]
     for _ in range(1):
         for processor_type, NN in NN_list:
             NN = NN(5, 10, 15, output_size)

@@ -4,6 +4,7 @@ from torch_geometric.nn import global_mean_pool
 import torch.nn.functional as F
 from models.nn_utils import unpack_feature_dct_to_L_X_B, normalise
 from models.GNN.model import GATLayer
+import copy
 from constants import DEVICE
 import functools
 
@@ -20,7 +21,7 @@ class SANLayer(nn.Module):
         h_p = self.p_layer(features)
         h_p = torch.sparse.mm(p, h_p)
 
-        h_u, h_d = torch.zeros(h_p.shape), torch.zeros(h_p.shape)
+        h_u, h_d = torch.zeros(h_p.shape).to(DEVICE), torch.zeros(h_p.shape).to(DEVICE)
         if l_u is not None:
             h_u = self.l_d_layer(features, l_u.coalesce().indices())
         if l_d is not None:
@@ -35,50 +36,65 @@ class SuperpixelSAN(nn.Module):
         super().__init__()
         # 10k = 30, 50k = 80
         f_size = 30
-        k_heads = 2
-        self.layer0_1 = torch.nn.ModuleList([SANLayer(num_node_feats, f_size // k_heads) for _ in range(k_heads)])
-        self.layer0_2 = torch.nn.ModuleList([SANLayer(f_size, f_size // k_heads) for _ in range(k_heads)])
-        self.layer0_3 = torch.nn.ModuleList([SANLayer(f_size, f_size // k_heads) for _ in range(k_heads)])
+        self.layer0_1 = SANLayer(num_node_feats, f_size)
+        self.layer0_2 = SANLayer(f_size, f_size)
+        self.layer0_3 = SANLayer(f_size, f_size)
 
         self.layer0_4 = nn.Linear(3 * f_size, output_size)
 
-        self.layer1_1 = torch.nn.ModuleList([SANLayer(num_edge_feats, f_size // k_heads) for _ in range(k_heads)])
-        self.layer1_2 = torch.nn.ModuleList([SANLayer(f_size, f_size // k_heads) for _ in range(k_heads)])
-        self.layer1_3 = torch.nn.ModuleList([SANLayer(f_size, f_size // k_heads) for _ in range(k_heads)])
+        self.layer1_1 = SANLayer(num_edge_feats, f_size)
+        self.layer1_2 = SANLayer(f_size, f_size)
+        self.layer1_3 = SANLayer(f_size, f_size)
 
         self.layer1_4 = nn.Linear(3 * f_size, output_size)
 
-        self.layer2_1 = torch.nn.ModuleList([SANLayer(num_triangle_feats, f_size // k_heads) for _ in range(k_heads)])
-        self.layer2_2 = torch.nn.ModuleList([SANLayer(f_size, f_size // k_heads) for _ in range(k_heads)])
-        self.layer2_3 = torch.nn.ModuleList([SANLayer(f_size, f_size // k_heads) for _ in range(k_heads)])
+        self.layer2_1 = SANLayer(num_triangle_feats, f_size)
+        self.layer2_2 = SANLayer(f_size, f_size)
+        self.layer2_3 = SANLayer(f_size, f_size)
 
         self.layer2_4 = nn.Linear(3 * f_size, output_size)
 
         self.combined_layer = nn.Linear(3 * output_size, output_size)
 
     def forward(self, features_dct):
+
+        def sparse_approx(L, batch):
+            L = L.to(DEVICE)
+            j = torch.cumsum(torch.bincount(batch), dim=0).tolist()
+            i = [0] + j[:-1]
+            for i, j in zip(i, j):
+                L_single = L[i:j, i:j, ]
+                L_single = normalise(L_single.to_sparse()).to_dense()
+                L[i:j, i:j, ] = L_single
+
+            return L.to_sparse()
+
         L, X, batch = unpack_feature_dct_to_L_X_B(features_dct)
 
         X0, X1, X2 = X
         L0, L1_u, L1_d, L2 = L
         batch0, batch1, batch2 = batch
-        l1 = [L1_u, L1_d]
+        L1 = L1_u + L1_d
 
-        x0_1 = F.relu(torch.cat([sat(X0, L0) for sat in self.layer0_1], dim=1))
-        x0_2 = F.relu(torch.cat([sat(x0_1, L0) for sat in self.layer0_2], dim=1))
-        x0_3 = F.relu(torch.cat([sat(x0_2, L0) for sat in self.layer0_3], dim=1))
+        P0 = sparse_approx(copy.deepcopy(L0.to_dense()), batch0)
+        P1 = sparse_approx(copy.deepcopy(L1.to_dense()), batch1)
+        P2 = sparse_approx(copy.deepcopy(L2.to_dense()), batch2)
+
+        x0_1 = F.relu(self.layer0_1(X0, None, L0, P0))
+        x0_2 = F.relu(self.layer0_2(x0_1, None, L0, P0))
+        x0_3 = F.relu(self.layer0_3(x0_2, None, L0, P0))
         x0_4 = self.layer0_4(torch.cat([x0_1, x0_2, x0_3], dim = 1))
         x0 = global_mean_pool(x0_4, batch0)
 
-        x1_1 = F.relu(torch.cat([sat(X1, L1) for L1, sat in zip(l1, self.layer1_1)], dim=1))
-        x1_2 = F.relu(torch.cat([sat(x1_1, L1) for L1, sat in zip(l1, self.layer1_2)], dim=1))
-        x1_3 = F.relu(torch.cat([sat(x1_2, L1) for L1, sat in zip(l1, self.layer1_3)], dim=1))
+        x1_1 = F.relu(self.layer1_1(X1, L1_u, L1_d, P1))
+        x1_2 = F.relu(self.layer1_2(x1_1, L1_u, L1_d, P1))
+        x1_3 = F.relu(self.layer1_3(x1_2, L1_u, L1_d, P1))
         x1_4 = self.layer1_4(torch.cat([x1_1, x1_2, x1_3], dim=1))
         x1 = global_mean_pool(x1_4, batch1)
 
-        x2_1 = F.relu(torch.cat([sat(X2, L2) for sat in self.layer2_1], dim=1))
-        x2_2 = F.relu(torch.cat([sat(x2_1, L2) for sat in self.layer2_2], dim=1))
-        x2_3 = F.relu(torch.cat([sat(x2_2, L2) for sat in self.layer2_3], dim=1))
+        x2_1 = F.relu(self.layer2_1(X2, L2, None, P2))
+        x2_2 = F.relu(self.layer2_2(x2_1, L2, None, P2))
+        x2_3 = F.relu(self.layer2_3(x2_2, L2, None, P2))
         x2_4 = self.layer2_4(torch.cat([x2_1, x2_2, x2_3], dim=1))
         x2 = global_mean_pool(x2_4, batch2)
 

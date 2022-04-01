@@ -4,11 +4,12 @@ import torch
 from constants import TEST_MNIST_IMAGE_1, DEVICE
 from utils import tensor_to_sparse
 from Superpixel.EdgeFlow import PixelBasedEdgeFlow
-from superpixel_benchmark import test, train
+from superpixel_benchmark import test
+from adversarial_superpixel_benchmark import train
 from torchvision import datasets
 from Superpixel.SuperpixelDataset import SuperpixelSCDataset
 from torch.utils.data import DataLoader
-from models import superpixel_GCN, superpixel_GAT, superpixel_ESNN, superpixel_BSNN, superpixel_SAT
+from models import superpixel_GCN, superpixel_GAT, superpixel_ESNN, superpixel_BSNN, superpixel_SAT, superpixel_SAN
 from models.nn_utils import normalise, unpack_feature_dct_to_L_X_B
 from models.SAT.SATProcessor import SATProcessor
 
@@ -91,7 +92,7 @@ class MyTestCase(unittest.TestCase):
         edgeFlow = PixelBasedEdgeFlow
 
         GNN = superpixel_GCN[1](5, 10).to(DEVICE)
-        processor_type = superpixel_GCN[0]()
+        processor_type = superpixel_GCN[0]
 
         data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, ImageProcessor, 5000,
                                    train=True)
@@ -117,7 +118,7 @@ class MyTestCase(unittest.TestCase):
         edgeFlow = PixelBasedEdgeFlow
 
         GNN = superpixel_ESNN[1](5, 10, 15, 10).to(DEVICE)
-        processor_type = superpixel_ESNN[0]()
+        processor_type = superpixel_ESNN[0]
 
         data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, ImageProcessor, 5000,
                                    train=True)
@@ -143,7 +144,7 @@ class MyTestCase(unittest.TestCase):
         edgeFlow = PixelBasedEdgeFlow
 
         GNN = superpixel_BSNN[1](5, 10, 15, 10).to(DEVICE)
-        processor_type = superpixel_BSNN[0]()
+        processor_type = superpixel_BSNN[0]
 
         data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, ImageProcessor, 5000,
                                    train=True)
@@ -169,7 +170,39 @@ class MyTestCase(unittest.TestCase):
         edgeFlow = PixelBasedEdgeFlow
 
         GNN = superpixel_SAT[1](5, 10, 15, 10).to(DEVICE)
-        processor_type = superpixel_SAT[0]()
+        processor_type = superpixel_SAT[0]
+
+        data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, ImageProcessor, 5000,
+                                   train=True)
+        batched_dataset = DataLoader(data, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=4,
+                                     shuffle=False)
+        individual_dataset = DataLoader(data, batch_size=1, collate_fn=processor_type.batch, num_workers=4,
+                                        shuffle=False)
+
+        optimizer = torch.optim.Adam(GNN.parameters(), lr=0.001, weight_decay=5e-4)
+        criterion = torch.nn.CrossEntropyLoss()
+
+        _ = train(GNN, 1, batched_dataset, optimizer, criterion, processor_type)
+
+        batched_predictions, _ = test(GNN, batched_dataset, processor_type)
+        batched_predictions = torch.cat(batched_predictions, dim=0)
+
+        individual_predictions, _ = test(GNN, individual_dataset, processor_type)
+        individual_predictions = torch.cat(individual_predictions, dim=0)
+
+        result = torch.allclose(individual_predictions, batched_predictions, atol=1e-5)
+
+        self.assertTrue(result)
+
+
+    def test_SAN_batching_gives_same_result_as_individual(self):
+        batch_size = 8
+        superpixel_size = 50
+        dataset = datasets.MNIST
+        edgeFlow = PixelBasedEdgeFlow
+
+        GNN = superpixel_SAN[1](5, 10, 15, 10).to(DEVICE)
+        processor_type = superpixel_SAN[0]
 
         data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, ImageProcessor, 5000,
                                    train=True)
