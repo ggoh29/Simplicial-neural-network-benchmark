@@ -8,11 +8,11 @@ import functools
 
 class SATLayer(nn.Module):
 
-    def __init__(self, input_size, output_size):
+    def __init__(self, input_size, output_size, bias = True):
         super().__init__()
-        self.a_1 = nn.Linear(output_size, 1)
-        self.a_2 = nn.Linear(output_size, 1)
-        self.layer = nn.Linear(input_size, output_size)
+        self.a_1 = nn.Linear(output_size, 1, bias = bias)
+        self.a_2 = nn.Linear(output_size, 1, bias = bias)
+        self.layer = nn.Linear(input_size, output_size, bias = bias)
 
     def forward(self, features, adj):
         """
@@ -41,26 +41,26 @@ class SATLayer(nn.Module):
 
 
 class SuperpixelSAT(nn.Module):
-    def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size):
+    def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size, bias = True):
         super().__init__()
         # 10k = 30, 50k = 80
         f_size = 30
         k_heads = 2
-        self.layer0_1 = torch.nn.ModuleList([SATLayer(num_node_feats, f_size // k_heads) for _ in range(k_heads)])
-        self.layer0_2 = torch.nn.ModuleList([SATLayer(f_size, f_size // k_heads) for _ in range(k_heads)])
-        self.layer0_3 = torch.nn.ModuleList([SATLayer(f_size, f_size // k_heads) for _ in range(k_heads)])
+        self.layer0_1 = torch.nn.ModuleList([SATLayer(num_node_feats, f_size // k_heads, bias) for _ in range(k_heads)])
+        self.layer0_2 = torch.nn.ModuleList([SATLayer(f_size, f_size // k_heads, bias)  for _ in range(k_heads)])
+        self.layer0_3 = torch.nn.ModuleList([SATLayer(f_size, f_size // k_heads, bias)  for _ in range(k_heads)])
 
         self.layer0_4 = nn.Linear(3 * f_size, output_size)
 
-        self.layer1_1 = torch.nn.ModuleList([SATLayer(num_edge_feats, f_size // k_heads) for _ in range(k_heads)])
-        self.layer1_2 = torch.nn.ModuleList([SATLayer(f_size, f_size // k_heads) for _ in range(k_heads)])
-        self.layer1_3 = torch.nn.ModuleList([SATLayer(f_size, f_size // k_heads) for _ in range(k_heads)])
+        self.layer1_1 = torch.nn.ModuleList([SATLayer(num_edge_feats, f_size // k_heads, bias)  for _ in range(k_heads)])
+        self.layer1_2 = torch.nn.ModuleList([SATLayer(f_size, f_size // k_heads, bias)  for _ in range(k_heads)])
+        self.layer1_3 = torch.nn.ModuleList([SATLayer(f_size, f_size // k_heads, bias)  for _ in range(k_heads)])
 
         self.layer1_4 = nn.Linear(3 * f_size, output_size)
 
-        self.layer2_1 = torch.nn.ModuleList([SATLayer(num_triangle_feats, f_size // k_heads) for _ in range(k_heads)])
-        self.layer2_2 = torch.nn.ModuleList([SATLayer(f_size, f_size // k_heads) for _ in range(k_heads)])
-        self.layer2_3 = torch.nn.ModuleList([SATLayer(f_size, f_size // k_heads) for _ in range(k_heads)])
+        self.layer2_1 = torch.nn.ModuleList([SATLayer(num_triangle_feats, f_size // k_heads, bias)  for _ in range(k_heads)])
+        self.layer2_2 = torch.nn.ModuleList([SATLayer(f_size, f_size // k_heads, bias)  for _ in range(k_heads)])
+        self.layer2_3 = torch.nn.ModuleList([SATLayer(f_size, f_size // k_heads, bias)  for _ in range(k_heads)])
 
         self.layer2_4 = nn.Linear(3 * f_size, output_size)
 
@@ -72,7 +72,7 @@ class SuperpixelSAT(nn.Module):
         X0, X1, X2 = X
         L0, L1_u, L1_d, L2 = L
         batch0, batch1, batch2 = batch
-        l1 = [L1_u, L1_d]
+        L1 = [L1_u, L1_d]
 
         x0_1 = F.relu(torch.cat([sat(X0, L0) for sat in self.layer0_1], dim=1))
         x0_2 = F.relu(torch.cat([sat(x0_1, L0) for sat in self.layer0_2], dim=1))
@@ -80,9 +80,9 @@ class SuperpixelSAT(nn.Module):
         x0_4 = self.layer0_4(torch.cat([x0_1, x0_2, x0_3], dim = 1))
         x0 = global_mean_pool(x0_4, batch0)
 
-        x1_1 = F.relu(torch.cat([sat(X1, L1) for L1, sat in zip(l1, self.layer1_1)], dim=1))
-        x1_2 = F.relu(torch.cat([sat(x1_1, L1) for L1, sat in zip(l1, self.layer1_2)], dim=1))
-        x1_3 = F.relu(torch.cat([sat(x1_2, L1) for L1, sat in zip(l1, self.layer1_3)], dim=1))
+        x1_1 = F.relu(torch.cat([sat(X1, L) for L, sat in zip(L1, self.layer1_1)], dim=1))
+        x1_2 = F.relu(torch.cat([sat(x1_1, L) for L, sat in zip(L1, self.layer1_2)], dim=1))
+        x1_3 = F.relu(torch.cat([sat(x1_2, L) for L, sat in zip(L1, self.layer1_3)], dim=1))
         x1_4 = self.layer1_4(torch.cat([x1_1, x1_2, x1_3], dim=1))
         x1 = global_mean_pool(x1_4, batch1)
 
@@ -98,16 +98,18 @@ class SuperpixelSAT(nn.Module):
 
 
 class FlowSAT(nn.Module):
-    def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size, f = F.relu):
+    def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size, f = F.relu, bias = False):
         super().__init__()
         # 10k = 30, 50k = 80
-        f_size = 512
+        f_size = 32
         k_heads = 2
 
         self.f = f
 
-        self.layer1_1 = torch.nn.ModuleList([SATLayer(num_edge_feats, f_size // k_heads) for _ in range(k_heads)])
-        self.layer1_2 = torch.nn.ModuleList([SATLayer(f_size, output_size) for _ in range(k_heads)])
+        self.layer1 = torch.nn.ModuleList([SATLayer(num_edge_feats, f_size // k_heads, bias)  for _ in range(k_heads)])
+        self.layer2 = torch.nn.ModuleList([SATLayer(f_size, f_size // k_heads, bias) for _ in range(k_heads)])
+        self.layer3 = torch.nn.ModuleList([SATLayer(f_size, f_size // k_heads, bias) for _ in range(k_heads)])
+        self.layer4 = torch.nn.ModuleList([SATLayer(f_size, output_size) for _ in range(k_heads)])
 
 
     def forward(self, features_dct):
@@ -116,10 +118,12 @@ class FlowSAT(nn.Module):
         _, X1, _ = X
         _, L1_u, L1_d, _ = L
         _, batch1, _= batch
-        l1 = [L1_u, L1_d]
+        L1 = [L1_u, L1_d]
 
-        x1_1 = self.f(torch.cat([sat(X1, L1) for L1, sat in zip(l1, self.layer1_1)], dim=1))
-        x1_2 = self.f(functools.reduce(lambda a, b: a + b, [sat(x1_1, L1) for L1, sat in zip(l1, self.layer1_2)]))
-        x = global_mean_pool(x1_2, batch1)
+        X1 = self.f(torch.cat([sat(X1, L) for L, sat in zip(L1, self.layer1)], dim=1))
+        X1 = self.f(torch.cat([sat(X1, L) for L, sat in zip(L1, self.layer2)], dim=1))
+        X1 = self.f(torch.cat([sat(X1, L) for L, sat in zip(L1, self.layer3)], dim=1))
+        X1 = self.f(functools.reduce(lambda a, b: a + b, [sat(X1, L) for L, sat in zip(L1, self.layer4)]))
+        x = global_mean_pool(X1, batch1)
 
         return F.softmax(x, dim=1)

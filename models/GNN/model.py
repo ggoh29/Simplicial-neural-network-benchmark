@@ -51,11 +51,11 @@ class PlanetoidGCN(nn.Module):
 
 class GATLayer(nn.Module):
 
-    def __init__(self, input_size, output_size):
+    def __init__(self, input_size, output_size, bias = True):
         super().__init__()
-        self.a_1 = nn.Linear(output_size, 1)
-        self.a_2 = nn.Linear(output_size, 1)
-        self.layer = nn.Linear(input_size, output_size)
+        self.a_1 = nn.Linear(output_size, 1, bias = bias)
+        self.a_2 = nn.Linear(output_size, 1, bias = bias)
+        self.layer = nn.Linear(input_size, output_size, bias = bias)
 
     def forward(self, features, indices):
         features = self.layer(features)

@@ -129,3 +129,27 @@ class PlanetoidBunch(nn.Module):
 
         X0 = (X0 + torch.sparse.mm(D1invB1, X1) + torch.sparse.mm(D1invB1, self.tri_layer(torch.sparse.mm(B2D3, X2)))) / 3
         return X0
+
+
+class FlowBunch(nn.Module):
+
+    def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size, bias=False, f=F.relu):
+        super().__init__()
+        f_size = 512
+        self.layer1 = SNN_Bunch_Layer(num_node_feats, num_edge_feats, num_triangle_feats, f_size, bias=bias, f=f)
+        self.layer2 = SNN_Bunch_Layer(num_node_feats, f_size, num_triangle_feats, output_size, bias=bias, f=f)
+
+
+    def forward(self, feature_dct):
+        L, X, batch = unpack_feature_dct_to_L_X_B(feature_dct)
+        B2D3, D2B1TD1inv, D1invB1, B2TD2inv = feature_dct['others']
+
+        X0, X1, X2 = X
+        L0, L1, L2 = L
+
+        _, X1, _ = self.layer1(X0, X1, X2, L0, L1, L2, B2D3, D2B1TD1inv, D1invB1, B2TD2inv)
+        _, X1, _ = self.layer2(X0, X1, X2, L0, L1, L2, B2D3, D2B1TD1inv, D1invB1, B2TD2inv)
+
+        X1 = global_mean_pool(X1, batch[1])
+
+        return F.softmax(X1, dim=1)

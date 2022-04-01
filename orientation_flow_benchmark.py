@@ -1,24 +1,26 @@
 import torch
 from OrientationFlow.FlowDataset import FlowSCDataset
-from models import flow_SAT, flow_ESNN
+from models import flow_SAT, flow_ESNN, flow_BSNN, flow_SAN
 from torch.utils.data import DataLoader
 from constants import DEVICE
 
 
 input_size = 1
 output_size = 2
-nb_epochs = 50
+nb_epochs = 100
 lr = 0.001
 batch_size = 8
 f = torch.nn.functional.relu
 
-nn_mod = flow_SAT
+# nn_mod = flow_SAT
+nn_mod = flow_SAN
 # nn_mod = flow_ESNN
+# nn_mod = flow_BSNN
 
 processor_type = nn_mod[0]
 model = nn_mod[1]
 
-model = model(input_size, input_size, input_size, output_size, f).to(DEVICE)
+model = model(input_size, input_size, input_size, output_size, f=f).to(DEVICE)
 optimiser = torch.optim.Adam(model.parameters(), lr=lr)
 loss_f = torch.nn.CrossEntropyLoss()
 
