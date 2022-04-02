@@ -58,14 +58,15 @@ class SuperpixelSCDataset(InMemoryDataset):
         self.data_download = self.dataset(root='./data', train=self.train, download=True,
                                           transform=transforms.ToTensor())
         data = [*sorted(self.data_download, key=lambda i: i[1])]
+        counts = [*map(lambda i: i[1], data)]
         total = len(data)
         if self.dataset_size < total:
             index = []
-            counter = Counter(data)
+            counter = Counter(counts)
             for i in range(10):
                 index.append(counter[i])
 
-            offset = total // 10
+            offset = self.dataset_size  // 10
             assert(offset <= min(index))
 
             index = [0] + list(accumulate(index))[:-1]
