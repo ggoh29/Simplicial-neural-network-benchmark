@@ -4,6 +4,8 @@ from torch_geometric.data import InMemoryDataset
 from joblib import Parallel, delayed
 from tqdm import tqdm
 from torchvision import datasets
+from collections import Counter
+from itertools import accumulate
 
 dataset_dct = {datasets.MNIST: "MNIST",
                datasets.CIFAR10: "CIFAR10"}
@@ -57,11 +59,22 @@ class SuperpixelSCDataset(InMemoryDataset):
                                           transform=transforms.ToTensor())
         data = [*sorted(self.data_download, key=lambda i: i[1])]
         total = len(data)
-        r = total / self.dataset_size
-        split = []
-        for i in range(10):
-            split += data[i * total // 10: int((i * r + 1) * total // (10 * r))]
-        self.data_download = split
+        if self.dataset_size < total:
+            index = []
+            counter = Counter(data)
+            for i in range(10):
+                index.append(counter[i])
+
+            offset = total // 10
+            assert(offset <= min(index))
+
+            index = [0] + list(accumulate(index))[:-1]
+
+            split = []
+            for i in index:
+                split += data[i: i + offset]
+
+            self.data_download = split
 
     @property
     def processed_file_names(self):
@@ -87,11 +100,23 @@ class SuperpixelSCDataset(InMemoryDataset):
         data = [self.__getitem__(i) for i in range(len(self))]
         assert (len(data) == total)
         data = [*sorted(data, key=lambda i: i.label.item())]
+
+        counter = Counter([*map(lambda i : i.label.item(), data)])
+        index = []
+        for i in range(10):
+            index.append(counter[i])
+
+        offset = (total - train) // 10
+        assert (offset <= min(index))
+
         train_split = []
         val_split = []
-        r = total / train
 
-        for i in range(10):
-            train_split += data[i * total // 10: int((i * r + 1) * total // (10 * r))]
-            val_split += data[int((i * r + 1) * total // (10 * r)): (i + 1) * total // 10]
+        end = list(accumulate(index))
+        start = [0] + end[:-1]
+
+        for s, e in zip(start, end):
+            val_split += data[s : s + offset]
+            train_split += data[s + offset : e]
+
         return train_split, val_split

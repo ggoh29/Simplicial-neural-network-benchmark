@@ -10,10 +10,10 @@ class SuperpixelGCN(nn.Module):
     def __init__(self, input_size, output_size):
         super().__init__()
         # 10k = 64, 50k = 148
-        f_size = 148
-        self.conv1 = GCNConv(input_size, f_size)
-        self.conv2 = GCNConv(f_size, f_size)
-        self.conv3 = GCNConv(f_size, f_size)
+        f_size = 64
+        self.conv1 = GCNConv(input_size, f_size, add_self_loops=False)
+        self.conv2 = GCNConv(f_size, f_size, add_self_loops=False)
+        self.conv3 = GCNConv(f_size, f_size, add_self_loops=False)
         self.layer_final = nn.Linear(3 * f_size, output_size)
 
     def forward(self, feature_dct):

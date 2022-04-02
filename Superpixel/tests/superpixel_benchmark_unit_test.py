@@ -5,13 +5,49 @@ from constants import TEST_MNIST_IMAGE_1, DEVICE
 from utils import tensor_to_sparse
 from Superpixel.EdgeFlow import PixelBasedEdgeFlow
 from superpixel_benchmark import test
-from adversarial_superpixel_benchmark import train
 from torchvision import datasets
 from Superpixel.SuperpixelDataset import SuperpixelSCDataset
 from torch.utils.data import DataLoader
 from models import superpixel_GCN, superpixel_GAT, superpixel_ESNN, superpixel_BSNN, superpixel_SAT, superpixel_SAN
 from models.nn_utils import normalise, unpack_feature_dct_to_L_X_B
 from models.SAT.SATProcessor import SATProcessor
+import time
+
+def convert_to_device(lst):
+    return [i.to(DEVICE) for i in lst]
+
+def train(NN, epoch_size, dataloader, optimizer, criterion, processor_type):
+    NN.train()
+    train_running_loss = 0
+    t = 0
+    for epoch in range(epoch_size):
+        t1 = time.perf_counter()
+        epoch_train_running_loss = 0
+        train_acc = 0
+        i = 0
+        for features_dct, train_labels in dataloader:
+            features_dct = processor_type.clean_feature_dct(features_dct)
+            features_dct = processor_type.repair(features_dct)
+            features_dct = {key: convert_to_device(features_dct[key]) for key in features_dct}
+            train_labels = train_labels.to(DEVICE)
+            optimizer.zero_grad()
+            prediction = NN(features_dct)
+            loss = criterion(prediction, train_labels)
+            loss.backward()
+            optimizer.step()
+            epoch_train_running_loss += loss.detach().item()
+            train_acc += (torch.argmax(prediction, 1).flatten() == train_labels).type(torch.float).mean().item()
+            i += 1
+        t2 = time.perf_counter()
+        t = (t * epoch + (t2 - t1)) / (epoch + 1)
+        epoch_train_running_loss /= i
+        train_running_loss = (train_running_loss * epoch + epoch_train_running_loss) / (epoch + 1)
+        print(
+            f"Epoch {epoch} | Train running loss {train_running_loss} "
+            f"| Loss {epoch_train_running_loss} | Train accuracy {train_acc / i}")
+        epoch_loss = epoch_train_running_loss
+        acc = train_acc / i
+    return t, train_running_loss, epoch_loss, acc
 
 
 class MyTestCase(unittest.TestCase):
