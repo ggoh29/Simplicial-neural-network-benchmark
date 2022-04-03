@@ -20,7 +20,7 @@ class SuperpixelSCDataset(InMemoryDataset):
                  processor_type,
                  image_processor,
                  dataset_size: int,
-                 n_jobs: int = 8,
+                 n_jobs: int = 16,
                  train: bool = True):
         self.dataset = dataset_name
         self.n_jobs = n_jobs

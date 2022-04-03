@@ -126,16 +126,13 @@ def scipy_sparse_to_torch_sparse(matrix):
     return torch.sparse.FloatTensor(i, v)
 
 
-def normalise(L, half_interval = False):
+def normalise(L):
     M = L.shape[0]
     L = torch_sparse_to_scipy_sparse(L)
     topeig = spl.eigsh(L, k=1, which="LM", return_eigenvectors=False)[0]
     ret = L.copy()
-    if half_interval:
-        ret *= 1.0 / topeig
-    else:
-        ret *= 2.0 / topeig
-        ret.setdiag(ret.diagonal(0) - np.ones(M), 0)
+    ret *= 2.0 / topeig
+    ret.setdiag(np.ones(M) - ret.diagonal(0), 0)
     return scipy_sparse_to_torch_sparse(ret)
 
 
