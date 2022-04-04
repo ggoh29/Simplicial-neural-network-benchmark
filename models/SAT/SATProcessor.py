@@ -37,9 +37,7 @@ class SATProcessor(NNProcessor):
         b1, b2 = to_sparse_coo(scData.b1).cpu(), to_sparse_coo(scData.b2).cpu()
 
         X0, X1, X2 = scData.X0, scData.X1, scData.X2
-        print(type(b1))
-        print(b1)
-        raise ArithmeticError()
+
         L0 = torch.sparse.mm(b1, b1.t())
         L1_up = torch.sparse.mm(b2, b2.t())
         L1_down = torch.sparse.mm(b1.t(), b1)
