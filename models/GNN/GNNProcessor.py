@@ -25,7 +25,7 @@ class GraphObject:
 class GNNProcessor(NNProcessor):
 
     def process(self, scData):
-        b1, b2 = to_sparse_coo(scData.b1), to_sparse_coo(scData.b2)
+        b1 = to_sparse_coo(scData.b1).cpu()
 
         X0 = scData.X0
         L0 = torch.sparse.mm(b1, b1.t())
