@@ -118,7 +118,7 @@ class FlowSAT(nn.Module):
 
         self.layer1 = torch.nn.ModuleList([SATLayer(num_edge_feats, f_size // k_heads, bias) for _ in range(k_heads)])
         self.layer2 = torch.nn.ModuleList([SATLayer(f_size, f_size // k_heads, bias) for _ in range(k_heads)])
-        self.layer3 = torch.nn.ModuleList([SATLayer(f_size, f_size // k_heads, bias) for _ in range(k_heads)])
+        # self.layer3 = torch.nn.ModuleList([SATLayer(f_size, f_size // k_heads, bias) for _ in range(k_heads)])
         self.layer4 = torch.nn.ModuleList([SATLayer(f_size, output_size, bias) for _ in range(k_heads)])
 
     def forward(self, features_dct):
@@ -132,7 +132,7 @@ class FlowSAT(nn.Module):
 
         X1 = self.f(torch.cat([sat(X1, L, ud) for L, sat, ud in zip(L1, self.layer1, updown)], dim=1))
         X1 = self.f(torch.cat([sat(X1, L, ud) for L, sat, ud in zip(L1, self.layer2, updown)], dim=1))
-        X1 = self.f(torch.cat([sat(X1, L, ud) for L, sat, ud in zip(L1, self.layer3, updown)], dim=1))
+        # X1 = self.f(torch.cat([sat(X1, L, ud) for L, sat, ud in zip(L1, self.layer3, updown)], dim=1))
         X1 = self.f(functools.reduce(lambda a, b: a + b, [sat(X1, L, ud) for L, sat, ud in zip(L1, self.layer4, updown)]))
         x = global_mean_pool(X1, batch1)
 

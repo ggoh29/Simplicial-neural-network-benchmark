@@ -13,8 +13,8 @@ batch_size = 8
 # f = torch.nn.functional.relu
 f = torch.nn.Tanh()
 
-nn_mod = flow_SAT
-# nn_mod = flow_SAN
+# nn_mod = flow_SAT
+nn_mod = flow_SAN
 # nn_mod = flow_ESNN
 # nn_mod = flow_BSNN
 
