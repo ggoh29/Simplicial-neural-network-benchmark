@@ -10,10 +10,11 @@ output_size = 2
 nb_epochs = 100
 lr = 0.001
 batch_size = 8
-f = torch.nn.functional.relu
+# f = torch.nn.functional.relu
+f = torch.nn.Tanh()
 
-# nn_mod = flow_SAT
-nn_mod = flow_SAN
+nn_mod = flow_SAT
+# nn_mod = flow_SAN
 # nn_mod = flow_ESNN
 # nn_mod = flow_BSNN
 
@@ -30,12 +31,12 @@ def convert_to_device(lst):
 
 if __name__ == "__main__":
 
-    data = FlowSCDataset('./data', processor_type)
+    data = FlowSCDataset('../data', processor_type)
     train_dataset, test_dataset = data.get_val_train_split()
 
-    train_dataset = DataLoader(train_dataset, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=4,
+    train_dataset = DataLoader(train_dataset, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=8,
                                shuffle=True, pin_memory=True)
-    test_dataset = DataLoader(test_dataset, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=4,
+    test_dataset = DataLoader(test_dataset, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=8 ,
                              shuffle=True, pin_memory=True)
 
     for j in range(nb_epochs):

@@ -39,8 +39,8 @@ class SATProcessor(NNProcessor):
         X0, X1, X2 = scData.X0, scData.X1, scData.X2
 
         L0 = torch.sparse.mm(b1, b1.t()).cpu()
-        L1_up = torch.sparse.mm(b1.t(), b1).cpu()
-        L1_down = torch.sparse.mm(b2, b2.t()).cpu()
+        L1_up = torch.sparse.mm(b2, b2.t()).cpu()
+        L1_down = torch.sparse.mm(b1.t(), b1).cpu()
         L2 = torch.sparse.mm(b2.t(), b2).cpu()
 
         assert (X0.shape[0] == L0.shape[0])

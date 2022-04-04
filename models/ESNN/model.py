@@ -79,16 +79,17 @@ class SuperpixelEbli(nn.Module):
 class FlowEbli(nn.Module):
     # This model is based on model described by Stefanie Ebli et al. in Simplicial Neural Networks
     # Github here https://github.com/stefaniaebli/simplicial_neural_networks?utm_source=catalyzex.com
-    def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size, bias=True, f = nn.LeakyReLU()):
+    def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size, bias=False, f=nn.LeakyReLU()):
         super().__init__()
 
-        conv_size = 512
+        conv_size = 32
 
         # Degree 1 convolutions.
-        self.C1_1 = SCNLayer(num_edge_feats, conv_size, enable_bias=bias)
-        self.C1_2 = SCNLayer(conv_size, output_size, enable_bias=bias)
+        self.layer1 = SCNLayer(num_edge_feats, conv_size, enable_bias=bias)
+        self.layer2 = SCNLayer(conv_size, conv_size, enable_bias=bias)
+        self.layer3 = SCNLayer(conv_size, conv_size, enable_bias=bias)
+        self.layer4 = SCNLayer(conv_size, output_size, enable_bias=bias)
         self.f = f
-
 
     def forward(self, features_dct):
         L, X, batch = unpack_feature_dct_to_L_X_B(features_dct)
@@ -96,9 +97,11 @@ class FlowEbli(nn.Module):
         _, X1, _ = X
         _, L1, _ = L
 
-        out1 = self.f(self.C1_1(L1, X1))
-        out1 = self.f(self.C1_2(L1, out1))
+        X1 = self.f(self.layer1(L1, X1))
+        X1 = self.f(self.layer2(L1, X1))
+        X1 = self.f(self.layer3(L1, X1))
+        X1 = self.f(self.layer4(L1, X1))
 
-        out1 = global_mean_pool(out1, batch[1])
+        X1 = global_mean_pool(X1, batch[1])
 
-        return F.softmax(out1, dim=1)
+        return F.softmax(X1, dim=1)

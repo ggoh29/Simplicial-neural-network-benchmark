@@ -34,8 +34,8 @@ class SANLayer(nn.Module):
 class SuperpixelSAN(nn.Module):
     def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size):
         super().__init__()
-        # 10k = 30, 50k = 80
-        f_size = 30
+        # 10k = 18
+        f_size = 18
         self.layer0_1 = SANLayer(num_node_feats, f_size)
         self.layer0_2 = SANLayer(f_size, f_size)
         self.layer0_3 = SANLayer(f_size, f_size)
@@ -111,7 +111,7 @@ class FlowSAN(nn.Module):
 
         self.layer1 = SANLayer(num_edge_feats, f_size, bias)
         self.layer2 = SANLayer(f_size, f_size, bias)
-        self.layer3 = SANLayer(f_size, f_size, bias)
+        # self.layer3 = SANLayer(f_size, f_size, bias)
         self.layer4 = SANLayer(f_size, output_size, bias)
 
 
@@ -136,7 +136,7 @@ class FlowSAN(nn.Module):
 
         X1 = self.f(self.layer1(X1, L1_u, L1_d, L1))
         X1 = self.f(self.layer2(X1, L1_u, L1_d, L1))
-        X1 = self.f(self.layer3(X1, L1_u, L1_d, L1))
+        # X1 = self.f(self.layer3(X1, L1_u, L1_d, L1))
         X1 = self.f(self.layer4(X1, L1_u, L1_d, L1))
         x = global_mean_pool(X1, batch1)
 

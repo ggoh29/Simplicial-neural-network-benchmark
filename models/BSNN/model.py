@@ -135,9 +135,12 @@ class FlowBunch(nn.Module):
 
     def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size, bias=False, f=F.relu):
         super().__init__()
-        f_size = 512
+        f_size = 32
+
         self.layer1 = SNN_Bunch_Layer(num_node_feats, num_edge_feats, num_triangle_feats, f_size, bias=bias, f=f)
-        self.layer2 = SNN_Bunch_Layer(num_node_feats, f_size, num_triangle_feats, output_size, bias=bias, f=f)
+        self.layer2 = SNN_Bunch_Layer(num_node_feats, f_size, num_triangle_feats, f_size, bias=bias, f=f)
+        # self.layer3 = SNN_Bunch_Layer(num_node_feats, f_size, num_triangle_feats, f_size, bias=bias, f=f)
+        self.layer4 = SNN_Bunch_Layer(num_node_feats, f_size, num_triangle_feats, output_size, bias=bias, f=f)
 
 
     def forward(self, feature_dct):
@@ -149,6 +152,8 @@ class FlowBunch(nn.Module):
 
         _, X1, _ = self.layer1(X0, X1, X2, L0, L1, L2, B2D3, D2B1TD1inv, D1invB1, B2TD2inv)
         _, X1, _ = self.layer2(X0, X1, X2, L0, L1, L2, B2D3, D2B1TD1inv, D1invB1, B2TD2inv)
+        # _, X1, _ = self.layer3(X0, X1, X2, L0, L1, L2, B2D3, D2B1TD1inv, D1invB1, B2TD2inv)
+        _, X1, _ = self.layer4(X0, X1, X2, L0, L1, L2, B2D3, D2B1TD1inv, D1invB1, B2TD2inv)
 
         X1 = global_mean_pool(X1, batch[1])
 

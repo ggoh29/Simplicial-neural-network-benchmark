@@ -66,7 +66,7 @@ def create_hole(points, triangles, hole):
 
 
 def create_graph_from_triangulation(points, triangles):
-    # Create a graph from from this containing only the non-removed triangles
+    # Create a graph from this containing only the non-removed triangles
     G = nx.Graph()
     edge_idx = 0
     edge_to_tuple = {}
@@ -175,6 +175,7 @@ def generate_flow_cochain(class_id, G, B1, B2, T2):
 
     X1 = torch.tensor(X1, dtype=torch.float)
     T2 = torch.tensor(T2, dtype=torch.float)
+    X1 = T2 @ X1
 
     B1 = (B1 @ T2).to_sparse()
     B2 = (T2 @ B2).to_sparse()
