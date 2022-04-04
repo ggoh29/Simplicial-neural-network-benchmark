@@ -175,7 +175,7 @@ def generate_flow_cochain(class_id, G, B1, B2, T2):
 
     X1 = torch.tensor(X1, dtype=torch.float)
     T2 = torch.tensor(T2, dtype=torch.float)
-    X1 = T2 @ X1
+    # X1 = T2 @ X1
 
     B1 = (B1 @ T2).to_sparse()
     B2 = (T2 @ B2).to_sparse()

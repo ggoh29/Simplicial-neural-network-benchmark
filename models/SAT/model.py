@@ -85,9 +85,9 @@ class SuperpixelSAT(nn.Module):
         L1 = [L1_u, L1_d]
         updown = [-1, 1]
 
-        x0_1 = F.relu(torch.cat([sat(X0, L0, ud) for sat, ud in zip(self.layer0_1, updown)], dim=1))
-        x0_2 = F.relu(torch.cat([sat(x0_1, L0, ud) for sat, ud in zip(self.layer0_2, updown)], dim=1))
-        x0_3 = F.relu(torch.cat([sat(x0_2, L0, ud) for sat, ud in zip(self.layer0_3, updown)], dim=1))
+        x0_1 = F.relu(torch.cat([sat(X0, L0, -1) for sat in self.layer0_1], dim=1))
+        x0_2 = F.relu(torch.cat([sat(x0_1, L0, -1) for sat in self.layer0_2], dim=1))
+        x0_3 = F.relu(torch.cat([sat(x0_2, L0, -1) for sat in self.layer0_3], dim=1))
         x0_4 = self.layer0_4(torch.cat([x0_1, x0_2, x0_3], dim=1))
         x0 = global_mean_pool(x0_4, batch0)
 
@@ -97,9 +97,9 @@ class SuperpixelSAT(nn.Module):
         x1_4 = self.layer1_4(torch.cat([x1_1, x1_2, x1_3], dim=1))
         x1 = global_mean_pool(x1_4, batch1)
 
-        x2_1 = F.relu(torch.cat([sat(X2, L2) for sat, ud in zip(self.layer2_1, updown)], dim=1))
-        x2_2 = F.relu(torch.cat([sat(x2_1, L2) for sat, ud in zip(self.layer2_2, updown)], dim=1))
-        x2_3 = F.relu(torch.cat([sat(x2_2, L2) for sat, ud in zip(self.layer2_3, updown)], dim=1))
+        x2_1 = F.relu(torch.cat([sat(X2, L2, 1) for sat in self.layer2_1], dim=1))
+        x2_2 = F.relu(torch.cat([sat(x2_1, L2, 1) for sat in self.layer2_2], dim=1))
+        x2_3 = F.relu(torch.cat([sat(x2_2, L2, 1) for sat in self.layer2_3], dim=1))
         x2_4 = self.layer2_4(torch.cat([x2_1, x2_2, x2_3], dim=1))
         x2 = global_mean_pool(x2_4, batch2)
 
