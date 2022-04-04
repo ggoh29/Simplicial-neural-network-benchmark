@@ -26,18 +26,19 @@ def remove_diag_sparse(sparse_adj):
     return scipy_sparse_to_torch_sparse(scipy_adj)
 
 
-
 def get_features(features, sc_list):
     def _get_features(features, sc):
         f = [features[i] for i in sc]
         return functools.reduce(lambda a, b: a + b, f).float()
         # return functools.reduce(lambda a, b: torch.logical_and(a, b), f).float()
         # return a/torch.sum(s)
+
     features = [_get_features(features, sc) for sc in sc_list]
     if bool(features):
-        return torch.stack(features, dim = 0)
+        return torch.stack(features, dim=0)
     else:
         return torch.tensor([])
+
 
 def filter_simplices(node_features, simplice):
     s = [node_features[i] for i in simplice]
@@ -45,7 +46,26 @@ def filter_simplices(node_features, simplice):
     return torch.sum(common_features).item() > 0
 
 
-def convert_to_SC(adj, features, labels, X1 = None, X2 = None):
+def correct_orientation(L, up_or_down):
+    """
+    L : n * n sparse Laplacian matrix
+    up_or_down : int in {-1, 1}
+    """
+    identity = 2 * torch.ones(L.shape[0])
+    identity_indices = torch.arange(L.shape[0])
+    identity_indices = torch.stack([identity_indices, identity_indices], dim=0)
+    sparse_identity = torch.sparse_coo_tensor(identity_indices, identity)
+    adj = L + sparse_identity
+
+    indices = adj.coalesce().indices()
+    values = adj.coalesce().values() * up_or_down
+    values[values < -1] = 1
+    values = torch.sign(values)
+
+    return torch.sparse_coo_tensor(values, indices)
+
+
+def convert_to_SC(adj, features, labels, X1=None, X2=None):
     X0 = features
 
     nodes = [i for i in range(X0.shape[0])]
@@ -60,7 +80,6 @@ def convert_to_SC(adj, features, labels, X1 = None, X2 = None):
     # triangles = [*filter(lambda x: filter_simplices(features, x), triangles) ]
     b1 = edge_to_node_matrix(edges, nodes, one_indexed=False).to_sparse()
     b2 = triangle_to_edge_matrix(triangles, edges).to_sparse()
-
 
     if X1 is None:
         X1 = torch.tensor(edges)
@@ -90,9 +109,11 @@ def to_sparse_coo(matrix):
     values = matrix[2:3].squeeze()
     return torch.sparse_coo_tensor(indices, values)
 
+
 def sparse_diag_identity(n):
     i = [i for i in range(n)]
     return torch.sparse_coo_tensor(torch.tensor([i, i]), torch.ones(n))
+
 
 def sparse_diag(tensor):
     i = [i for i in range(tensor.shape[0])]
@@ -104,8 +125,8 @@ def chebyshev(L, X, k=3):
         return torch.sparse.mm(L, X)
     dp = [X, torch.sparse.mm(L, X)]
     for i in range(2, k):
-        nxt = 2*(torch.sparse.mm(L, dp[i-1]))
-        dp.append(torch.sparse.FloatTensor.add(nxt, -(dp[i-2])))
+        nxt = 2 * (torch.sparse.mm(L, dp[i - 1]))
+        dp.append(torch.sparse.FloatTensor.add(nxt, -(dp[i - 2])))
     return torch.cat(dp, dim=1)
 
 
@@ -137,7 +158,6 @@ def normalise(L):
 
 
 def batch_all_feature_and_lapacian_pair(X, L_i, L_v):
-
     X_batch, I_batch, V_batch, batch_index = [], [], [], []
     for i in range(len(X)):
         x, i, v, batch = batch_feature_and_lapacian_pair(X[i], L_i[i], L_v[i])
@@ -146,10 +166,10 @@ def batch_all_feature_and_lapacian_pair(X, L_i, L_v):
         V_batch.append(v)
         batch_index.append(batch)
 
-    features_dct = {'features' : X_batch,
-                    'lapacian_indices' : I_batch,
-                    'lapacian_values' : V_batch,
-                    'batch_index' : batch_index}
+    features_dct = {'features': X_batch,
+                    'lapacian_indices': I_batch,
+                    'lapacian_values': V_batch,
+                    'batch_index': batch_index}
 
     # I_batch and V_batch form the indices and values of coo_sparse tensor but sparse tensors
     # cant be stored so storing them as two separate tensors
@@ -193,6 +213,3 @@ def convert_indices_and_values_to_sparse(feature_dct, indices_key, value_key, ou
 def unpack_feature_dct_to_L_X_B(dct):
     # unpack to lapacian, features and batch
     return dct['lapacian'], dct['features'], dct['batch_index']
-
-
-

@@ -2,7 +2,7 @@ import torch
 from models.ProcessorTemplate import NNProcessor
 from utils import ensure_input_is_tensor
 from models.nn_utils import to_sparse_coo
-from models.nn_utils import batch_all_feature_and_lapacian_pair, convert_indices_and_values_to_sparse
+from models.nn_utils import batch_all_feature_and_lapacian_pair, convert_indices_and_values_to_sparse, correct_orientation
 
 
 class SimplicialObject:
@@ -42,6 +42,11 @@ class SATProcessor(NNProcessor):
         L1_up = torch.sparse.mm(b2, b2.t())
         L1_down = torch.sparse.mm(b1.t(), b1)
         L2 = torch.sparse.mm(b2.t(), b2)
+
+        L0 = correct_orientation(L0, -1)
+        L1_u = correct_orientation(L1_u, -1)
+        L1_d = correct_orientation(L1_d, 1)
+        L2 = correct_orientation(L2, 1)
 
         assert (X0.shape[0] == L0.shape[0])
         assert (X1.shape[0] == L1_up.shape[0])

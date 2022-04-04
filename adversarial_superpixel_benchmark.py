@@ -37,7 +37,6 @@ def load_trained_NN(NN, dataset, processor_type):
 
         optimizer = torch.optim.Adam(NN.parameters(), lr=0.001, weight_decay=5e-4)
         criterion = torch.nn.CrossEntropyLoss()
-        NN.load_state_dict(torch.load(f'./data/{NN.__class__.__name__}_nn.pkl'))
         _ = train(NN, 200, train_data, optimizer, criterion, processor_type)
 
         torch.save(NN.state_dict(), f'./data/{NN.__class__.__name__}_nn.pkl')
@@ -275,7 +274,7 @@ def run_transferability_attack(base_nn, target_nn, target_processor_type, full_b
 
 if __name__ == "__main__":
     # NN_list = [superpixel_GCN, superpixel_GAT, superpixel_ESNN, superpixel_BSNN, superpixel_SAT]
-    NN_list = [superpixel_SAN]
+    NN_list = [superpixel_SAT]
     for _ in range(1):
         for processor_type, NN in NN_list:
             NN = NN(5, 10, 15, output_size)

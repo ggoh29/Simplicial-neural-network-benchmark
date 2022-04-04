@@ -31,7 +31,7 @@ def convert_to_device(lst):
 
 if __name__ == "__main__":
 
-    data = FlowSCDataset('../data', processor_type)
+    data = FlowSCDataset('./data', processor_type)
     train_dataset, test_dataset = data.get_val_train_split()
 
     train_dataset = DataLoader(train_dataset, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=8,
