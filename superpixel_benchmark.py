@@ -154,8 +154,8 @@ def run(processor_type, NN, output_suffix):
 
 if __name__ == "__main__":
     # NN_list = [superpixel_GCN, superpixel_GAT, superpixel_ESNN, superpixel_BSNN, superpixel_SAT]
-    NN_list = [superpixel_GCN]
+    NN_list = [superpixel_SAT]
     for output_suffix in range(1):
         for processor_type, NN in NN_list:
-            NN = NN(5, output_size)
+            NN = NN(5, 10, 15, output_size)
             run(processor_type, NN.to(DEVICE), output_suffix)
