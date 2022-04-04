@@ -126,30 +126,30 @@ def run(processor_type, NN, output_suffix):
     train_data = SuperpixelSCDataset('../data', dataset, superpixel_size, edgeFlow, processor_type, imageprocessor,
                                      full_dataset, train=True)
 
-    # write_file_name = f"./results/{train_data.get_name()}_{NN.__class__.__name__}_{output_suffix}"
-    #
-    # test_data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, imageprocessor,
-    #                                 test_set, train=False)
-    # test_dataset = DataLoader(test_data, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=8,
-    #                           shuffle=True, pin_memory=True)
+    write_file_name = f"./results/{train_data.get_name()}_{NN.__class__.__name__}_{output_suffix}"
+
+    test_data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, imageprocessor,
+                                    test_set, train=False)
+    test_dataset = DataLoader(test_data, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=8,
+                              shuffle=True, pin_memory=True)
 
     optimizer = torch.optim.Adam(NN.parameters(), lr=0.001, weight_decay=5e-4)
     criterion = torch.nn.CrossEntropyLoss()
 
     average_time, train_acc, val_acc = train(NN, 100, train_data, optimizer, criterion, processor_type)
 
-    # NN.load_state_dict(torch.load(f'./data/{NN.__class__.__name__}_nn.pkl'))
-    # test_acc, top_3_error, top_5_error = test(NN, test_dataset, processor_type)
-    #
-    # s = f"""Dataset: {dataset},\nModel: {NN.__class__.__name__}\n\nparams={params}\n\n
-    # FINAL RESULTS\nTEST ACCURACY: {test_acc:.4f}\nTRAIN ACCURACY: {train_acc:.4f}\n\n
-    # Average Time Taken: {timedelta(seconds=average_time)}\n\n
-    # Top 3 error rate of {1 - top_3_error:.4f}, top 5 error rate of {1 - top_5_error:.4f}"""
-    #
-    # print(s)
-    #
-    # with open(write_file_name + '.txt', 'w') as f:
-    #     f.write(s)
+    NN.load_state_dict(torch.load(f'./data/{NN.__class__.__name__}_nn.pkl'))
+    test_acc, top_3_error, top_5_error = test(NN, test_dataset, processor_type)
+
+    s = f"""Dataset: {dataset},\nModel: {NN.__class__.__name__}\n\nparams={params}\n\n
+    FINAL RESULTS\nTEST ACCURACY: {test_acc:.4f}\nTRAIN ACCURACY: {train_acc:.4f}\n\n
+    Average Time Taken: {timedelta(seconds=average_time)}\n\n
+    Top 3 error rate of {1 - top_3_error:.4f}, top 5 error rate of {1 - top_5_error:.4f}"""
+
+    print(s)
+
+    with open(write_file_name + '.txt', 'w') as f:
+        f.write(s)
 
 
 if __name__ == "__main__":
