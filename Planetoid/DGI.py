@@ -1,4 +1,4 @@
-from models.nn_utils import unpack_feature_dct_to_L_X_B, convert_to_SC, torch_sparse_to_scipy_sparse, repair_sparse,\
+from models.nn_utils import unpack_feature_dct_to_L_X_B, convert_to_CoChain, torch_sparse_to_scipy_sparse, repair_sparse,\
     scipy_sparse_to_torch_sparse, to_sparse_coo, preprocess_features
 import scipy
 import numpy as np
@@ -36,7 +36,7 @@ def corruption_function(feature_dct, processor_type, p = 0.005):
     cor_adj = scipy_sparse_to_torch_sparse(cor_adj)
 
     fake_labels = torch.zeros(nb_nodes).to(DEVICE)
-    scData = convert_to_SC(cor_adj, C_X0, fake_labels)
+    scData = convert_to_CoChain(cor_adj, C_X0, fake_labels)
     corrupted_train = processor_type.process(scData)
     corrupted_train = processor_type.batch([corrupted_train])[0]
     corrupted_train = processor_type.clean_feature_dct(corrupted_train)

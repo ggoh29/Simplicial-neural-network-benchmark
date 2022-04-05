@@ -24,12 +24,12 @@ class GraphObject:
 
 class GNNProcessor(NNProcessor):
 
-    def process(self, scData):
-        b1 = to_sparse_coo(scData.b1).cpu()
+    def process(self, CoChain):
+        b1 = to_sparse_coo(CoChain.b1).cpu()
 
-        X0 = scData.X0
+        X0 = CoChain.X0
         L0 = torch.sparse.mm(b1, b1.t())
-        label = scData.label
+        label = CoChain.label
 
         return GraphObject(X0, L0, label)
 

@@ -1,6 +1,6 @@
 import torch
 import networkx as nx
-from models.SCData import SCData
+from models.CoChain import CoChain
 from utils import edge_to_node_matrix, triangle_to_edge_matrix
 import itertools
 import numpy as np
@@ -179,7 +179,7 @@ def generate_flow_cochain(class_id, G, B1, B2, T2):
 
     B1 = (B1 @ T2).to_sparse()
     B2 = (T2 @ B2).to_sparse()
-    return SCData(torch.zeros((B1.shape[0], 1)), X1, torch.zeros((B2.shape[1], 1)), B1, B2, torch.tensor([class_id]))
+    return CoChain(torch.zeros((B1.shape[0], 1)), X1, torch.zeros((B2.shape[1], 1)), B1, B2, torch.tensor([class_id]))
 
 
 def gen_orientation_graph(num_points=1000, num_train=1000, num_test=200,

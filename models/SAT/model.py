@@ -118,7 +118,6 @@ class FlowSAT(nn.Module):
         _, L1_u, L1_d, _ = L
         _, batch1, _ = batch
         L1 = [L1_u, L1_d]
-        updown = [-1, 1]
 
         X1 = self.f(torch.cat([sat(X1, L) for L, sat in zip(L1, self.layer1)], dim=1))
         X1 = self.f(torch.cat([sat(X1, L) for L, sat in zip(L1, self.layer2)], dim=1))

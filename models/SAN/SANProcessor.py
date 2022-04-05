@@ -36,10 +36,10 @@ class SimplicialObject:
 
 class SANProcessor(NNProcessor):
 
-    def process(self, scData):
-        b1, b2 = to_sparse_coo(scData.b1).cpu(), to_sparse_coo(scData.b2).cpu()
+    def process(self, CoChain):
+        b1, b2 = to_sparse_coo(CoChain.b1).cpu(), to_sparse_coo(CoChain.b2).cpu()
 
-        X0, X1, X2 = scData.X0, scData.X1, scData.X2
+        X0, X1, X2 = CoChain.X0, CoChain.X1, CoChain.X2
 
         L0 = normalise(torch.sparse.mm(b1, b1.t()))
         L1_up = torch.sparse.mm(b2, b2.t())
@@ -52,7 +52,7 @@ class SANProcessor(NNProcessor):
         assert (X1.shape[0] == L1_down.shape[0])
         assert (X2.shape[0] == L2.shape[0])
 
-        label = scData.label
+        label = CoChain.label
 
         return SimplicialObject(X0, X1, X2, L0, L1_up, L1_down, L1, L2, label)
 

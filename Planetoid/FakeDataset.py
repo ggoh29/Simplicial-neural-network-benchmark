@@ -1,7 +1,7 @@
 from torch_geometric.datasets import Planetoid
 import torch
 import networkx as nx
-from models.nn_utils import convert_to_SC, to_sparse_coo
+from models.nn_utils import convert_to_CoChain, to_sparse_coo
 from utils import edge_to_node_matrix, triangle_to_edge_matrix
 
 

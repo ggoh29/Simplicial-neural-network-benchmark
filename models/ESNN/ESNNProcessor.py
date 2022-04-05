@@ -37,9 +37,9 @@ class ESNNProcessor(NNProcessor):
     # This model is based on model described by Stefanie Ebli et al. in Simplicial Neural Networks
     # Github here https://github.com/stefaniaebli/simplicial_neural_networks?utm_source=catalyzex.com
 
-    def process(self, scData):
-        X0, X1, X2 = scData.X0, scData.X1, scData.X2
-        b1, b2 = to_sparse_coo(scData.b1).cpu(), to_sparse_coo(scData.b2).cpu()
+    def process(self, CoChain):
+        X0, X1, X2 = CoChain.X0, CoChain.X1, CoChain.X2
+        b1, b2 = to_sparse_coo(CoChain.b1).cpu(), to_sparse_coo(CoChain.b2).cpu()
 
         b1 = repair_sparse(b1, (X0.shape[0], X1.shape[0]))
         b2 = repair_sparse(b2, (X1.shape[0], X2.shape[0]))
@@ -57,7 +57,7 @@ class ESNNProcessor(NNProcessor):
         assert (X1.shape[0] == L1.shape[0])
         assert (X2.shape[0] == L2.shape[0])
 
-        label = scData.label
+        label = CoChain.label
 
         return SimplicialObject(X0, X1, X2, L0, L1, L2, label)
 

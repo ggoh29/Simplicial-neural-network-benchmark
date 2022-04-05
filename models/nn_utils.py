@@ -5,7 +5,7 @@ import numpy as np
 from scipy.sparse import coo_matrix
 import networkx as nx
 from utils import edge_to_node_matrix, triangle_to_edge_matrix
-from models.SCData import SCData
+from models.CoChain import CoChain
 import functools
 import scipy.sparse as sp
 
@@ -62,10 +62,10 @@ def correct_orientation(L, up_or_down):
     values[values < -1] = 1
     values = torch.sign(values)
 
-    return torch.sparse_coo_tensor(values, indices)
+    return torch.sparse_coo_tensor(indices, values)
 
 
-def convert_to_SC(adj, features, labels, X1=None, X2=None):
+def convert_to_CoChain(adj, features, labels, X1=None, X2=None):
     X0 = features
 
     nodes = [i for i in range(X0.shape[0])]
@@ -87,7 +87,7 @@ def convert_to_SC(adj, features, labels, X1=None, X2=None):
     if X2 is None:
         X2 = torch.tensor(triangles)
 
-    return SCData(X0, X1, X2, b1, b2, labels)
+    return CoChain(X0, X1, X2, b1, b2, labels)
 
 
 def repair_sparse(matrix, ideal_shape):

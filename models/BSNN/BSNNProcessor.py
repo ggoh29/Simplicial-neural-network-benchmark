@@ -57,17 +57,17 @@ class BSNNProcessor(NNProcessor):
     # This model is based on model described by Eric Bunch et al. in Simplicial 2-Complex Convolutional Neural Networks
     # Github here https://github.com/AmFamMLTeam/simplicial-2-complex-cnns
 
-    def _process(self, scData):
+    def _process(self, CoChain):
         def to_sparse(matrix, size):
             indices = matrix[0:2]
             values = matrix[2:3].squeeze()
             return torch.sparse_coo_tensor(indices, values, size)
 
-        X0, X1, X2 = scData.X0.cpu(), scData.X1.cpu(), scData.X2.cpu()
-        label = scData.label
+        X0, X1, X2 = CoChain.X0.cpu(), CoChain.X1.cpu(), CoChain.X2.cpu()
+        label = CoChain.label
 
         x0, x1, x2 = X0.shape[0], X1.shape[0], X2.shape[0]
-        B1, B2 = to_sparse(scData.b1, (x0, x1)).cpu(), to_sparse(scData.b2, (x1, x2)).cpu()
+        B1, B2 = to_sparse(CoChain.b1, (x0, x1)).cpu(), to_sparse(CoChain.b2, (x1, x2)).cpu()
 
         L0 = torch.sparse.mm(B1, B1.t())
         B1_v_abs, B1_i = torch.abs(B1.coalesce().values()), B1.coalesce().indices()
@@ -114,18 +114,18 @@ class BSNNProcessor(NNProcessor):
 
         return SimplicialObject(X0, X1, X2, L0, L1, L2, B2D3, D2B1TD1inv, D1invB1, B2TD2inv, label)
 
-    def process(self, scData):
+    def process(self, CoChain):
         # This does processing in a sparse format
         def to_sparse(matrix, size):
             indices = matrix[0:2]
             values = matrix[2:3].squeeze()
             return torch.sparse_coo_tensor(indices, values, size)
 
-        X0, X1, X2 = scData.X0.cpu(), scData.X1.cpu(), scData.X2.cpu()
-        label = scData.label
+        X0, X1, X2 = CoChain.X0.cpu(), CoChain.X1.cpu(), CoChain.X2.cpu()
+        label = CoChain.label
 
         x0, x1, x2 = X0.shape[0], X1.shape[0], X2.shape[0]
-        B1, B2 = to_sparse(scData.b1, (x0, x1)).cpu(), to_sparse(scData.b2, (x1, x2)).cpu()
+        B1, B2 = to_sparse(CoChain.b1, (x0, x1)).cpu(), to_sparse(CoChain.b2, (x1, x2)).cpu()
 
         L0 = torch.sparse.mm(B1, B1.t())
         B1_v_abs, B1_i = torch.abs(B1.coalesce().values()), B1.coalesce().indices()

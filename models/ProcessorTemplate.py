@@ -4,8 +4,8 @@ from abc import abstractmethod, ABC
 class NNProcessor(ABC):
 
 	@abstractmethod
-	def process(self, scData):
-		# Given a scData object, continue to process it until the structure can be stored in inmemorydataset
+	def process(self, CoChain):
+		# Given a CoChain object, continue to process it until the structure can be stored in inmemorydataset
 		pass
 
 	@abstractmethod

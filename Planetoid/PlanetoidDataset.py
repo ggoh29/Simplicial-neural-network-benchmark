@@ -2,7 +2,7 @@ from torch_geometric.datasets import Planetoid
 from torch_geometric.data import InMemoryDataset
 import numpy as np
 import torch
-from models.nn_utils import convert_to_SC, remove_diag_sparse, to_sparse_coo
+from models.nn_utils import convert_to_CoChain, remove_diag_sparse, to_sparse_coo
 from Planetoid.FakeDataset import gen_dataset
 
 
@@ -57,7 +57,7 @@ class PlanetoidSCDataset(InMemoryDataset):
 
         # features = preprocess_features(features)
         adj = remove_diag_sparse(adj)
-        dataset = convert_to_SC(adj, features, labels)
+        dataset = convert_to_CoChain(adj, features, labels)
         dataset = [self.processor_type.process(dataset)]
         data, slices = self.processor_type.collate(dataset)
         torch.save((data, slices), self.processed_paths[0])
@@ -71,7 +71,7 @@ class PlanetoidSCDataset(InMemoryDataset):
         adj = torch.triu(adj, diagonal=1).to_sparse()
         features = dataset.X0[idx_list]
         labels = dataset.label[idx_list]
-        dataset = convert_to_SC(adj, features, labels)
+        dataset = convert_to_CoChain(adj, features, labels)
         dataset = self.processor_type.process(dataset)
         data_dct = self.processor_type.batch([dataset])[0]
         data_dct = self.processor_type.clean_feature_dct(data_dct)

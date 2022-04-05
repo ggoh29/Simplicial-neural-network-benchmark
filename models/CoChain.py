@@ -5,7 +5,7 @@ def stl(t):
     "Shape to list"
     return list(t.shape)
 
-class SCData:
+class CoChain:
 
     def __init__(self, X0, X1, X2, b1, b2, label):
         self.X0 = X0
@@ -24,12 +24,12 @@ class SCData:
 
 
     def __str__(self):
-        name = f"SCData(X0={stl(self.X0)}, X1={stl(self.X1)}, X2={stl(self.X2)}," \
+        name = f"CoChain(X0={stl(self.X0)}, X1={stl(self.X1)}, X2={stl(self.X2)}," \
                f" b1={stl(self.b1)}, b2={stl(self.b2)}, label={stl(self.label)})"
         return name
 
     def __repr__(self):
-        name = f"SCData(X0={stl(self.X0)}, X1={stl(self.X1)}, X2={stl(self.X2)}," \
+        name = f"CoChain(X0={stl(self.X0)}, X1={stl(self.X1)}, X2={stl(self.X2)}," \
                f" b1={stl(self.b1)}, b2={stl(self.b2)}, label={stl(self.label)})"
         return name
 

@@ -1,7 +1,7 @@
 import torch
 from skimage.segmentation import slic
 from utils import triangle_to_edge_matrix, edge_to_node_matrix
-from models.SCData import SCData
+from models.CoChain import CoChain
 from skimage import color
 import numpy as np
 
@@ -58,7 +58,7 @@ class ImageProcessor:
         b2 = triangle_to_edge_matrix(triangles, edges)
         b2 = b2.to_sparse()
 
-        return SCData(X0, X1, X2, b1, b2, label)
+        return CoChain(X0, X1, X2, b1, b2, label)
 
 
 class AdversarialImageProcessor(ImageProcessor):
@@ -74,7 +74,7 @@ class AdversarialImageProcessor(ImageProcessor):
         b2 = triangle_to_edge_matrix(triangles, edges)
         b2 = b2.to_sparse()
 
-        return SCData(X0, X1, X2, b1, b2, label)
+        return CoChain(X0, X1, X2, b1, b2, label)
 
 
 class OrientatedImageProcessor(ImageProcessor):
@@ -101,4 +101,4 @@ class OrientatedImageProcessor(ImageProcessor):
         b2 = triangle_to_edge_matrix(triangles, edges)
         b2 = b2.to_sparse()
 
-        return SCData(X0, X1, X2, b1, b2, label)
+        return CoChain(X0, X1, X2, b1, b2, label)

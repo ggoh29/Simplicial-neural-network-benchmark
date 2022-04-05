@@ -74,7 +74,7 @@ class GATLayer(nn.Module):
 
 
 class SuperpixelGAT(nn.Module):
-    def __init__(self, input_size, output_size, k_heads=1):
+    def __init__(self, input_size, output_size, k_heads=2):
         super().__init__()
         # 10k = 60, 50k = 148
         f_size = 60
