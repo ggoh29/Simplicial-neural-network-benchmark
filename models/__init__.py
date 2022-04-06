@@ -1,8 +1,8 @@
 from models.GNN.model import SuperpixelGCN, SuperpixelGAT, PlanetoidGAT, PlanetoidGCN
-from models.ESNN.model import SuperpixelEbli, FlowEbli
-from models.BSNN.model import SuperpixelBunch, PlanetoidBunch, FlowBunch
-from models.SAT.model import SuperpixelSAT, FlowSAT
-from models.SAN.model import SuperpixelSAN, FlowSAN
+from models.ESNN.model import SuperpixelEbli, FlowEbli, TestEbli
+from models.BSNN.model import SuperpixelBunch, PlanetoidBunch, FlowBunch, TestBunch
+from models.SAT.model import SuperpixelSAT, FlowSAT, TestSAT
+from models.SAN.model import SuperpixelSAN, FlowSAN, TestSAN
 
 from models.GNN.GNNProcessor import GNNProcessor
 from models.ESNN.ESNNProcessor import ESNNProcessor
@@ -27,3 +27,8 @@ flow_SAT = [SATProcessor(), FlowSAT]
 flow_SAN = [SANProcessor(), FlowSAN]
 flow_ESNN = [ESNNProcessor(), FlowEbli]
 flow_BSNN = [BSNNProcessor(), FlowBunch]
+
+test_SAT = [SATProcessor(), TestSAT]
+test_SAN = [SANProcessor(), TestSAN]
+test_ESNN = [ESNNProcessor(), TestEbli]
+test_BSNN = [BSNNProcessor(), TestBunch]

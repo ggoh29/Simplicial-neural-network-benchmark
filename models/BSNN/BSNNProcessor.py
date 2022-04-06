@@ -2,9 +2,10 @@ from utils import ensure_input_is_tensor
 import torch
 import numpy as np
 from models.ProcessorTemplate import NNProcessor
-from models.nn_utils import convert_indices_and_values_to_sparse, \
-    batch_sparse_matrix, batch_all_feature_and_lapacian_pair
-from models.nn_utils import  unpack_feature_dct_to_L_X_B, repair_sparse, sparse_diag_identity, sparse_diag
+from models.nn_utils import batch_sparse_matrix, batch_all_feature_and_lapacian_pair
+from models.nn_utils import repair_sparse, sparse_diag_identity, sparse_diag, to_sparse_coo
+from models.SimplicialComplex import SimplicialComplex
+from constants import DEVICE
 
 
 def compute_d2(B):
@@ -19,23 +20,15 @@ def compute_d1(B, D):
     return 2 * torch.diag(diag)
 
 
-class SimplicialObject:
+class SCConvComplex(SimplicialComplex):
 
-    def __init__(self, X0, X1, X2, L0, L1, L2, B2D3, D2B1TD1inv, D1invB1, B2TD2inv, label):
-        self.X0 = X0
-        self.X1 = X1
-        self.X2 = X2
-
-        self.L0 = ensure_input_is_tensor(L0)
-        self.L1 = ensure_input_is_tensor(L1)
-        self.L2 = ensure_input_is_tensor(L2)
+    def __init__(self, X0, X1, X2, L0, L1, L2, B2D3, D2B1TD1inv, D1invB1, B2TD2inv, label, batch=None):
+        super().__init__(X0, X1, X2, L0, L1, L2, label, batch)
 
         self.B2D3 = ensure_input_is_tensor(B2D3)
         self.D2B1TD1inv = ensure_input_is_tensor(D2B1TD1inv)
         self.D1invB1 = ensure_input_is_tensor(D1invB1)
         self.B2TD2inv = ensure_input_is_tensor(B2TD2inv)
-
-        self.label = label
 
     def __eq__(self, other):
         x0 = torch.allclose(self.X0, other.X0, atol=1e-5)
@@ -50,6 +43,16 @@ class SimplicialObject:
         d4 = torch.allclose(self.B2TD2inv, other.B2TD2inv, atol=1e-5)
         label = torch.allclose(self.label, other.label, atol=1e-5)
         return all([x0, x1, x2, l0, l1, l2, d1, d2, d3, d4, label])
+
+    def unpack_others(self):
+        return self.B2D3, self.D2B1TD1inv, self.D1invB1, self.B2TD2inv
+    
+    def to_device(self):
+        super().to_device()
+        self.B2D3 = self.B2D3.to(DEVICE)
+        self.D2B1TD1inv = self.D2B1TD1inv.to(DEVICE)
+        self.D1invB1 = self.D1invB1.to(DEVICE)
+        self.B2TD2inv = self.B2TD2inv.to(DEVICE)
 
 
 class BSNNProcessor(NNProcessor):
@@ -112,7 +115,7 @@ class BSNNProcessor(NNProcessor):
         # L1 = (torch.eye(x1) - L1).to_sparse()
         # L2 = (torch.eye(x2) - L2).to_sparse()
 
-        return SimplicialObject(X0, X1, X2, L0, L1, L2, B2D3, D2B1TD1inv, D1invB1, B2TD2inv, label)
+        return SCConvComplex(X0, X1, X2, L0, L1, L2, B2D3, D2B1TD1inv, D1invB1, B2TD2inv, label)
 
     def process(self, CoChain):
         # This does processing in a sparse format
@@ -176,7 +179,7 @@ class BSNNProcessor(NNProcessor):
         D1invB1 = (1 / np.sqrt(2.)) * torch.sparse.mm(D1_inv, B1)
         B2TD2inv = torch.sparse.mm(B2.t(), D5inv)
 
-        return SimplicialObject(X0, X1, X2, L0, L1, L2, B2D3, D2B1TD1inv, D1invB1, B2TD2inv, label)
+        return SCConvComplex(X0, X1, X2, L0, L1, L2, B2D3, D2B1TD1inv, D1invB1, B2TD2inv, label)
 
     def collate(self, data_list):
         X0, X1, X2 = [], [], []
@@ -261,7 +264,7 @@ class BSNNProcessor(NNProcessor):
         D4 = torch.cat(D4, dim=-1).cpu()
         label = torch.cat(label, dim=-1).cpu()
         # D1, D2, D3, D4 = B2D3, D2B1TD1inv, D1invB1, B2TD2inv
-        data = SimplicialObject(X0, X1, X2, L0, L1, L2, D1, D2, D3, D4, label)
+        data = SCConvComplex(X0, X1, X2, L0, L1, L2, D1, D2, D3, D4, label)
 
         return data, slices
 
@@ -294,7 +297,7 @@ class BSNNProcessor(NNProcessor):
 
         label = data.label[label_slice[0]: label_slice[1]]
 
-        return SimplicialObject(X0, X1, X2, L0, L1, L2, D1, D2, D3, D4, label)
+        return SCConvComplex(X0, X1, X2, L0, L1, L2, D1, D2, D3, D4, label)
 
     def batch(self, objectList):
         def unpack_SimplicialObject(SimplicialObject):
@@ -332,22 +335,45 @@ class BSNNProcessor(NNProcessor):
         features_dct['d_values'] = D_v_batch
 
         labels = torch.cat(labels, dim=0)
-        return features_dct, labels
+        X0, X1, X2 = features_dct['features']
+        L0_i, L1_i, L2_i = features_dct['lapacian_indices']
+        L0_v, L1_v, L2_v = features_dct['lapacian_values']
+        D0_i, D1_i, D2_i, D3_i = features_dct['d_indices']
+        D0_v, D1_v, D2_v, D3_v = features_dct['d_values']
 
-    def clean_feature_dct(self, feature_dct):
-        feature_dct = convert_indices_and_values_to_sparse(feature_dct, 'lapacian_indices', 'lapacian_values',
-                                                           'lapacian')
-        return convert_indices_and_values_to_sparse(feature_dct, 'd_indices', 'd_values', 'others')
+        L0 = torch.cat([L0_i, L0_v.unsqueeze(0)], dim=0)
+        L1 = torch.cat([L1_i, L1_v.unsqueeze(0)], dim=0)
+        L2 = torch.cat([L2_i, L2_v.unsqueeze(0)], dim=0)
 
-    def repair(self, feature_dct):
+        D0 = torch.cat([D0_i, D0_v.unsqueeze(0)], dim=0)
+        D1 = torch.cat([D1_i, D1_v.unsqueeze(0)], dim=0)
+        D2 = torch.cat([D2_i, D2_v.unsqueeze(0)], dim=0)
+        D3 = torch.cat([D3_i, D3_v.unsqueeze(0)], dim=0)
+
+        batch = features_dct['batch_index']
+
+        scconvComplex = SCConvComplex(X0, X1, X2, L0, L1, L2, D0, D1, D2, D3, torch.tensor([0]), batch)
+        return scconvComplex, labels
+
+    def clean_features(self, scconvComplex):
+        scconvComplex.L0 = to_sparse_coo(scconvComplex.L0)
+        scconvComplex.L1 = to_sparse_coo(scconvComplex.L1)
+        scconvComplex.L2 = to_sparse_coo(scconvComplex.L2)
+        scconvComplex.B2D3 = to_sparse_coo(scconvComplex.B2D3)
+        scconvComplex.D2B1TD1inv = to_sparse_coo(scconvComplex.D2B1TD1inv)
+        scconvComplex.D1invB1 = to_sparse_coo(scconvComplex.D1invB1)
+        scconvComplex.B2TD2inv = to_sparse_coo(scconvComplex.B2TD2inv)
+        return scconvComplex
+
+    def repair(self, scconvComplex):
         # The last few rows/columns of the matrix might be empty and this info is lost when you convert it to a sparse matrix
-        _, X, _ = unpack_feature_dct_to_L_X_B(feature_dct)
-
-        X0, X1, X2 = X
+        X0, X1, X2 = scconvComplex.unpack_features()
 
         n, e, t = X0.shape[0], X1.shape[0], X2.shape[0]
 
-        ideal_shape = [(e, t), (e, n), (n, e), (t, e)]
-        feature_dct['others'] = [repair_sparse(m, s) for m, s in zip(feature_dct['others'], ideal_shape)]
+        scconvComplex.B2D3 = repair_sparse(scconvComplex.B2D3, (e, t))
+        scconvComplex.D2B1TD1inv = repair_sparse(scconvComplex.D2B1TD1inv, (e, n))
+        scconvComplex.D1invB1 = repair_sparse(scconvComplex.D1invB1, (n, e))
+        scconvComplex.B2TD2inv = repair_sparse(scconvComplex.B2TD2inv, (t, e))
 
-        return feature_dct
+        return scconvComplex

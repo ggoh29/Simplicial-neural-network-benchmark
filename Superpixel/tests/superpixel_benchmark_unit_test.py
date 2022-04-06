@@ -9,7 +9,7 @@ from torchvision import datasets
 from Superpixel.SuperpixelDataset import SuperpixelSCDataset
 from torch.utils.data import DataLoader
 from models import superpixel_GCN, superpixel_GAT, superpixel_ESNN, superpixel_BSNN, superpixel_SAT, superpixel_SAN
-from models.nn_utils import normalise, unpack_feature_dct_to_L_X_B
+from models.nn_utils import normalise
 from models.SAT.SATProcessor import SATProcessor
 import time
 
@@ -25,13 +25,13 @@ def train(NN, epoch_size, dataloader, optimizer, criterion, processor_type):
         epoch_train_running_loss = 0
         train_acc = 0
         i = 0
-        for features_dct, train_labels in dataloader:
-            features_dct = processor_type.clean_feature_dct(features_dct)
-            features_dct = processor_type.repair(features_dct)
-            features_dct = {key: convert_to_device(features_dct[key]) for key in features_dct}
+        for simplicialComplex, train_labels in dataloader:
+            simplicialComplex = processor_type.clean_features(simplicialComplex)
+            simplicialComplex = processor_type.repair(simplicialComplex)
+            simplicialComplex.to_device()
             train_labels = train_labels.to(DEVICE)
             optimizer.zero_grad()
-            prediction = NN(features_dct)
+            prediction = NN(simplicialComplex)
             loss = criterion(prediction, train_labels)
             loss.backward()
             optimizer.step()
@@ -66,12 +66,12 @@ class MyTestCase(unittest.TestCase):
         batch = [scData, scData, scData, scData]
         batch = [processor.process(i) for i in batch]
 
-        features_dct, _ = processor.batch(batch)
-        features_dct = processor.clean_feature_dct(features_dct)
-        lapacian, features, _ = unpack_feature_dct_to_L_X_B(features_dct)
-        lapacian, features = lapacian[0], features[0]
+        simplicialComplex, _ = processor.batch(batch)
+        simplicialComplex = processor.clean_feature_dct(simplicialComplex)
+        laplacian = simplicialComplex.L0
+        features = simplicialComplex.X0
 
-        features = torch.sparse.mm(lapacian, features)
+        features = torch.sparse.mm(laplacian, features)
 
         features_test = scData.X0
         b1 = tensor_to_sparse(scData.b1)
@@ -99,10 +99,10 @@ class MyTestCase(unittest.TestCase):
         batch = [scData, scData, scData, scData]
         batch = [processor.process(i) for i in batch]
 
-        features_dct, _ = processor.batch(batch)
-        features_dct = processor.clean_feature_dct(features_dct)
-        lapacian, features, _ = unpack_feature_dct_to_L_X_B(features_dct)
-        lapacian, features = lapacian[0], features[0]
+        simplicialComplex, _ = processor.batch(batch)
+        simplicialComplex = processor.clean_feature_dct(simplicialComplex)
+        laplacian = simplicialComplex.L0
+        features = simplicialComplex.X0
 
         b1 = tensor_to_sparse(scData.b1)
         lapacian_test = normalise(torch.sparse.mm(b1, b1.t())).to_dense()
@@ -113,7 +113,7 @@ class MyTestCase(unittest.TestCase):
 
         for _ in range(mulitplier):
             features_test = torch.sparse.mm(lapacian_test, features_test)
-            features = torch.sparse.mm(lapacian, features)
+            features = torch.sparse.mm(laplacian, features)
 
         features_test = torch.cat([features_test, features_test, features_test, features_test], dim=0)
 
@@ -130,20 +130,20 @@ class MyTestCase(unittest.TestCase):
         GNN = superpixel_GCN[1](5, 10).to(DEVICE)
         processor_type = superpixel_GCN[0]
 
-        data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, ImageProcessor, 5000,
+        data = SuperpixelSCDataset('../data', dataset, superpixel_size, edgeFlow, processor_type, ImageProcessor, 1000,
                                    train=True)
         batched_dataset = DataLoader(data, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=4,
                                      shuffle=False)
         individual_dataset = DataLoader(data, batch_size=1, collate_fn=processor_type.batch, num_workers=4,
                                         shuffle=False)
 
-        batched_predictions, _ = test(GNN, batched_dataset, processor_type)
+        _, _, _, batched_predictions = test(GNN, batched_dataset, processor_type)
         batched_predictions = torch.cat(batched_predictions, dim=0)
 
-        individual_predictions, _ = test(GNN, individual_dataset, processor_type)
+        _, _, _, individual_predictions = test(GNN, individual_dataset, processor_type)
         individual_predictions = torch.cat(individual_predictions, dim=0)
 
-        result = torch.allclose(individual_predictions, batched_predictions, atol=1e-5)
+        result = torch.allclose(individual_predictions, batched_predictions, atol=1e-4)
 
         self.assertTrue(result)
 
@@ -156,20 +156,21 @@ class MyTestCase(unittest.TestCase):
         GNN = superpixel_ESNN[1](5, 10, 15, 10).to(DEVICE)
         processor_type = superpixel_ESNN[0]
 
-        data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, ImageProcessor, 5000,
+        data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, ImageProcessor, 1000,
                                    train=True)
         batched_dataset = DataLoader(data, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=4,
                                      shuffle=False)
         individual_dataset = DataLoader(data, batch_size=1, collate_fn=processor_type.batch, num_workers=4,
                                         shuffle=False)
 
-        batched_predictions, _ = test(GNN, batched_dataset, processor_type)
+        _, _, _, batched_predictions = test(GNN, batched_dataset, processor_type)
         batched_predictions = torch.cat(batched_predictions, dim=0)
 
-        individual_predictions, _ = test(GNN, individual_dataset, processor_type)
+        _, _, _, individual_predictions = test(GNN, individual_dataset, processor_type)
         individual_predictions = torch.cat(individual_predictions, dim=0)
-
-        result = torch.allclose(individual_predictions, batched_predictions, atol=1e-5)
+        print(batched_predictions)
+        print(individual_predictions)
+        result = torch.allclose(individual_predictions, batched_predictions, atol=1e-4)
 
         self.assertTrue(result)
 
@@ -182,17 +183,17 @@ class MyTestCase(unittest.TestCase):
         GNN = superpixel_BSNN[1](5, 10, 15, 10).to(DEVICE)
         processor_type = superpixel_BSNN[0]
 
-        data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, ImageProcessor, 5000,
+        data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, ImageProcessor, 1000,
                                    train=True)
         batched_dataset = DataLoader(data, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=4,
                                      shuffle=False)
         individual_dataset = DataLoader(data, batch_size=1, collate_fn=processor_type.batch, num_workers=4,
                                         shuffle=False)
 
-        batched_predictions, _ = test(GNN, batched_dataset, processor_type)
+        _, _, _, batched_predictions = test(GNN, batched_dataset, processor_type)
         batched_predictions = torch.cat(batched_predictions, dim=0)
 
-        individual_predictions, _ = test(GNN, individual_dataset, processor_type)
+        _, _, _, individual_predictions = test(GNN, individual_dataset, processor_type)
         individual_predictions = torch.cat(individual_predictions, dim=0)
 
         result = torch.allclose(individual_predictions, batched_predictions, atol=1e-5)
@@ -208,7 +209,7 @@ class MyTestCase(unittest.TestCase):
         GNN = superpixel_SAT[1](5, 10, 15, 10).to(DEVICE)
         processor_type = superpixel_SAT[0]
 
-        data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, ImageProcessor, 5000,
+        data = SuperpixelSCDataset('../data', dataset, superpixel_size, edgeFlow, processor_type, ImageProcessor, 1000,
                                    train=True)
         batched_dataset = DataLoader(data, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=4,
                                      shuffle=False)
@@ -220,10 +221,10 @@ class MyTestCase(unittest.TestCase):
 
         _ = train(GNN, 1, batched_dataset, optimizer, criterion, processor_type)
 
-        batched_predictions, _ = test(GNN, batched_dataset, processor_type)
+        _, _, _, batched_predictions = test(GNN, batched_dataset, processor_type)
         batched_predictions = torch.cat(batched_predictions, dim=0)
 
-        individual_predictions, _ = test(GNN, individual_dataset, processor_type)
+        _, _, _, individual_predictions = test(GNN, individual_dataset, processor_type)
         individual_predictions = torch.cat(individual_predictions, dim=0)
 
         result = torch.allclose(individual_predictions, batched_predictions, atol=1e-5)
@@ -240,7 +241,7 @@ class MyTestCase(unittest.TestCase):
         GNN = superpixel_SAN[1](5, 10, 15, 10).to(DEVICE)
         processor_type = superpixel_SAN[0]
 
-        data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, ImageProcessor, 5000,
+        data = SuperpixelSCDataset('../data', dataset, superpixel_size, edgeFlow, processor_type, ImageProcessor, 1000,
                                    train=True)
         batched_dataset = DataLoader(data, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=4,
                                      shuffle=False)
@@ -252,10 +253,10 @@ class MyTestCase(unittest.TestCase):
 
         _ = train(GNN, 1, batched_dataset, optimizer, criterion, processor_type)
 
-        batched_predictions, _ = test(GNN, batched_dataset, processor_type)
+        _, _, _, batched_predictions = test(GNN, batched_dataset, processor_type)
         batched_predictions = torch.cat(batched_predictions, dim=0)
 
-        individual_predictions, _ = test(GNN, individual_dataset, processor_type)
+        _, _, _, individual_predictions = test(GNN, individual_dataset, processor_type)
         individual_predictions = torch.cat(individual_predictions, dim=0)
 
         result = torch.allclose(individual_predictions, batched_predictions, atol=1e-5)

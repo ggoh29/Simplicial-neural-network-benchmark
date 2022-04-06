@@ -2,8 +2,6 @@ import torch
 import torch.nn as nn
 from torch_geometric.nn import global_mean_pool
 import torch.nn.functional as F
-from models.nn_utils import unpack_feature_dct_to_L_X_B
-from constants import DEVICE
 import functools
 
 
@@ -22,12 +20,11 @@ class SATLayer(nn.Module):
         output : n * k dense matrix of new feature vectors
         """
         features = self.layer(features)
-
         indices = adj.coalesce().indices()
         values = adj.coalesce().values()
 
-        a_1 = self.a_1(features)
-        a_2 = self.a_2(features)
+        a_1 = self.a_1(features.abs())
+        a_2 = self.a_2(features.abs())
 
         v = (a_1 + a_2.T)[indices[0, :], indices[1, :]]
         e = torch.sparse_coo_tensor(indices, v)
@@ -67,13 +64,11 @@ class SuperpixelSAT(nn.Module):
 
         self.combined_layer = nn.Linear(3 * output_size, output_size)
 
-    def forward(self, features_dct):
-        L, X, batch = unpack_feature_dct_to_L_X_B(features_dct)
-
-        X0, X1, X2 = X
-        L0, L1_u, L1_d, L2 = L
-        batch0, batch1, batch2 = batch
-        L1 = [L1_u, L1_d]
+    def forward(self, simplicialComplex):
+        X0, X1, X2 = simplicialComplex.unpack_features()
+        L0, _, L2 = simplicialComplex.unpack_laplacians()
+        batch0, batch1, batch2 = simplicialComplex.unpack_batch()
+        L1 = simplicialComplex.unpack_up_down()
 
         x0_1 = F.relu(torch.cat([sat(X0, L0) for sat in self.layer0_1], dim=1))
         x0_2 = F.relu(torch.cat([sat(x0_1, L0) for sat in self.layer0_2], dim=1))
@@ -111,18 +106,38 @@ class FlowSAT(nn.Module):
         # self.layer3 = torch.nn.ModuleList([SATLayer(f_size, f_size // k_heads, bias) for _ in range(k_heads)])
         self.layer4 = torch.nn.ModuleList([SATLayer(f_size, output_size, bias) for _ in range(k_heads)])
 
-    def forward(self, features_dct):
-        L, X, batch = unpack_feature_dct_to_L_X_B(features_dct)
-
-        _, X1, _ = X
-        _, L1_u, L1_d, _ = L
-        _, batch1, _ = batch
-        L1 = [L1_u, L1_d]
+    def forward(self, simplicialComplex):
+        X0, X1, X2 = simplicialComplex.unpack_features()
+        L0, _, L2 = simplicialComplex.unpack_laplacians()
+        batch1 = simplicialComplex.unpack_batch()[0]
+        L1 = simplicialComplex.unpack_up_down()
 
         X1 = self.f(torch.cat([sat(X1, L) for L, sat in zip(L1, self.layer1)], dim=1))
         X1 = self.f(torch.cat([sat(X1, L) for L, sat in zip(L1, self.layer2)], dim=1))
-        # X1 = self.f(torch.cat([sat(X1, L, ud) for L, sat, ud in zip(L1, self.layer3, updown)], dim=1))
-        X1 = self.f(functools.reduce(lambda a, b: a + b, [sat(X1, L, ud) for L, sat, ud in zip(L1, self.layer4)]))
+        # X1 = self.f(torch.cat([sat(X1, L) for L, sat in zip(L1, self.layer3,)], dim=1))
+        X1 = self.f(functools.reduce(lambda a, b: a + b, [sat(X1, L) for L, sat in zip(L1, self.layer4)]))
         x = global_mean_pool(X1, batch1)
 
         return F.softmax(x, dim=1)
+
+
+class TestSAT(nn.Module):
+
+    def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size, bias=False, f=F.relu):
+        super().__init__()
+        k_heads = 2
+        self.layer1 = torch.nn.ModuleList([SATLayer(num_node_feats, output_size, bias) for _ in range(k_heads)])
+        self.layer2 = torch.nn.ModuleList([SATLayer(num_edge_feats, output_size, bias) for _ in range(k_heads)])
+        self.layer3 = torch.nn.ModuleList([SATLayer(num_triangle_feats, output_size, bias) for _ in range(k_heads)])
+        self.f = f
+
+    def forward(self, simplicialComplex):
+        X0, X1, X2 = simplicialComplex.unpack_features()
+        L0, _, L2 = simplicialComplex.unpack_laplacians()
+        L1 = simplicialComplex.unpack_up_down()
+
+        X0 = self.f(functools.reduce(lambda a, b: a + b, [sat(X0, L0) for sat in self.layer1]))
+        X1 = self.f(functools.reduce(lambda a, b: a + b, [sat(X1, L) for L, sat in zip(L1, self.layer2)]))
+        X2 = self.f(functools.reduce(lambda a, b: a + b, [sat(X2, L2) for sat in self.layer3]))
+
+        return X0, X1, X2

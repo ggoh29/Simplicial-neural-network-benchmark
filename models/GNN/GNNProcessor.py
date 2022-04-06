@@ -2,24 +2,26 @@ from utils import ensure_input_is_tensor
 import torch
 from models.nn_utils import to_sparse_coo
 from models.ProcessorTemplate import NNProcessor
-from models.nn_utils import batch_feature_and_lapacian_pair, convert_indices_and_values_to_sparse, \
-    repair_sparse, unpack_feature_dct_to_L_X_B
+from models.nn_utils import batch_feature_and_lapacian_pair, repair_sparse
+from models.SimplicialComplex import SimplicialComplex
+from constants import DEVICE
 
 
-class GraphObject:
+class GraphComplex(SimplicialComplex):
 
-    def __init__(self, X0, L0, label):
-        self.X0 = X0
-
-        self.L0 = ensure_input_is_tensor(L0)
-
-        self.label = label
+    def __init__(self, X0, L0, label, batch=None):
+        super().__init__(X0, None, None, L0, None, None, label, batch=batch)
 
     def __eq__(self, other):
         x0 = torch.allclose(self.X0, other.X0, atol=1e-5)
         L0 = torch.allclose(self.L0, other.L0, atol=1e-5)
         l0 = torch.allclose(self.label, other.label, atol=1e-5)
         return all([x0, L0, l0])
+
+    def to_device(self):
+        self.X0 = self.X0.to(DEVICE)
+        self.L0 = self.L0.to(DEVICE)
+        self.batch = [batch.to(DEVICE) for batch in self.batch]
 
 
 class GNNProcessor(NNProcessor):
@@ -31,7 +33,7 @@ class GNNProcessor(NNProcessor):
         L0 = torch.sparse.mm(b1, b1.t())
         label = CoChain.label
 
-        return GraphObject(X0, L0, label)
+        return GraphComplex(X0, L0, label)
 
     def collate(self, data_list):
         X0 = []
@@ -69,7 +71,7 @@ class GNNProcessor(NNProcessor):
         L0 = torch.cat(L0, dim=-1).cpu()
         label = torch.cat(label, dim=-1).cpu()
 
-        data = GraphObject(X0, L0, label)
+        data = GraphComplex(X0, L0, label)
 
         return data, slices
 
@@ -81,7 +83,7 @@ class GNNProcessor(NNProcessor):
         X0 = data.X0[x0_slice[0]: x0_slice[1]]
         L0 = data.L0[:, l0_slice[0]: l0_slice[1]]
         label = data.label[label_slice[0]: label_slice[1]]
-        return GraphObject(X0, L0, label)
+        return GraphComplex(X0, L0, label)
 
     def batch(self, objectList):
         def unpack_graphObject(graphObject):
@@ -102,18 +104,27 @@ class GNNProcessor(NNProcessor):
                         'batch_index': [batch_index]}
 
         labels = torch.cat(labels, dim=0)
-        return features_dct, labels
+        X0 = features_dct['features'][0]
+        L0_i = features_dct['lapacian_indices'][0]
+        L0_v = features_dct['lapacian_values'][0]
 
-    def clean_feature_dct(self, feature_dct):
-        return convert_indices_and_values_to_sparse(feature_dct, 'lapacian_indices', 'lapacian_values', 'lapacian')
+        L0 = torch.cat([L0_i, L0_v.unsqueeze(0)], dim=0)
 
-    def repair(self, feature_dct):
-        L, X, _ = unpack_feature_dct_to_L_X_B(feature_dct)
+        batch = features_dct['batch_index']
 
-        X0 = X[0]
+        complex = GraphComplex(X0, L0, torch.tensor([0]), batch)
 
+        return complex, labels
+
+    def clean_features(self, simplicialComplex):
+        simplicialComplex.L0 = to_sparse_coo(simplicialComplex.L0)
+        return simplicialComplex
+
+    def repair(self, simplicialComplex):
+        X0 = simplicialComplex.X0
         n = X0.shape[0]
+        L0 = simplicialComplex.L0
 
-        feature_dct['lapacian'] = [repair_sparse(L[0], (n, n))]
+        simplicialComplex.L0 = repair_sparse(L0, (n, n))
 
-        return feature_dct
+        return simplicialComplex

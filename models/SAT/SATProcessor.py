@@ -2,22 +2,18 @@ import torch
 from models.ProcessorTemplate import NNProcessor
 from utils import ensure_input_is_tensor
 from models.nn_utils import to_sparse_coo
-from models.nn_utils import batch_all_feature_and_lapacian_pair, convert_indices_and_values_to_sparse, correct_orientation
+from models.nn_utils import batch_all_feature_and_lapacian_pair, correct_orientation
+from models.SimplicialComplex import SimplicialComplex
+from constants import DEVICE
 
 
-class SimplicialObject:
+class SATComplex(SimplicialComplex):
 
-    def __init__(self, X0, X1, X2, L0, L1_up, L1_down, L2, label):
-        self.X0 = X0
-        self.X1 = X1
-        self.X2 = X2
+    def __init__(self, X0, X1, X2, L0, L1_up, L1_down, L2, label, batch=None):
+        super().__init__(X0, X1, X2, L0, None, L2, label, batch=batch)
 
-        self.L0 = ensure_input_is_tensor(L0)
         self.L1_up = ensure_input_is_tensor(L1_up)
         self.L1_down = ensure_input_is_tensor(L1_down)
-        self.L2 = ensure_input_is_tensor(L2)
-
-        self.label = label
 
     def __eq__(self, other):
         x0 = torch.allclose(self.X0, other.X0, atol=1e-5)
@@ -29,6 +25,14 @@ class SimplicialObject:
         l2 = torch.allclose(self.L2, other.L2, atol=1e-5)
         label = torch.allclose(self.label, other.label, atol=1e-5)
         return all([x0, x1, x2, l0, l1_u, l1_d, l2, label])
+
+    def unpack_up_down(self):
+        return [self.L1_up, self.L1_down]
+
+    def to_device(self):
+        super().to_device()
+        self.L1_up = self.L1_up.to(DEVICE)
+        self.L1_down = self.L1_down.to(DEVICE)
 
 
 class SATProcessor(NNProcessor):
@@ -55,7 +59,7 @@ class SATProcessor(NNProcessor):
 
         label = CoChain.label
 
-        return SimplicialObject(X0, X1, X2, L0, L1_up, L1_down, L2, label)
+        return SATComplex(X0, X1, X2, L0, L1_up, L1_down, L2, label)
 
     def collate(self, data_list):
         X0, X1, X2 = [], [], []
@@ -124,7 +128,7 @@ class SATProcessor(NNProcessor):
         L2 = torch.cat(L2, dim=-1).cpu()
         label = torch.cat(label, dim=-1).cpu()
 
-        data = SimplicialObject(X0, X1, X2, L0, L1_up, L1_down, L2, label)
+        data = SATComplex(X0, X1, X2, L0, L1_up, L1_down, L2, label)
 
         return data, slices
 
@@ -149,34 +153,50 @@ class SATProcessor(NNProcessor):
 
         label = data.label[label_slice[0]: label_slice[1]]
 
-        return SimplicialObject(X0, X1, X2, L0, L1_up, L1_dn, L2, label)
+        return SATComplex(X0, X1, X2, L0, L1_up, L1_dn, L2, label)
 
     def batch(self, objectList):
-        def unpack_SimplicialObject(SimplicialObject):
-            X0, X1, X2 = SimplicialObject.X0, SimplicialObject.X1, SimplicialObject.X2
-            L0, L1_u, L1_d, L2 = SimplicialObject.L0, SimplicialObject.L1_up, SimplicialObject.L1_down, SimplicialObject.L2
+        def unpack_SATComplex(SATComplex):
+            X0, X1, X2 = SATComplex.X0, SATComplex.X1, SATComplex.X2
+            L0, L1_u, L1_d, L2 = SATComplex.L0, SATComplex.L1_up, SATComplex.L1_down, SATComplex.L2
 
             L0_i, L0_v = L0[0:2], L0[2:3].squeeze()
             L1_u_i, L1_u_v = L1_u[0:2], L1_u[2:3].squeeze()
             L1_d_i, L1_d_v = L1_d[0:2], L1_d[2:3].squeeze()
             L2_i, L2_v = L2[0:2], L2[2:3].squeeze()
 
-            label = SimplicialObject.label
+            label = SATComplex.label
             return [X0, X1, X1, X2], [L0_i, L1_u_i, L1_d_i, L2_i], [L0_v, L1_u_v, L1_d_v, L2_v], label
 
-        unpacked_grapObject = [unpack_SimplicialObject(g) for g in objectList]
+        unpacked_grapObject = [unpack_SATComplex(g) for g in objectList]
         X, L_i, L_v, labels = [*zip(*unpacked_grapObject)]
         X, L_i, L_v = [*zip(*X)], [*zip(*L_i)], [*zip(*L_v)]
 
         features_dct = batch_all_feature_and_lapacian_pair(X, L_i, L_v)
 
         labels = torch.cat(labels, dim=0)
-        return features_dct, labels
 
-    def clean_feature_dct(self, feature_dct):
-        return convert_indices_and_values_to_sparse(feature_dct, 'lapacian_indices', 'lapacian_values', 'lapacian')
+        X0, X1, _, X2 = features_dct['features']
+        L0_i, L1_u_i, L1_d_i, L2_i = features_dct['lapacian_indices']
+        L0_v, L1_u_v, L1_d_v, L2_v = features_dct['lapacian_values']
 
-    def repair(self, feature_dct):
-        del feature_dct['features'][2]
-        del feature_dct['batch_index'][2]
-        return feature_dct
+        L0 = torch.cat([L0_i, L0_v.unsqueeze(0)], dim=0)
+        L1_u = torch.cat([L1_u_i, L1_u_v.unsqueeze(0)], dim=0)
+        L1_d = torch.cat([L1_d_i, L1_d_v.unsqueeze(0)], dim=0)
+        L2 = torch.cat([L2_i, L2_v.unsqueeze(0)], dim=0)
+
+        batch = features_dct['batch_index']
+        del batch[1]
+
+        complex = SATComplex(X0, X1, X2, L0, L1_u, L1_d, L2, torch.tensor([0]), batch)
+        return complex, labels
+
+    def clean_features(self, satComplex):
+        satComplex.L0 = to_sparse_coo(satComplex.L0)
+        satComplex.L1_up = to_sparse_coo(satComplex.L1_up)
+        satComplex.L1_down = to_sparse_coo(satComplex.L1_down)
+        satComplex.L2 = to_sparse_coo(satComplex.L2)
+        return satComplex
+
+    def repair(self, satComplex):
+        return satComplex

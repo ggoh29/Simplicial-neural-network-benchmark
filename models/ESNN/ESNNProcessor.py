@@ -2,34 +2,8 @@ import torch
 from models.ProcessorTemplate import NNProcessor
 from utils import ensure_input_is_tensor
 from models.nn_utils import to_sparse_coo
-from models.nn_utils import batch_all_feature_and_lapacian_pair, convert_indices_and_values_to_sparse, normalise, \
-    repair_sparse
-import numpy as np
-
-
-class SimplicialObject:
-
-    def __init__(self, X0, X1, X2, L0, L1, L2, label):
-        self.X0 = X0
-        self.X1 = X1
-        self.X2 = X2
-
-        # L0, L1 and L2 can either be sparse or dense but since python doesn't really have overloading, doing this instead
-        self.L0 = ensure_input_is_tensor(L0)
-        self.L1 = ensure_input_is_tensor(L1)
-        self.L2 = ensure_input_is_tensor(L2)
-
-        self.label = label
-
-    def __eq__(self, other):
-        x0 = torch.allclose(self.X0, other.X0, atol=1e-5)
-        x1 = torch.allclose(self.X1, other.X1, atol=1e-5)
-        x2 = torch.allclose(self.X2, other.X2, atol=1e-5)
-        l0 = torch.allclose(self.L0, other.L0, atol=1e-5)
-        l1 = torch.allclose(self.L1, other.L1, atol=1e-5)
-        l2 = torch.allclose(self.L2, other.L2, atol=1e-5)
-        label = torch.allclose(self.label, other.label, atol=1e-5)
-        return all([x0, x1, x2, l0, l1, l2, label])
+from models.nn_utils import batch_all_feature_and_lapacian_pair, normalise, repair_sparse
+from models.SimplicialComplex import SimplicialComplex
 
 
 class ESNNProcessor(NNProcessor):
@@ -59,7 +33,7 @@ class ESNNProcessor(NNProcessor):
 
         label = CoChain.label
 
-        return SimplicialObject(X0, X1, X2, L0, L1, L2, label)
+        return SimplicialComplex(X0, X1, X2, L0, L1, L2, label)
 
     def collate(self, data_list):
         X0, X1, X2 = [], [], []
@@ -119,7 +93,7 @@ class ESNNProcessor(NNProcessor):
         L2 = torch.cat(L2, dim=-1).cpu()
         label = torch.cat(label, dim=-1).cpu()
 
-        data = SimplicialObject(X0, X1, X2, L0, L1, L2, label)
+        data = SimplicialComplex(X0, X1, X2, L0, L1, L2, label)
 
         return data, slices
 
@@ -142,31 +116,46 @@ class ESNNProcessor(NNProcessor):
 
         label = data.label[label_slice[0]: label_slice[1]]
 
-        return SimplicialObject(X0, X1, X2, L0, L1, L2, label)
+        return SimplicialComplex(X0, X1, X2, L0, L1, L2, label)
 
     def batch(self, objectList):
-        def unpack_SimplicialObject(SimplicialObject):
-            X0, X1, X2 = SimplicialObject.X0, SimplicialObject.X1, SimplicialObject.X2
-            L0, L1, L2 = SimplicialObject.L0, SimplicialObject.L1, SimplicialObject.L2
+        def unpack_SimplicialComplex(SimplicialComplex):
+            X0, X1, X2 = SimplicialComplex.X0, SimplicialComplex.X1, SimplicialComplex.X2
+            L0, L1, L2 = SimplicialComplex.L0, SimplicialComplex.L1, SimplicialComplex.L2
 
             L0_i, L0_v = L0[0:2], L0[2:3].squeeze()
             L1_i, L1_v = L1[0:2], L1[2:3].squeeze()
             L2_i, L2_v = L2[0:2], L2[2:3].squeeze()
 
-            label = SimplicialObject.label
+            label = SimplicialComplex.label
             return [X0, X1, X2], [L0_i, L1_i, L2_i], [L0_v, L1_v, L2_v], label
 
-        unpacked_grapObject = [unpack_SimplicialObject(g) for g in objectList]
+        unpacked_grapObject = [unpack_SimplicialComplex(g) for g in objectList]
         X, L_i, L_v, labels = [*zip(*unpacked_grapObject)]
         X, L_i, L_v = [*zip(*X)], [*zip(*L_i)], [*zip(*L_v)]
 
         features_dct = batch_all_feature_and_lapacian_pair(X, L_i, L_v)
 
         labels = torch.cat(labels, dim=0)
-        return features_dct, labels
+        X0, X1, X2 = features_dct['features']
+        L0_i, L1_i, L2_i = features_dct['lapacian_indices']
+        L0_v, L1_v, L2_v = features_dct['lapacian_values']
 
-    def clean_feature_dct(self, feature_dct):
-        return convert_indices_and_values_to_sparse(feature_dct, 'lapacian_indices', 'lapacian_values', 'lapacian')
+        L0 = torch.cat([L0_i, L0_v.unsqueeze(0)], dim=0)
+        L1 = torch.cat([L1_i, L1_v.unsqueeze(0)], dim=0)
+        L2 = torch.cat([L2_i, L2_v.unsqueeze(0)], dim=0)
 
-    def repair(self, feature_dct):
-        return feature_dct
+        batch = features_dct['batch_index']
+
+        complex = SimplicialComplex(X0, X1, X2, L0, L1, L2, torch.tensor([0]), batch)
+
+        return complex, labels
+
+    def clean_features(self, complex):
+        complex.L0 = to_sparse_coo(complex.L0)
+        complex.L1 = to_sparse_coo(complex.L1)
+        complex.L2 = to_sparse_coo(complex.L2)
+        return complex
+
+    def repair(self, complex):
+        return complex

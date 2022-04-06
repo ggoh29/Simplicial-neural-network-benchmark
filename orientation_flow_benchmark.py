@@ -14,8 +14,8 @@ batch_size = 8
 f = torch.nn.Tanh()
 
 # nn_mod = flow_SAT
-nn_mod = flow_SAN
-# nn_mod = flow_ESNN
+# nn_mod = flow_SAN
+nn_mod = flow_ESNN
 # nn_mod = flow_BSNN
 
 processor_type = nn_mod[0]
@@ -25,13 +25,10 @@ model = model(input_size, input_size, input_size, output_size, f=f).to(DEVICE)
 optimiser = torch.optim.Adam(model.parameters(), lr=lr)
 loss_f = torch.nn.CrossEntropyLoss()
 
-def convert_to_device(lst):
-    return [i.to(DEVICE) for i in lst]
-
 
 if __name__ == "__main__":
 
-    data = FlowSCDataset('./data', processor_type)
+    data = FlowSCDataset('../data', processor_type)
     train_dataset, test_dataset = data.get_val_train_split()
 
     train_dataset = DataLoader(train_dataset, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=8,
@@ -42,13 +39,13 @@ if __name__ == "__main__":
     for j in range(nb_epochs):
         training_acc, i = 0, 0
         model.train()
-        for features_dct, train_labels in train_dataset:
-            features_dct = processor_type.clean_feature_dct(features_dct)
-            features_dct = processor_type.repair(features_dct)
-            features_dct = {key: convert_to_device(features_dct[key]) for key in features_dct}
+        for simplicialComplex, train_labels in train_dataset:
+            simplicialComplex = processor_type.clean_features(simplicialComplex)
+            simplicialComplex = processor_type.repair(simplicialComplex)
+            simplicialComplex.to_device()
             train_labels = train_labels.to(DEVICE)
             optimiser.zero_grad()
-            prediction = model(features_dct)
+            prediction = model(simplicialComplex)
             loss = loss_f(prediction, train_labels)
             loss.backward()
             optimiser.step()
@@ -62,12 +59,12 @@ if __name__ == "__main__":
     model.eval()
     testing_acc = 0
     i = 0
-    for features_dct, test_labels in test_dataset:
-        features_dct = processor_type.clean_feature_dct(features_dct)
-        features_dct = processor_type.repair(features_dct)
-        features_dct = {key: convert_to_device(features_dct[key]) for key in features_dct}
+    for simplicialComplex, test_labels in test_dataset:
+        simplicialComplex = processor_type.clean_features(simplicialComplex)
+        simplicialComplex = processor_type.repair(simplicialComplex)
+        simplicialComplex.to(DEVICE)
         test_labels = test_labels.to(DEVICE)
-        prediction = model(features_dct)
+        prediction = model(simplicialComplex)
 
         test_acc = (torch.argmax(prediction, 1).flatten() == test_labels).type(torch.float).mean().item()
         i += 1

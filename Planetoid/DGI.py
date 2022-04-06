@@ -10,15 +10,15 @@ import copy
 def convert_to_device(lst):
     return [i.to(DEVICE) for i in lst]
 
-def corruption_function(feature_dct, processor_type, p = 0.005):
-    L, X, batch = unpack_feature_dct_to_L_X_B(feature_dct)
-    X0 = X[0]
+def corruption_function(simplicialComplex, processor_type, p = 0.005):
+    L0 = simplicialComplex.L0
+    X0 = simplicialComplex.X0
     nb_nodes = X0.shape[0]
     idx = np.random.permutation(nb_nodes)
     # idx = [i for i in range(nb_nodes)]
     C_X0 = X0[idx]
 
-    L0_i = L[0].coalesce().indices().to(DEVICE)
+    L0_i = L0.coalesce().indices().to(DEVICE)
     L0_v = -torch.ones(L0_i.shape[1]).to(DEVICE)
     L0 = torch.sparse_coo_tensor(L0_i, L0_v).to(DEVICE)
     cor_adj_i = torch.triu_indices(nb_nodes, nb_nodes, 0).to(DEVICE)
@@ -39,7 +39,7 @@ def corruption_function(feature_dct, processor_type, p = 0.005):
     scData = convert_to_CoChain(cor_adj, C_X0, fake_labels)
     corrupted_train = processor_type.process(scData)
     corrupted_train = processor_type.batch([corrupted_train])[0]
-    corrupted_train = processor_type.clean_feature_dct(corrupted_train)
+    corrupted_train = processor_type.clean_features(corrupted_train)
     corrupted_train = processor_type.repair(corrupted_train)
 
     # corrupted_train = {feature : feature_dct[feature] for feature in feature_dct.keys()}
@@ -99,26 +99,25 @@ class DGI(nn.Module):
 
         self.disc = Discriminator(output_size)
 
-    def forward(self, feature_dct, processor_type):
-        corrupted_dct = corruption_function(feature_dct, processor_type)
-        feature_dct = {key: convert_to_device(feature_dct[key]) for key in feature_dct}
+    def forward(self, simplicialComplex, processor_type):
+        corrupted_complex = corruption_function(simplicialComplex, processor_type)
+        simplicialComplex.to_device()
+        corrupted_complex.to_device()
 
-        h_1 = self.model(feature_dct).unsqueeze(0)
+        h_1 = self.model(simplicialComplex).unsqueeze(0)
         c = self.read(h_1, None)
         c = self.sigm(c)
 
-        corrupted_dct = {key: convert_to_device(corrupted_dct[key]) for key in corrupted_dct}
-
-        h_2 = self.model(corrupted_dct).unsqueeze(0)
+        h_2 = self.model(corrupted_complex).unsqueeze(0)
 
         ret = self.disc(c, h_1, h_2)
 
         return ret
 
     # Detach the return variables
-    def embed(self, feature_dct):
-        feature_dct = {key: convert_to_device(feature_dct[key]) for key in feature_dct}
-        h_1 = self.model(feature_dct)
+    def embed(self, simplicialComplex):
+        simplicialComplex.to_device()
+        h_1 = self.model(simplicialComplex)
         c = self.read(h_1, None)
 
         return h_1.detach(), c.detach()

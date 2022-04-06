@@ -55,7 +55,7 @@ def train(NN, epoch_size, train_data, optimizer, criterion, processor_type):
         i, j = 0, 0
         NN.train()
         for features_dct, train_labels in train_dataset:
-            features_dct = processor_type.clean_feature_dct(features_dct)
+            features_dct = processor_type.clean_features(features_dct)
             features_dct = processor_type.repair(features_dct)
             features_dct = {key: convert_to_device(features_dct[key]) for key in features_dct}
             train_labels = train_labels.to(DEVICE)
@@ -70,12 +70,12 @@ def train(NN, epoch_size, train_data, optimizer, criterion, processor_type):
             training_acc += (train_acc - training_acc) / i
         t2 = time.perf_counter()
         NN.eval()
-        for features_dct, val_labels in val_dataset:
-            features_dct = processor_type.clean_feature_dct(features_dct)
-            features_dct = processor_type.repair(features_dct)
-            features_dct = {key: convert_to_device(features_dct[key]) for key in features_dct}
+        for simplicialComplex, val_labels in val_dataset:
+            simplicialComplex = processor_type.clean_features(simplicialComplex)
+            simplicialComplex = processor_type.repair(simplicialComplex)
+            simplicialComplex.to_device()
             val_labels = val_labels.to(DEVICE)
-            prediction = NN(features_dct)
+            prediction = NN(simplicialComplex)
             val_acc = (torch.argmax(prediction, 1).flatten() == val_labels).type(torch.float).mean().item()
             j += 1
             validation_acc += (val_acc - validation_acc) / j
@@ -101,12 +101,12 @@ def test(NN, dataloader, processor_type):
     top_5_error = 0
     predictions = []
     with torch.no_grad():
-        for features_dct, test_labels in dataloader:
-            features_dct = processor_type.clean_feature_dct(features_dct)
-            features_dct = processor_type.repair(features_dct)
-            features_dct = {key: convert_to_device(features_dct[key]) for key in features_dct}
+        for simplicialComplex, test_labels in dataloader:
+            simplicialComplex = processor_type.clean_features(simplicialComplex)
+            simplicialComplex = processor_type.repair(simplicialComplex)
+            simplicialComplex.to_device()
             test_labels = test_labels.to(DEVICE)
-            prediction = NN(features_dct)
+            prediction = NN(simplicialComplex)
             top_3_error += top_n_error_rate(prediction, test_labels, 3)
             top_5_error += top_n_error_rate(prediction, test_labels, 5)
             test_acc += (torch.argmax(prediction, 1).flatten() == test_labels).type(torch.float).mean().item()
@@ -115,7 +115,7 @@ def test(NN, dataloader, processor_type):
 
     print(
         f"Test accuracy of {test_acc / i}, top 3 error rate of {1 - (top_3_error / i)}, top 5 error rate of {1 - (top_5_error / i)}")
-    return (test_acc / i), top_3_error / i, top_5_error / i
+    return (test_acc / i), top_3_error / i, top_5_error / i, predictions
 
 
 def run(processor_type, NN, output_suffix):
@@ -139,7 +139,7 @@ def run(processor_type, NN, output_suffix):
     average_time, train_acc, val_acc = train(NN, 100, train_data, optimizer, criterion, processor_type)
 
     NN.load_state_dict(torch.load(f'./data/{NN.__class__.__name__}_nn.pkl'))
-    test_acc, top_3_error, top_5_error = test(NN, test_dataset, processor_type)
+    test_acc, top_3_error, top_5_error, _ = test(NN, test_dataset, processor_type)
 
     s = f"""Dataset: {dataset},\nModel: {NN.__class__.__name__}\n\nparams={params}\n\n
     FINAL RESULTS\nTEST ACCURACY: {test_acc:.4f}\nTRAIN ACCURACY: {train_acc:.4f}\n\n

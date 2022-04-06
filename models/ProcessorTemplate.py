@@ -1,5 +1,5 @@
 from abc import abstractmethod, ABC
-
+from models.SimplicialComplex import SimplicialComplex
 
 class NNProcessor(ABC):
 
@@ -14,7 +14,7 @@ class NNProcessor(ABC):
 		pass
 
 	@abstractmethod
-	def get(self, data, slice : dict, idx : int):
+	def get(self, data: SimplicialComplex, slice : dict, idx : int):
 		# Given an index and a collated object, take out the individual object
 		pass
 
@@ -26,7 +26,7 @@ class NNProcessor(ABC):
 		pass
 
 	@abstractmethod
-	def clean_feature_dct(self, feature_dct: dict):
+	def clean_features(self, simplicialComplex: SimplicialComplex):
 		# Torch sparse matrix cannot be used during multiprocessing. One way of getting past that is storing the
 		# indices and values as separate tensors and combining them again when single threaded. This is done in this function
 		pass

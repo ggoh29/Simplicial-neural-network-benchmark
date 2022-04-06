@@ -1,5 +1,5 @@
 from Planetoid.PlanetoidDataset import PlanetoidSCDataset
-from models import planetoid_BSNN
+from models import planetoid_BSNN, planetoid_GAT, planetoid_GCN
 import torch.nn as nn
 import torch
 from Planetoid.DGI import DGI
@@ -18,9 +18,9 @@ lr = 0.001
 l2_coef = 0.0
 patience = 20
 
-# nn_mod = planetoid_gnn
-nn_mod = planetoid_BSNN
-# nn_mod = planetoid_gat
+nn_mod = planetoid_GCN
+# nn_mod = planetoid_BSNN
+# nn_mod = planetoid_GAT
 
 processor_type = nn_mod[0]
 model = nn_mod[1]

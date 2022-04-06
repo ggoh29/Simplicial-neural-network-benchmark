@@ -4,9 +4,9 @@ import torch
 import numpy as np
 from nn_utils import convert_to_CoChain, torch_sparse_to_scipy_sparse, scipy_sparse_to_torch_sparse, to_sparse_coo
 from scipy import sparse
-from models import SuperpixelBunch, flow_SAT, flow_SAN, flow_BSNN, flow_ESNN
+from models import SuperpixelBunch, test_SAN, test_SAT, test_BSNN, test_ESNN
 from CoChain import CoChain
-from torch_geometric.nn import global_mean_pool
+
 
 def Bunch_github_processing(B1, B2):
     # This is directly from Eric Bunch's code https://github.com/AmFamMLTeam/simplicial-2-complex-cnns/blob/main/mnist-classification/scripts/prepare_data.py#L349
@@ -16,7 +16,7 @@ def Bunch_github_processing(B1, B2):
     B1_sum_inv = 1. / B1_sum
     B1_sum_inv[np.isinf(B1_sum_inv) | np.isneginf(B1_sum_inv)] = 0
     D0_inv = sparse.diags(B1_sum_inv.A.reshape(-1), 0)
-    L0 = D0_inv@L0
+    L0 = D0_inv @ L0
     L0factor = (-1) * sparse.diags((1 / (B1_sum_inv + 1)).A.reshape(-1), 0)
     L0bias = sparse.identity(n=D0.shape[0])
     L0 = L0factor @ L0 + L0bias
@@ -49,7 +49,7 @@ def Bunch_github_processing(B1, B2):
 
     B2_sum = abs(B2).sum(axis=1)
     B2_sum_inv = 1 / (B2_sum + 1)
-    B2_sum_inv = np.squeeze(np.asarray(B2_sum_inv ))
+    B2_sum_inv = np.squeeze(np.asarray(B2_sum_inv))
     D5inv = sparse.diags(B2_sum_inv, 0)
 
     A_2d = sparse.identity(n=B2.shape[1]) + B2.T @ D5inv @ B2
@@ -76,24 +76,24 @@ def to_sparse(matrix, size):
 def generate_oriented_flow_pair():
     # This is the complex from slide 19 of https://crisbodnar.github.io/files/mml_talk.pdf
     B1 = torch.tensor([
-        [-1, -1,  0,  0,  0,  0],
-        [+1,  0, -1,  0,  0, +1],
-        [ 0, +1,  0, -1,  0, -1],
-        [ 0,  0, +1, +1, -1,  0],
-        [ 0,  0,  0,  0, +1,  0],
-    ])
+        [-1, -1, 0, 0, 0, 0],
+        [+1, 0, -1, 0, 0, +1],
+        [0, +1, 0, -1, 0, -1],
+        [0, 0, +1, +1, -1, 0],
+        [0, 0, 0, 0, +1, 0],
+    ], dtype=torch.float)
 
     B2 = torch.tensor([
-        [-1,  0],
-        [+1,  0],
-        [ 0, +1],
-        [ 0, -1],
-        [ 0,  0],
+        [-1, 0],
+        [+1, 0],
+        [0, +1],
+        [0, -1],
+        [0, 0],
         [+1, +1],
-    ])
+    ], dtype=torch.float)
 
-    X1 = torch.tensor([[1.0], [0.0], [0.0], [1.0], [1.0], [-1.0]])
-    T2 = torch.diagonal(torch.tensor([+1.0, +1.0, +1.0, +1.0, -1.0, -1.0]))
+    X1 = torch.tensor([[1.0], [0.0], [0.0], [1.0], [1.0], [-1.0]], dtype=torch.float)
+    T2 = torch.diag(torch.tensor([+1.0, +1.0, +1.0, +1.0, -1.0, -1.0], dtype=torch.float))
 
     X0, X2 = torch.zeros((B1.shape[0], 1)), torch.zeros((B2.shape[1], 1))
     label = torch.tensor([0])
@@ -106,12 +106,12 @@ def generate_oriented_flow_pair():
 
     cochain2 = CoChain(X0, X1, X2, B1.to_sparse(), B2.to_sparse(), label)
 
-    return cochain1, cochain2
+    return cochain1, cochain2, T2
 
 
 def process_cochain(cochain, processor):
     g = processor.process(cochain)
-    feature_dct, _ = processor.batch(g)
+    feature_dct, _ = processor.batch([g])
     feature_dct = processor.clean_feature_dct(feature_dct)
     feature_dct = processor.repair(feature_dct)
     return feature_dct
@@ -134,7 +134,7 @@ class MyTestCase(unittest.TestCase):
 
         b1, b2 = to_sparse(sc_data.b1, (x0, x1)), to_sparse(sc_data.b2, (x1, x2))
 
-        B1, B2 =  torch_sparse_to_scipy_sparse(b1), torch_sparse_to_scipy_sparse(b2)
+        B1, B2 = torch_sparse_to_scipy_sparse(b1), torch_sparse_to_scipy_sparse(b2)
         results = Bunch_github_processing(B1, B2)
         processor = SuperpixelBunch[0]
         bunch_results = [scipy_sparse_to_torch_sparse(sparse.coo_matrix(matrix)).to_dense() for matrix in results]
@@ -158,30 +158,76 @@ class MyTestCase(unittest.TestCase):
         self.assertTrue(torch.allclose(D1invB1, D1invB1_b, atol=1e-5))
         self.assertTrue(torch.allclose(B2TD2inv, B2TD2inv_b, atol=1e-5))
 
-
     def test_orientation_equivariance_Ebli(self):
         f = torch.nn.Tanh()
         input_size, output_size = 1, 1
 
-        processor_type = flow_ESNN[1]
-        model = flow_ESNN[0](input_size, input_size, input_size, output_size, f=f)
+        module = test_ESNN
+        processor_type = module[0]
+        model = module[1](input_size, input_size, input_size, output_size, f=f)
 
-        chain1, chain2 = generate_oriented_flow_pair()
+        chain1, chain2, T2 = generate_oriented_flow_pair()
         f1 = process_cochain(chain1, processor_type)
         f2 = process_cochain(chain2, processor_type)
 
-        result1 = model(f1)
-        result2 = model(f2)
+        _, result1, _ = model(f1)
+        _, result2, _ = model(f2)
+
+        self.assertTrue(torch.allclose(T2 @ result1, result2, atol=1e-5))
+
+    def test_orientation_equivariance_Bunch(self):
+        f = torch.nn.Tanh()
+        input_size, output_size = 1, 1
+
+        module = test_BSNN
+        processor_type = module[0]
+        model = module[1](input_size, input_size, input_size, output_size, f=f)
+
+        chain1, chain2, T2 = generate_oriented_flow_pair()
+        f1 = process_cochain(chain1, processor_type)
+        f2 = process_cochain(chain2, processor_type)
+
+        _, result1, _ = model(f1)
+        _, result2, _ = model(f2)
+
+        self.assertTrue(torch.allclose(T2 @ result1, result2, atol=1e-5))
+
+    def test_orientation_equivariance_SAT(self):
+        f = torch.nn.Tanh()
+        input_size, output_size = 1, 1
+
+        module = test_SAT
+        processor_type = module[0]
+        model = module[1](input_size, input_size, input_size, output_size, f=f)
+
+        chain1, chain2, T2 = generate_oriented_flow_pair()
+        f1 = process_cochain(chain1, processor_type)
+        f2 = process_cochain(chain2, processor_type)
+
+        _, result1, _ = model(f1)
+        _, result2, _ = model(f2)
+
+        self.assertTrue(torch.allclose(T2 @ result1, result2, atol=1e-5))
+
+    def test_orientation_equivariance_SAN(self):
+        f = torch.nn.Tanh()
+        input_size, output_size = 1, 1
+
+        module = test_SAN
+        processor_type = module[0]
+        model = module[1](input_size, input_size, input_size, output_size, f=f)
+
+        chain1, chain2, T2 = generate_oriented_flow_pair()
+        f1 = process_cochain(chain1, processor_type)
+        f2 = process_cochain(chain2, processor_type)
+
+        _, result1, _ = model(f1)
+        _, result2, _ = model(f2)
 
         print(result1)
         print(result2)
 
-
-
-
-
-
-
+        self.assertTrue(torch.allclose(T2 @ result1, result2, atol=1e-5))
 
 
 if __name__ == '__main__':

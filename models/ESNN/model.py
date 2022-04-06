@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from torch_geometric.nn import global_mean_pool
 import torch.nn.functional as F
-from models.nn_utils import chebyshev, unpack_feature_dct_to_L_X_B
+from models.nn_utils import chebyshev
 
 
 class SCNLayer(nn.Module):
@@ -45,11 +45,10 @@ class SuperpixelEbli(nn.Module):
 
         self.combined_layer = nn.Linear(output_size * 3, output_size)
 
-    def forward(self, features_dct):
-        L, X, batch = unpack_feature_dct_to_L_X_B(features_dct)
-
-        X0, X1, X2 = X
-        L0, L1, L2 = L
+    def forward(self, simplicialComplex):
+        X0, X1, X2 = simplicialComplex.unpack_features()
+        L0, L1, L2 = simplicialComplex.unpack_laplacians()
+        batch = simplicialComplex.unpack_batch()
 
         out0_1 = nn.LeakyReLU()(self.C0_1(L0, X0))
         out0_2 = nn.LeakyReLU()(self.C0_2(L0, out0_1))
@@ -71,14 +70,11 @@ class SuperpixelEbli(nn.Module):
         out1 = global_mean_pool(out1, batch[1])
         out2 = global_mean_pool(out2, batch[2])
 
-        # return F.softmax((out0 + out1 + out2)/3)
         out = torch.cat([out0, out1, out2], dim=1)
         return F.softmax(self.combined_layer(out), dim=1)
 
 
 class FlowEbli(nn.Module):
-    # This model is based on model described by Stefanie Ebli et al. in Simplicial Neural Networks
-    # Github here https://github.com/stefaniaebli/simplicial_neural_networks?utm_source=catalyzex.com
     def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size, bias=False, f=nn.LeakyReLU()):
         super().__init__()
 
@@ -91,11 +87,10 @@ class FlowEbli(nn.Module):
         self.layer4 = SCNLayer(conv_size, output_size, enable_bias=bias)
         self.f = f
 
-    def forward(self, features_dct):
-        L, X, batch = unpack_feature_dct_to_L_X_B(features_dct)
-
-        _, X1, _ = X
-        _, L1, _ = L
+    def forward(self, simplicialComplex):
+        _, X1, _ = simplicialComplex.unpack_features()
+        _, L1, _ = simplicialComplex.unpack_laplacians()
+        batch = simplicialComplex.unpack_batch()
 
         X1 = self.f(self.layer1(L1, X1))
         X1 = self.f(self.layer2(L1, X1))
@@ -105,3 +100,23 @@ class FlowEbli(nn.Module):
         X1 = global_mean_pool(X1, batch[1])
 
         return F.softmax(X1, dim=1)
+
+
+class TestEbli(nn.Module):
+    def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size, bias=False, f=nn.LeakyReLU()):
+        super().__init__()
+
+        self.layer1 = SCNLayer(num_node_feats, output_size, enable_bias=bias)
+        self.layer2 = SCNLayer(num_edge_feats, output_size, enable_bias=bias)
+        self.layer3 = SCNLayer(num_triangle_feats, output_size, enable_bias=bias)
+        self.f = f
+
+    def forward(self, simplicialComplex):
+        X0, X1, X2 = simplicialComplex.unpack_features()
+        L0, L1, L2 = simplicialComplex.unpack_laplacians()
+
+        X0 = self.f(self.layer1(L0, X0))
+        X1 = self.f(self.layer2(L1, X1))
+        X2 = self.f(self.layer3(L2, X2))
+
+        return X0, X1, X2

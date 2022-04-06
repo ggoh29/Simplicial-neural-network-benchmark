@@ -197,19 +197,3 @@ def batch_sparse_matrix(L_i_list, L_v_list, size_x, size_y):
     I_cat = torch.cat(L_i_list, dim=1)
     V_cat = torch.cat(L_v_list, dim=0)
     return I_cat, V_cat
-
-
-def convert_indices_and_values_to_sparse(feature_dct, indices_key, value_key, output_key):
-    lapacian = []
-    indices, values = feature_dct[indices_key], feature_dct[value_key]
-    for i, v in zip(indices, values):
-        lapacian.append(torch.sparse_coo_tensor(i, v))
-    feature_dct[output_key] = lapacian
-    feature_dct.pop(indices_key)
-    feature_dct.pop(value_key)
-    return feature_dct
-
-
-def unpack_feature_dct_to_L_X_B(dct):
-    # unpack to lapacian, features and batch
-    return dct['lapacian'], dct['features'], dct['batch_index']

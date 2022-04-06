@@ -37,7 +37,7 @@ class PlanetoidSCDataset(InMemoryDataset):
             self.data_download = gen_dataset()
         else:
             self.data_download = Planetoid(self.root, self.dataset_name)[0]
-
+        print(type(self.data_download))
         nodes = self.data_download.x.shape[0]
         self.nodes = np.array([i for i in range(nodes)])
 
@@ -74,31 +74,31 @@ class PlanetoidSCDataset(InMemoryDataset):
         dataset = convert_to_CoChain(adj, features, labels)
         dataset = self.processor_type.process(dataset)
         data_dct = self.processor_type.batch([dataset])[0]
-        data_dct = self.processor_type.clean_feature_dct(data_dct)
+        data_dct = self.processor_type.clean_features(data_dct)
         return data_dct
 
     def get_full(self):
-        data_dct = self.get(0)
-        data_dct = self.processor_type.batch([data_dct])[0]
-        data_dct = self.processor_type.clean_feature_dct(data_dct)
-        data_dct = self.processor_type.repair(data_dct)
-        return data_dct
+        simplicialComplex = self.get(0)
+        simplicialComplex = self.processor_type.batch([simplicialComplex])[0]
+        simplicialComplex = self.processor_type.clean_features(simplicialComplex)
+        simplicialComplex = self.processor_type.repair(simplicialComplex)
+        return simplicialComplex
 
     def get_train_labels(self):
-        data_dct = self.get(0)
-        return data_dct.label[self.train_split]
+        simplicialComplex = self.get(0)
+        return simplicialComplex.label[self.train_split]
 
     def get_val_labels(self):
-        data_dct = self.get(0)
-        return data_dct.label[self.val_split]
+        simplicialComplex = self.get(0)
+        return simplicialComplex.label[self.val_split]
 
     def get_test_labels(self):
-        data_dct = self.get(0)
-        return data_dct.label[self.test_split]
+        simplicialComplex = self.get(0)
+        return simplicialComplex.label[self.test_split]
 
     def get_labels(self):
-        data_dct = self.get(0)
-        return data_dct.label
+        simplicialComplex = self.get(0)
+        return simplicialComplex.label
 
     def get_train_embeds(self, embeds):
         return embeds[self.train_split]
