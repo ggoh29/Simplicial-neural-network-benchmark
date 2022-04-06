@@ -103,9 +103,8 @@ class FlowEbli(nn.Module):
 
 
 class TestEbli(nn.Module):
-    def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size, bias=False, f=nn.LeakyReLU()):
+    def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size, bias=False, f=nn.Identity()):
         super().__init__()
-
         self.layer1 = SCNLayer(num_node_feats, output_size, enable_bias=bias)
         self.layer2 = SCNLayer(num_edge_feats, output_size, enable_bias=bias)
         self.layer3 = SCNLayer(num_triangle_feats, output_size, enable_bias=bias)

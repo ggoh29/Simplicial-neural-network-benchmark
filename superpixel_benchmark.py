@@ -54,13 +54,13 @@ def train(NN, epoch_size, train_data, optimizer, criterion, processor_type):
         val_acc, validation_acc = 0, 0
         i, j = 0, 0
         NN.train()
-        for features_dct, train_labels in train_dataset:
-            features_dct = processor_type.clean_features(features_dct)
-            features_dct = processor_type.repair(features_dct)
-            features_dct = {key: convert_to_device(features_dct[key]) for key in features_dct}
+        for simplicialComplex, train_labels in train_dataset:
+            simplicialComplex = simplicialComplex.to_device()
+            simplicialComplex = processor_type.clean_features(simplicialComplex)
+            simplicialComplex = processor_type.repair(simplicialComplex)
             train_labels = train_labels.to(DEVICE)
             optimizer.zero_grad()
-            prediction = NN(features_dct)
+            prediction = NN(simplicialComplex)
             loss = criterion(prediction, train_labels)
             loss.backward()
             optimizer.step()
@@ -71,9 +71,9 @@ def train(NN, epoch_size, train_data, optimizer, criterion, processor_type):
         t2 = time.perf_counter()
         NN.eval()
         for simplicialComplex, val_labels in val_dataset:
+            simplicialComplex = simplicialComplex.to_device()
             simplicialComplex = processor_type.clean_features(simplicialComplex)
             simplicialComplex = processor_type.repair(simplicialComplex)
-            simplicialComplex.to_device()
             val_labels = val_labels.to(DEVICE)
             prediction = NN(simplicialComplex)
             val_acc = (torch.argmax(prediction, 1).flatten() == val_labels).type(torch.float).mean().item()
@@ -102,9 +102,9 @@ def test(NN, dataloader, processor_type):
     predictions = []
     with torch.no_grad():
         for simplicialComplex, test_labels in dataloader:
+            simplicialComplex = simplicialComplex.to_device()
             simplicialComplex = processor_type.clean_features(simplicialComplex)
             simplicialComplex = processor_type.repair(simplicialComplex)
-            simplicialComplex.to_device()
             test_labels = test_labels.to(DEVICE)
             prediction = NN(simplicialComplex)
             top_3_error += top_n_error_rate(prediction, test_labels, 3)

@@ -108,12 +108,10 @@ class PlanetoidBunch(nn.Module):
 
         self.tri_layer = nn.Linear(output_size, output_size)
 
-    def forward(self, feature_dct):
-        L, X, batch = unpack_feature_dct_to_L_X_B(feature_dct)
-        B2D3, D2B1TD1inv, D1invB1, B2TD2inv = feature_dct['others']
-
-        X0, X1, X2 = X
-        L0, L1, L2 = L
+    def forward(self, simplicialComplex):
+        X0, X1, X2 = simplicialComplex.unpack_features()
+        L0, L1, L2 = simplicialComplex.unpack_laplacians()
+        B2D3, D2B1TD1inv, D1invB1, B2TD2inv = simplicialComplex.unpack_others()
 
         X0[X0 != 0] = 1
 

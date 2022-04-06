@@ -14,7 +14,7 @@ class SimplicialComplex:
         self.L0 = ensure_input_is_tensor(L0)
         if L1 is not None:
             self.L1 = ensure_input_is_tensor(L1)
-        else :
+        else:
             self.L1 = L1
         if L2 is not None:
             self.L2 = ensure_input_is_tensor(L2)

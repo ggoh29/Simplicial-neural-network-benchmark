@@ -19,7 +19,6 @@ class SuperpixelGCN(nn.Module):
         X0, _, _ = simplicialComplex.unpack_features()
         L0, _, _ = simplicialComplex.unpack_laplacians()
         batch = simplicialComplex.unpack_batch()
-
         adjacency = L0.coalesce().indices()
 
         x1 = F.relu(self.conv1(X0, adjacency))

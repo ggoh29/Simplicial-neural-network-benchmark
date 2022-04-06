@@ -61,13 +61,13 @@ def train(NN, epoch_size, train_data, optimizer, criterion, processor_type):
         val_acc, validation_acc = 0, 0
         i, j = 0, 0
         NN.train()
-        for features_dct, train_labels in train_dataset:
-            features_dct = processor_type.clean_features(features_dct)
-            features_dct = processor_type.repair(features_dct)
-            features_dct = {key: convert_to_device(features_dct[key]) for key in features_dct}
+        for simplicialComplex, train_labels in train_dataset:
+            simplicialComplex = processor_type.clean_features(simplicialComplex)
+            simplicialComplex = processor_type.repair(simplicialComplex)
+            simplicialComplex.to_device()
             train_labels = train_labels.to(DEVICE)
             optimizer.zero_grad()
-            prediction = NN(features_dct)
+            prediction = NN(simplicialComplex)
             loss = criterion(prediction, train_labels)
             loss.backward()
             optimizer.step()
@@ -77,12 +77,12 @@ def train(NN, epoch_size, train_data, optimizer, criterion, processor_type):
             training_acc += (train_acc - training_acc) / i
         t2 = time.perf_counter()
         NN.eval()
-        for features_dct, val_labels in val_dataset:
-            features_dct = processor_type.clean_features(features_dct)
-            features_dct = processor_type.repair(features_dct)
-            features_dct = {key: convert_to_device(features_dct[key]) for key in features_dct}
+        for simplicialComplex, val_labels in val_dataset:
+            simplicialComplex = simplicialComplex.to_device()
+            simplicialComplex = processor_type.clean_features(simplicialComplex)
+            simplicialComplex = processor_type.repair(simplicialComplex)
             val_labels = val_labels.to(DEVICE)
-            prediction = NN(features_dct)
+            prediction = NN(simplicialComplex)
             val_acc = (torch.argmax(prediction, 1).flatten() == val_labels).type(torch.float).mean().item()
             j += 1
             validation_acc += (val_acc - validation_acc) / j
@@ -122,6 +122,7 @@ def gen_adversarial_dataset(NN, dataloader, target_labels_list, batch_size, epsi
             simplicialComplex = copy.deepcopy(simplicialComplex_original)
             simplicialComplex = add_edge_and_tri_features(simplicialComplex)
             simplicialComplex.to_device()
+            simplicialComplex = processor_type.clean_features(simplicialComplex)
 
             set_grad(simplicialComplex)
             prediction = NN(simplicialComplex)
@@ -201,7 +202,6 @@ def run_test_set(NN, dataloader, full_target_labels, batch_size):
         target_labels, test_labels = target_labels.to(DEVICE), test_labels.to(DEVICE)
         simplicialComplex = copy.deepcopy(simplicialComplex_original)
         simplicialComplex = add_edge_and_tri_features(simplicialComplex)
-        simplicialComplex.to_device()
 
         simplicialComplex = set_grad(simplicialComplex)
         prediction = NN(simplicialComplex)
