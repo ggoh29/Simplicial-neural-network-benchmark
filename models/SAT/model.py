@@ -7,11 +7,12 @@ import functools
 
 class SATLayer(nn.Module):
 
-    def __init__(self, input_size, output_size, bias=True):
+    def __init__(self, input_size, output_size, non_equivarient=True):
         super().__init__()
-        self.a_1 = nn.Linear(output_size, 1, bias=bias)
-        self.a_2 = nn.Linear(output_size, 1, bias=bias)
-        self.layer = nn.Linear(input_size, output_size, bias=bias)
+        self.non_equivariant = non_equivarient
+        self.a_1 = nn.Linear(output_size, 1, bias=non_equivarient)
+        self.a_2 = nn.Linear(output_size, 1, bias=non_equivarient)
+        self.layer = nn.Linear(input_size, output_size, bias=non_equivarient)
 
     def forward(self, features, adj):
         """
@@ -23,8 +24,12 @@ class SATLayer(nn.Module):
         indices = adj.coalesce().indices()
         values = adj.coalesce().values()
 
-        a_1 = self.a_1(features.abs())
-        a_2 = self.a_2(features.abs())
+        if self.non_equivariant:
+            a_1 = self.a_1(features)
+            a_2 = self.a_2(features)
+        else:
+            a_1 = self.a_1(features.abs())
+            a_2 = self.a_2(features.abs())
 
         v = (a_1 + a_2.T)[indices[0, :], indices[1, :]]
         e = torch.sparse_coo_tensor(indices, v)
@@ -101,20 +106,20 @@ class FlowSAT(nn.Module):
 
         self.f = f
 
-        self.layer1 = torch.nn.ModuleList([SATLayer(num_edge_feats, f_size // k_heads, bias) for _ in range(k_heads)])
-        self.layer2 = torch.nn.ModuleList([SATLayer(f_size, f_size // k_heads, bias) for _ in range(k_heads)])
-        # self.layer3 = torch.nn.ModuleList([SATLayer(f_size, f_size // k_heads, bias) for _ in range(k_heads)])
+        self.layer1 = torch.nn.ModuleList([SATLayer(num_edge_feats, f_size, bias) for _ in range(k_heads)])
+        self.layer2 = torch.nn.ModuleList([SATLayer(f_size, f_size, bias) for _ in range(k_heads)])
+        self.layer3 = torch.nn.ModuleList([SATLayer(f_size, f_size, bias) for _ in range(k_heads)])
         self.layer4 = torch.nn.ModuleList([SATLayer(f_size, output_size, bias) for _ in range(k_heads)])
 
     def forward(self, simplicialComplex):
         X0, X1, X2 = simplicialComplex.unpack_features()
         L0, _, L2 = simplicialComplex.unpack_laplacians()
-        batch1 = simplicialComplex.unpack_batch()[0]
+        batch1 = simplicialComplex.unpack_batch()[1]
         L1 = simplicialComplex.unpack_up_down()
 
-        X1 = self.f(torch.cat([sat(X1, L) for L, sat in zip(L1, self.layer1)], dim=1))
-        X1 = self.f(torch.cat([sat(X1, L) for L, sat in zip(L1, self.layer2)], dim=1))
-        # X1 = self.f(torch.cat([sat(X1, L) for L, sat in zip(L1, self.layer3,)], dim=1))
+        X1 = self.f(functools.reduce(lambda a, b: a + b, [sat(X1, L) for L, sat in zip(L1, self.layer1)]))
+        X1 = self.f(functools.reduce(lambda a, b: a + b, [sat(X1, L) for L, sat in zip(L1, self.layer2)]))
+        X1 = self.f(functools.reduce(lambda a, b: a + b, [sat(X1, L) for L, sat in zip(L1, self.layer3)]))
         X1 = self.f(functools.reduce(lambda a, b: a + b, [sat(X1, L) for L, sat in zip(L1, self.layer4)]))
         x = global_mean_pool(X1, batch1)
 

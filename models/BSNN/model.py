@@ -152,7 +152,7 @@ class FlowBunch(nn.Module):
 
         X1 = global_mean_pool(X1, batch[1])
 
-        return F.softmax(X1, dim=1)
+        return X1
 
 
 class TestBunch(nn.Module):

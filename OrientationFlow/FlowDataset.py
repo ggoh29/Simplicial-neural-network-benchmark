@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 class FlowSCDataset(InMemoryDataset):
 
-    def __init__(self, root, processor_type, num_points=600, num_train=1000, num_test=200, train_orient='default', test_orient='random', n_jobs=8):
+    def __init__(self, root, processor_type, num_points=600, num_train=1000, num_test=200, train_orient='default', test_orient='default', n_jobs=8):
 
         self.processor_type = processor_type
         self._num_classes = 2

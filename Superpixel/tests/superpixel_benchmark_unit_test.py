@@ -15,44 +15,6 @@ from models.SAT.SATProcessor import SATProcessor
 import time
 
 
-def convert_to_device(lst):
-    return [i.to(DEVICE) for i in lst]
-
-
-def train(NN, epoch_size, dataloader, optimizer, criterion, processor_type):
-    NN.train()
-    train_running_loss = 0
-    t = 0
-    for epoch in range(epoch_size):
-        t1 = time.perf_counter()
-        epoch_train_running_loss = 0
-        train_acc = 0
-        i = 0
-        for simplicialComplex, train_labels in dataloader:
-            simplicialComplex = processor_type.clean_features(simplicialComplex)
-            simplicialComplex = processor_type.repair(simplicialComplex)
-            simplicialComplex.to_device()
-            train_labels = train_labels.to(DEVICE)
-            optimizer.zero_grad()
-            prediction = NN(simplicialComplex)
-            loss = criterion(prediction, train_labels)
-            loss.backward()
-            optimizer.step()
-            epoch_train_running_loss += loss.detach().item()
-            train_acc += (torch.argmax(prediction, 1).flatten() == train_labels).type(torch.float).mean().item()
-            i += 1
-        t2 = time.perf_counter()
-        t = (t * epoch + (t2 - t1)) / (epoch + 1)
-        epoch_train_running_loss /= i
-        train_running_loss = (train_running_loss * epoch + epoch_train_running_loss) / (epoch + 1)
-        print(
-            f"Epoch {epoch} | Train running loss {train_running_loss} "
-            f"| Loss {epoch_train_running_loss} | Train accuracy {train_acc / i}")
-        epoch_loss = epoch_train_running_loss
-        acc = train_acc / i
-    return t, train_running_loss, epoch_loss, acc
-
-
 class MyTestCase(unittest.TestCase):
 
     def test_batching_gives_correct_result_1(self):
@@ -171,6 +133,7 @@ class MyTestCase(unittest.TestCase):
                                         shuffle=False)
         batched1 = []
         for simplicialComplex, test_labels in batched_dataset:
+            simplicialComplex.to_device()
             simplicialComplex = processor_type.clean_features(simplicialComplex)
             simplicialComplex = processor_type.repair(simplicialComplex)
             b1 = GNN(simplicialComplex)
@@ -178,11 +141,12 @@ class MyTestCase(unittest.TestCase):
 
         individual1 = []
         for simplicialComplex, test_labels in individual_dataset:
+            simplicialComplex.to_device()
             simplicialComplex = processor_type.clean_features(simplicialComplex)
             simplicialComplex = processor_type.repair(simplicialComplex)
             i1 = GNN(simplicialComplex)
             individual1.append(i1)
-        result1 = torch.allclose(torch.cat(batched1, dim=0), torch.cat(individual1, dim=0), atol=1e-4)
+        result1 = torch.allclose(torch.cat(batched1, dim=0), torch.cat(individual1, dim=0), atol=1e-3)
         self.assertTrue(result1)
 
     def test_bunch_batching_gives_same_result_as_individual(self):
@@ -191,7 +155,7 @@ class MyTestCase(unittest.TestCase):
         dataset = datasets.MNIST
         edgeFlow = PixelBasedEdgeFlow
 
-        GNN = test_BSNN[1](5, 10, 15, 10).to(DEVICE)
+        GNN = superpixel_BSNN[1](5, 10, 15, 10).to(DEVICE)
         processor_type = superpixel_BSNN[0]
 
         data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, ImageProcessor, 1000,
@@ -203,6 +167,7 @@ class MyTestCase(unittest.TestCase):
 
         batched1 = []
         for simplicialComplex, test_labels in batched_dataset:
+            simplicialComplex.to_device()
             simplicialComplex = processor_type.clean_features(simplicialComplex)
             simplicialComplex = processor_type.repair(simplicialComplex)
             b1 = GNN(simplicialComplex)
@@ -210,11 +175,12 @@ class MyTestCase(unittest.TestCase):
 
         individual1 = []
         for simplicialComplex, test_labels in individual_dataset:
+            simplicialComplex.to_device()
             simplicialComplex = processor_type.clean_features(simplicialComplex)
             simplicialComplex = processor_type.repair(simplicialComplex)
             i1 = GNN(simplicialComplex)
             individual1.append(i1)
-        result1 = torch.allclose(torch.cat(batched1, dim=0), torch.cat(individual1, dim=0), atol=1e-4)
+        result1 = torch.allclose(torch.cat(batched1, dim=0), torch.cat(individual1, dim=0), atol=1e-3)
         self.assertTrue(result1)
 
 

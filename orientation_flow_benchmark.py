@@ -7,11 +7,13 @@ from constants import DEVICE
 
 input_size = 1
 output_size = 2
-nb_epochs = 100
+nb_epochs = 50
 lr = 0.001
 batch_size = 8
-# f = torch.nn.functional.relu
-f = torch.nn.Tanh()
+
+f = torch.nn.functional.relu
+# f = torch.nn.Tanh()
+# f = torch.nn.Identity()
 
 # nn_mod = flow_SAT
 # nn_mod = flow_SAN
@@ -33,7 +35,7 @@ if __name__ == "__main__":
 
     train_dataset = DataLoader(train_dataset, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=8,
                                shuffle=True, pin_memory=True)
-    test_dataset = DataLoader(test_dataset, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=8 ,
+    test_dataset = DataLoader(test_dataset, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=8,
                              shuffle=True, pin_memory=True)
 
     for j in range(nb_epochs):
@@ -59,16 +61,17 @@ if __name__ == "__main__":
     model.eval()
     testing_acc = 0
     i = 0
-    for simplicialComplex, test_labels in test_dataset:
-        simplicialComplex = processor_type.clean_features(simplicialComplex)
-        simplicialComplex = processor_type.repair(simplicialComplex)
-        simplicialComplex.to(DEVICE)
-        test_labels = test_labels.to(DEVICE)
-        prediction = model(simplicialComplex)
+    with torch.no_grad():
+        for simplicialComplex, test_labels in test_dataset:
+            simplicialComplex = processor_type.clean_features(simplicialComplex)
+            simplicialComplex = processor_type.repair(simplicialComplex)
+            simplicialComplex.to_device()
+            test_labels = test_labels.to(DEVICE)
+            prediction = model(simplicialComplex)
 
-        test_acc = (torch.argmax(prediction, 1).flatten() == test_labels).type(torch.float).mean().item()
-        i += 1
-        testing_acc += (test_acc - testing_acc) / i
+            test_acc = (torch.argmax(prediction, 1).flatten() == test_labels).type(torch.float).mean().item()
+            i += 1
+            testing_acc += (test_acc - testing_acc) / i
 
     print(f"Test accuracy of {testing_acc:.4f}")
 

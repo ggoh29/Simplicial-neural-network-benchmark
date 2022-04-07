@@ -182,7 +182,7 @@ def generate_flow_cochain(class_id, G, B1, B2, T2):
     return CoChain(torch.zeros((B1.shape[0], 1)), X1, torch.zeros((B2.shape[1], 1)), B1, B2, torch.tensor([class_id]))
 
 
-def gen_orientation_graph(num_points=1000, num_train=1000, num_test=200,
+def gen_orientation_graph(num_points=400, num_train=1000, num_test=200,
                           train_orientation='default', test_orientation='default', n_jobs=4):
     points = np.random.uniform(low=-0.05, high=1.05, size=(num_points, 2))
     tri = Delaunay(points)
@@ -238,4 +238,5 @@ def gen_orientation_graph(num_points=1000, num_train=1000, num_test=200,
 
 
 if __name__ == "__main__":
-    gen_orientation_graph()
+    a, b = gen_orientation_graph()
+    print(b)

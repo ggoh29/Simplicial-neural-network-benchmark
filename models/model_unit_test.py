@@ -112,7 +112,7 @@ def generate_oriented_flow_pair():
 def process_cochain(cochain, processor):
     g = processor.process(cochain)
     feature_dct, _ = processor.batch([g])
-    feature_dct = processor.clean_feature_dct(feature_dct)
+    feature_dct = processor.clean_features(feature_dct)
     feature_dct = processor.repair(feature_dct)
     return feature_dct
 
@@ -172,7 +172,6 @@ class MyTestCase(unittest.TestCase):
 
         _, result1, _ = model(f1)
         _, result2, _ = model(f2)
-
         self.assertTrue(torch.allclose(T2 @ result1, result2, atol=1e-5))
 
     def test_orientation_equivariance_Bunch(self):
