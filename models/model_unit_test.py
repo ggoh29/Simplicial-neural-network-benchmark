@@ -4,7 +4,7 @@ import torch
 import numpy as np
 from nn_utils import convert_to_CoChain, torch_sparse_to_scipy_sparse, scipy_sparse_to_torch_sparse, to_sparse_coo
 from scipy import sparse
-from models import SuperpixelBunch, test_SAN, test_SAT, test_BSNN, test_ESNN
+from models import SuperpixelBunch, test_SAN, test_SAT, test_BSNN, test_ESNN, flow_BSNN, flow_SAN, flow_SAT, flow_ESNN
 from CoChain import CoChain
 
 
@@ -223,10 +223,59 @@ class MyTestCase(unittest.TestCase):
         _, result1, _ = model(f1)
         _, result2, _ = model(f2)
 
-        print(result1)
-        print(result2)
-
         self.assertTrue(torch.allclose(T2 @ result1, result2, atol=1e-5))
+
+    def test_orientation_invariant_Ebli(self):
+        f = torch.nn.Tanh()
+        input_size, output_size = 1, 2
+
+        module = flow_ESNN
+        processor_type = module[0]
+        model = module[1](input_size, input_size, input_size, output_size, f=f)
+
+        chain1, chain2, T2 = generate_oriented_flow_pair()
+        f1 = process_cochain(chain1, processor_type)
+        f2 = process_cochain(chain2, processor_type)
+
+        result1 = model(f1)
+        result2 = model(f2)
+
+        self.assertTrue(torch.allclose(result1, result2, atol=1e-5))
+
+
+    def test_orientation_invariant_Bunch(self):
+        f = torch.nn.Tanh()
+        input_size, output_size = 1, 2
+
+        module = flow_BSNN
+        processor_type = module[0]
+        model = module[1](input_size, input_size, input_size, output_size, f=f)
+
+        chain1, chain2, T2 = generate_oriented_flow_pair()
+        f1 = process_cochain(chain1, processor_type)
+        f2 = process_cochain(chain2, processor_type)
+
+        result1 = model(f1)
+        result2 = model(f2)
+
+        self.assertTrue(torch.allclose(result1, result2, atol=1e-5))
+
+    def test_orientation_invariant_SAT(self):
+        f = torch.nn.Tanh()
+        input_size, output_size = 1, 2
+
+        module = flow_SAT
+        processor_type = module[0]
+        model = module[1](input_size, input_size, input_size, output_size, f=f)
+
+        chain1, chain2, T2 = generate_oriented_flow_pair()
+        f1 = process_cochain(chain1, processor_type)
+        f2 = process_cochain(chain2, processor_type)
+
+        result1 = model(f1)
+        result2 = model(f2)
+
+        self.assertTrue(torch.allclose(result1, result2, atol=1e-5))
 
 
 if __name__ == '__main__':

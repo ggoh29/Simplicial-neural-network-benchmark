@@ -80,11 +80,12 @@ class FlowEbli(nn.Module):
 
         conv_size = 32
 
-        # Degree 1 convolutions.
         self.layer1 = SCNLayer(num_edge_feats, conv_size, enable_bias=bias)
         self.layer2 = SCNLayer(conv_size, conv_size, enable_bias=bias)
         self.layer3 = SCNLayer(conv_size, conv_size, enable_bias=bias)
-        self.layer4 = SCNLayer(conv_size, output_size, enable_bias=bias)
+        self.layer4 = SCNLayer(conv_size, conv_size, enable_bias=bias)
+        self.mlp1 = nn.Linear(conv_size, conv_size)
+        self.mlp2 = nn.Linear(conv_size, output_size)
         self.f = f
 
     def forward(self, simplicialComplex):
@@ -97,9 +98,10 @@ class FlowEbli(nn.Module):
         X1 = self.f(self.layer3(L1, X1))
         X1 = self.f(self.layer4(L1, X1))
 
-        X1 = global_mean_pool(X1, batch[1])
+        X1 = global_mean_pool(X1.abs(), batch[1])
+        X1 = F.relu(self.mlp1(X1))
 
-        return F.softmax(X1, dim=1)
+        return F.softmax(self.mlp2(X1), dim=1)
 
 
 class TestEbli(nn.Module):

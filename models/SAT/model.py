@@ -106,9 +106,9 @@ class FlowSAT(nn.Module):
 
         self.f = f
 
-        self.layer1 = torch.nn.ModuleList([SATLayer(num_edge_feats, f_size, bias) for _ in range(k_heads)])
-        self.layer2 = torch.nn.ModuleList([SATLayer(f_size, f_size, bias) for _ in range(k_heads)])
-        self.layer3 = torch.nn.ModuleList([SATLayer(f_size, f_size, bias) for _ in range(k_heads)])
+        self.layer1 = torch.nn.ModuleList([SATLayer(num_edge_feats, f_size//2, bias) for _ in range(k_heads)])
+        self.layer2 = torch.nn.ModuleList([SATLayer(f_size, f_size//2, bias) for _ in range(k_heads)])
+        self.layer3 = torch.nn.ModuleList([SATLayer(f_size, f_size//2, bias) for _ in range(k_heads)])
         self.layer4 = torch.nn.ModuleList([SATLayer(f_size, output_size, bias) for _ in range(k_heads)])
 
     def forward(self, simplicialComplex):
@@ -117,11 +117,11 @@ class FlowSAT(nn.Module):
         batch1 = simplicialComplex.unpack_batch()[1]
         L1 = simplicialComplex.unpack_up_down()
 
-        X1 = self.f(functools.reduce(lambda a, b: a + b, [sat(X1, L) for L, sat in zip(L1, self.layer1)]))
-        X1 = self.f(functools.reduce(lambda a, b: a + b, [sat(X1, L) for L, sat in zip(L1, self.layer2)]))
-        X1 = self.f(functools.reduce(lambda a, b: a + b, [sat(X1, L) for L, sat in zip(L1, self.layer3)]))
+        X1 = self.f(torch.cat([sat(X1, L) for L, sat in zip(L1, self.layer1)], dim=1))
+        X1 = self.f(torch.cat([sat(X1, L) for L, sat in zip(L1, self.layer2)], dim=1))
+        X1 = self.f(torch.cat([sat(X1, L) for L, sat in zip(L1, self.layer3)], dim=1))
         X1 = self.f(functools.reduce(lambda a, b: a + b, [sat(X1, L) for L, sat in zip(L1, self.layer4)]))
-        x = global_mean_pool(X1, batch1)
+        x = global_mean_pool(X1.abs(), batch1)
 
         return F.softmax(x, dim=1)
 

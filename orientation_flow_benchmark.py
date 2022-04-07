@@ -7,7 +7,7 @@ from constants import DEVICE
 
 input_size = 1
 output_size = 2
-nb_epochs = 50
+nb_epochs = 100
 lr = 0.001
 batch_size = 8
 
@@ -17,8 +17,8 @@ f = torch.nn.functional.relu
 
 # nn_mod = flow_SAT
 # nn_mod = flow_SAN
-nn_mod = flow_ESNN
-# nn_mod = flow_BSNN
+# nn_mod = flow_ESNN
+nn_mod = flow_BSNN
 
 processor_type = nn_mod[0]
 model = nn_mod[1]
@@ -30,7 +30,7 @@ loss_f = torch.nn.CrossEntropyLoss()
 
 if __name__ == "__main__":
 
-    data = FlowSCDataset('../data', processor_type)
+    data = FlowSCDataset('./data', processor_type)
     train_dataset, test_dataset = data.get_val_train_split()
 
     train_dataset = DataLoader(train_dataset, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=8,

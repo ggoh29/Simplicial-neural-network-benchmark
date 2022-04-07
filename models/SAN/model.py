@@ -102,7 +102,7 @@ class FlowSAN(nn.Module):
         X1 = self.f(self.layer2(X1, L1_u, L1_d, L1))
         X1 = self.f(self.layer3(X1, L1_u, L1_d, L1))
         X1 = self.f(self.layer4(X1, L1_u, L1_d, L1))
-        X1 = global_mean_pool(X1, batch1)
+        X1 = global_mean_pool(X1.abs(), batch1)
 
         return F.softmax(X1, dim=1)
 
@@ -121,8 +121,8 @@ class TestSAN(nn.Module):
         L0, L1, L2 = simplicialComplex.unpack_laplacians()
         L1_u, L1_d = simplicialComplex.unpack_up_down()
 
-        # X0 = self.f(self.layer1(X0, None, L0, L0))
+        X0 = self.f(self.layer1(X0, None, L0, L0))
         X1 = self.f(self.layer2(X1, L1_u, L1_d, L1))
-        # X2 = self.f(self.layer3(X2, L2, None, L2))
+        X2 = self.f(self.layer3(X2, L2, None, L2))
 
         return X0, X1, X2

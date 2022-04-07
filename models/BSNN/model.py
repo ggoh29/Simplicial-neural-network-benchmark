@@ -137,7 +137,9 @@ class FlowBunch(nn.Module):
         self.layer1 = SNN_Bunch_Layer(num_node_feats, num_edge_feats, num_triangle_feats, f_size, bias=bias, f=f)
         self.layer2 = SNN_Bunch_Layer(f_size, f_size, f_size, f_size, bias=bias, f=f)
         self.layer3 = SNN_Bunch_Layer(f_size, f_size, f_size, f_size, bias=bias, f=f)
-        self.layer4 = SNN_Bunch_Layer(f_size, f_size, f_size, output_size, bias=bias, f=f)
+        self.layer4 = SNN_Bunch_Layer(f_size, f_size, f_size, f_size, bias=bias, f=f)
+        self.mlp1 = nn.Linear(f_size, f_size)
+        self.mlp2 = nn.Linear(f_size, output_size)
 
     def forward(self, simplicialComplex):
         X0, X1, X2 = simplicialComplex.unpack_features()
@@ -150,9 +152,10 @@ class FlowBunch(nn.Module):
         X0, X1, X2 = self.layer3(X0, X1, X2, L0, L1, L2, B2D3, D2B1TD1inv, D1invB1, B2TD2inv)
         _, X1, _ = self.layer4(X0, X1, X2, L0, L1, L2, B2D3, D2B1TD1inv, D1invB1, B2TD2inv)
 
-        X1 = global_mean_pool(X1, batch[1])
+        X1 = global_mean_pool(X1.abs(), batch[1])
+        X1 = F.relu(self.mlp1(X1))
 
-        return X1
+        return torch.softmax(self.mlp2(X1), dim=1)
 
 
 class TestBunch(nn.Module):

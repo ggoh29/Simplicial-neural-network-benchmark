@@ -55,7 +55,7 @@ def train(NN, epoch_size, train_data, optimizer, criterion, processor_type):
         i, j = 0, 0
         NN.train()
         for simplicialComplex, train_labels in train_dataset:
-            simplicialComplex = simplicialComplex.to_device()
+            simplicialComplex.to_device()
             simplicialComplex = processor_type.clean_features(simplicialComplex)
             simplicialComplex = processor_type.repair(simplicialComplex)
             train_labels = train_labels.to(DEVICE)
@@ -71,7 +71,7 @@ def train(NN, epoch_size, train_data, optimizer, criterion, processor_type):
         t2 = time.perf_counter()
         NN.eval()
         for simplicialComplex, val_labels in val_dataset:
-            simplicialComplex = simplicialComplex.to_device()
+            simplicialComplex.to_device()
             simplicialComplex = processor_type.clean_features(simplicialComplex)
             simplicialComplex = processor_type.repair(simplicialComplex)
             val_labels = val_labels.to(DEVICE)
@@ -102,7 +102,7 @@ def test(NN, dataloader, processor_type):
     predictions = []
     with torch.no_grad():
         for simplicialComplex, test_labels in dataloader:
-            simplicialComplex = simplicialComplex.to_device()
+            simplicialComplex.to_device()
             simplicialComplex = processor_type.clean_features(simplicialComplex)
             simplicialComplex = processor_type.repair(simplicialComplex)
             test_labels = test_labels.to(DEVICE)
