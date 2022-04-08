@@ -51,6 +51,7 @@ def correct_orientation(L, up_or_down):
     L : n * n sparse Laplacian matrix
     up_or_down : int in {-1, 1}
     """
+    # Add 2 to identity
     identity = 2 * torch.ones(L.shape[0])
     identity_indices = torch.arange(L.shape[0])
     identity_indices = torch.stack([identity_indices, identity_indices], dim=0)

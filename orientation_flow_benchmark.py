@@ -11,14 +11,14 @@ nb_epochs = 100
 lr = 0.001
 batch_size = 8
 
-f = torch.nn.functional.relu
+# f = torch.nn.functional.relu
 # f = torch.nn.Tanh()
-# f = torch.nn.Identity()
+f = torch.nn.Identity()
 
-# nn_mod = flow_SAT
+nn_mod = flow_SAT
 # nn_mod = flow_SAN
 # nn_mod = flow_ESNN
-nn_mod = flow_BSNN
+# nn_mod = flow_BSNN
 
 processor_type = nn_mod[0]
 model = nn_mod[1]
