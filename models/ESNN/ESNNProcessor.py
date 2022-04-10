@@ -13,14 +13,14 @@ class ESNNProcessor(NNProcessor):
 
     def process(self, CoChain):
         X0, X1, X2 = CoChain.X0, CoChain.X1, CoChain.X2
-        b1, b2 = to_sparse_coo(CoChain.b1).cpu(), to_sparse_coo(CoChain.b2).cpu()
+        b1, b2 = to_sparse_coo(CoChain.b1), to_sparse_coo(CoChain.b2)
 
         b1 = repair_sparse(b1, (X0.shape[0], X1.shape[0]))
         b2 = repair_sparse(b2, (X1.shape[0], X2.shape[0]))
 
-        L0 = torch.sparse.mm(b1, b1.t()).cpu()
-        L1 = torch.sparse.FloatTensor.add(torch.sparse.mm(b1.t(), b1), torch.sparse.mm(b2, b2.t())).cpu()
-        L2 = torch.sparse.mm(b2.t(), b2).cpu()
+        L0 = torch.sparse.mm(b1, b1.t())
+        L1 = torch.sparse.mm(b1.t(), b1) + torch.sparse.mm(b2, b2.t())
+        L2 = torch.sparse.mm(b2.t(), b2)
 
         L0 = normalise(L0)
         L1 = normalise(L1)

@@ -11,8 +11,8 @@ nb_epochs = 100
 lr = 0.001
 batch_size = 4
 
-# f = torch.nn.functional.relu
-f = torch.nn.Tanh()
+f = torch.nn.functional.relu
+# f = torch.nn.Tanh()
 # f = torch.nn.Identity()
 
 nn_mod = flow_SAT
