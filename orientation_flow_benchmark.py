@@ -57,7 +57,7 @@ if __name__ == "__main__":
             training_acc += (train_acc - training_acc) / i
         if training_acc > best_acc:
             torch.save(model.state_dict(), f'./data/{model.__class__.__name__}_flow.pkl')
-            best_acc == training_acc
+            best_acc = training_acc
 
         print(f"Training accuracy of {training_acc:.4f} for epoch {j}")
 
