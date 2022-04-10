@@ -222,7 +222,7 @@ class MyTestCase(unittest.TestCase):
 
         _, result1, _ = model(f1)
         _, result2, _ = model(f2)
-
+        print(result2, result1)
         self.assertTrue(torch.allclose(T2 @ result1, result2, atol=1e-5))
 
     def test_orientation_invariant_Ebli(self):

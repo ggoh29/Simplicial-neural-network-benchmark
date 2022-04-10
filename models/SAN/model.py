@@ -2,16 +2,22 @@ import torch
 import torch.nn as nn
 from torch_geometric.nn import global_mean_pool
 import torch.nn.functional as F
+from models.SAT.model import SATLayer_orientated
 from models.GNN.model import GATLayer
 from constants import DEVICE
 
-
 class SANLayer(nn.Module):
 
-    def __init__(self, input_size, output_size, bias=True):
+    def __init__(self, input_size, output_size, bias=True, orientated=False):
+
         super().__init__()
-        self.l_d_layer = GATLayer(input_size, output_size, bias)
-        self.l_u_layer = GATLayer(input_size, output_size, bias)
+        if orientated:
+            layer = SATLayer_orientated
+        else:
+            layer = GATLayer
+
+        self.l_d_layer = layer(input_size, output_size, bias)
+        self.l_u_layer = layer(input_size, output_size, bias)
         self.p_layer = nn.Linear(input_size, output_size, bias=bias)
 
     def forward(self, features, l_u, l_d, p):
@@ -20,9 +26,9 @@ class SANLayer(nn.Module):
 
         h_u, h_d = torch.zeros(h_p.shape).to(DEVICE), torch.zeros(h_p.shape).to(DEVICE)
         if l_u is not None:
-            h_u = self.l_u_layer(features, l_u.coalesce().indices())
+            h_u = self.l_u_layer(features, l_u)
         if l_d is not None:
-            h_d = self.l_d_layer(features, l_d.coalesce().indices())
+            h_d = self.l_d_layer(features, l_d)
 
         return h_u + h_d + h_p
 

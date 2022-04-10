@@ -47,8 +47,8 @@ class SATProcessor(NNProcessor):
         L1_down = torch.sparse.mm(b1.t(), b1)
         L2 = torch.sparse.mm(b2.t(), b2)
 
-        L0 = correct_orientation(L0, -1)
-        L1_up = correct_orientation(L1_up, -1)
+        L0 = correct_orientation(L0, 1)
+        L1_up = correct_orientation(L1_up, 1)
         L1_down = correct_orientation(L1_down, 1)
         L2 = correct_orientation(L2, 1)
 

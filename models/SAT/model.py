@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import functools
 
 
-class SATLayer(nn.Module):
+class SATLayer_orientated(nn.Module):
 
     def __init__(self, input_size, output_size, bias=True):
         super().__init__()
@@ -37,28 +37,56 @@ class SATLayer(nn.Module):
         return output
 
 
+class SATLayer_regular(nn.Module):
+
+    def __init__(self, input_size, output_size, bias=True):
+        super().__init__()
+        self.a_1 = nn.Linear(output_size, 1, bias=bias)
+        self.a_2 = nn.Linear(output_size, 1, bias=bias)
+        self.layer = nn.Linear(input_size, output_size, bias=bias)
+
+    def forward(self, features, adj):
+        """
+        features : n * m dense matrix of feature vectors
+        adj : n * n  sparse signed orientation matrix
+        output : n * k dense matrix of new feature vectors
+        """
+        features = self.layer(features)
+        indices = adj.coalesce().indices()
+
+        a_1 = self.a_1(features)
+        a_2 = self.a_2(features)
+
+        v = (a_1 + a_2.T)[indices[0, :], indices[1, :]]
+        e = torch.sparse_coo_tensor(indices, v)
+        attention = torch.sparse.softmax(e, dim=1)
+
+        output = torch.sparse.mm(attention, features)
+
+        return output
+
+
 class SuperpixelSAT(nn.Module):
     def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size, bias=True):
         super().__init__()
         # 10k = 30, 50k = 80
         f_size = 30
         k_heads = 2
-        self.layer0_1 = torch.nn.ModuleList([SATLayer(num_node_feats, f_size // k_heads, bias) for _ in range(k_heads)])
-        self.layer0_2 = torch.nn.ModuleList([SATLayer(f_size, f_size // k_heads, bias) for _ in range(k_heads)])
-        self.layer0_3 = torch.nn.ModuleList([SATLayer(f_size, f_size // k_heads, bias) for _ in range(k_heads)])
+        self.layer0_1 = torch.nn.ModuleList([SATLayer_regular(num_node_feats, f_size // k_heads, bias) for _ in range(k_heads)])
+        self.layer0_2 = torch.nn.ModuleList([SATLayer_regular(f_size, f_size // k_heads, bias) for _ in range(k_heads)])
+        self.layer0_3 = torch.nn.ModuleList([SATLayer_regular(f_size, f_size // k_heads, bias) for _ in range(k_heads)])
 
         self.layer0_4 = nn.Linear(3 * f_size, output_size)
 
-        self.layer1_1 = torch.nn.ModuleList([SATLayer(num_edge_feats, f_size // k_heads, bias) for _ in range(k_heads)])
-        self.layer1_2 = torch.nn.ModuleList([SATLayer(f_size, f_size // k_heads, bias) for _ in range(k_heads)])
-        self.layer1_3 = torch.nn.ModuleList([SATLayer(f_size, f_size // k_heads, bias) for _ in range(k_heads)])
+        self.layer1_1 = torch.nn.ModuleList([SATLayer_regular(num_edge_feats, f_size // k_heads, bias) for _ in range(k_heads)])
+        self.layer1_2 = torch.nn.ModuleList([SATLayer_regular(f_size, f_size // k_heads, bias) for _ in range(k_heads)])
+        self.layer1_3 = torch.nn.ModuleList([SATLayer_regular(f_size, f_size // k_heads, bias) for _ in range(k_heads)])
 
         self.layer1_4 = nn.Linear(3 * f_size, output_size)
 
-        self.layer2_1 = torch.nn.ModuleList(
-            [SATLayer(num_triangle_feats, f_size // k_heads, bias) for _ in range(k_heads)])
-        self.layer2_2 = torch.nn.ModuleList([SATLayer(f_size, f_size // k_heads, bias) for _ in range(k_heads)])
-        self.layer2_3 = torch.nn.ModuleList([SATLayer(f_size, f_size // k_heads, bias) for _ in range(k_heads)])
+        self.layer2_1 = torch.nn.ModuleList([SATLayer_regular(num_triangle_feats, f_size // k_heads, bias) for _ in range(k_heads)])
+        self.layer2_2 = torch.nn.ModuleList([SATLayer_regular(f_size, f_size // k_heads, bias) for _ in range(k_heads)])
+        self.layer2_3 = torch.nn.ModuleList([SATLayer_regular(f_size, f_size // k_heads, bias) for _ in range(k_heads)])
 
         self.layer2_4 = nn.Linear(3 * f_size, output_size)
 
@@ -101,10 +129,10 @@ class FlowSAT(nn.Module):
 
         self.f = f
 
-        self.layer1 = torch.nn.ModuleList([SATLayer(num_edge_feats, f_size//2, bias) for _ in range(k_heads)])
-        self.layer2 = torch.nn.ModuleList([SATLayer(f_size, f_size//2, bias) for _ in range(k_heads)])
-        self.layer3 = torch.nn.ModuleList([SATLayer(f_size, f_size//2, bias) for _ in range(k_heads)])
-        self.layer4 = torch.nn.ModuleList([SATLayer(f_size, f_size, bias) for _ in range(k_heads)])
+        self.layer1 = torch.nn.ModuleList([SATLayer_orientated(num_edge_feats, f_size//2, bias) for _ in range(k_heads)])
+        self.layer2 = torch.nn.ModuleList([SATLayer_orientated(f_size, f_size//2, bias) for _ in range(k_heads)])
+        self.layer3 = torch.nn.ModuleList([SATLayer_orientated(f_size, f_size//2, bias) for _ in range(k_heads)])
+        self.layer4 = torch.nn.ModuleList([SATLayer_orientated(f_size, f_size, bias) for _ in range(k_heads)])
 
         self.mlp1 = nn.Linear(f_size, f_size)
         self.mlp2 = nn.Linear(f_size, output_size)
@@ -131,9 +159,9 @@ class TestSAT(nn.Module):
     def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size, bias=False, f=F.relu):
         super().__init__()
         k_heads = 2
-        self.layer1 = torch.nn.ModuleList([SATLayer(num_node_feats, output_size, bias) for _ in range(k_heads)])
-        self.layer2 = torch.nn.ModuleList([SATLayer(num_edge_feats, output_size, bias) for _ in range(k_heads)])
-        self.layer3 = torch.nn.ModuleList([SATLayer(num_triangle_feats, output_size, bias) for _ in range(k_heads)])
+        self.layer1 = torch.nn.ModuleList([SATLayer_orientated(num_node_feats, output_size, bias) for _ in range(k_heads)])
+        self.layer2 = torch.nn.ModuleList([SATLayer_orientated(num_edge_feats, output_size, bias) for _ in range(k_heads)])
+        self.layer3 = torch.nn.ModuleList([SATLayer_orientated(num_triangle_feats, output_size, bias) for _ in range(k_heads)])
         self.f = f
 
     def forward(self, simplicialComplex):

@@ -2,7 +2,7 @@ import torch
 from models.ProcessorTemplate import NNProcessor
 from utils import ensure_input_is_tensor
 from models.nn_utils import to_sparse_coo
-from models.nn_utils import batch_all_feature_and_lapacian_pair, normalise, batch_sparse_matrix
+from models.nn_utils import batch_all_feature_and_lapacian_pair, normalise, batch_sparse_matrix, correct_orientation
 from models.SimplicialComplex import SimplicialComplex
 from constants import DEVICE
 
@@ -48,6 +48,8 @@ class SANProcessor(NNProcessor):
         L1_down = torch.sparse.mm(b1.t(), b1)
         L1 = normalise(L1_up + L1_down)
         L2 = normalise(torch.sparse.mm(b2.t(), b2))
+        L1_up = correct_orientation(L1_up, 1)
+        L1_down = correct_orientation(L1_down, -1)
 
         assert (X0.shape[0] == L0.shape[0])
         assert (X1.shape[0] == L1_up.shape[0])

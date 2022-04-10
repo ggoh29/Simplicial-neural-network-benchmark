@@ -54,7 +54,8 @@ class GATLayer(nn.Module):
         self.a_2 = nn.Linear(output_size, 1, bias = bias)
         self.layer = nn.Linear(input_size, output_size, bias = bias)
 
-    def forward(self, features, indices):
+    def forward(self, features, adj):
+        indices = adj.coalesce().indices()
         features = self.layer(features)
 
         a_1 = self.a_1(features)
@@ -85,11 +86,10 @@ class SuperpixelGAT(nn.Module):
         X0, _, _ = simplicialComplex.unpack_features()
         L0, _, _ = simplicialComplex.unpack_laplacians()
         batch = simplicialComplex.unpack_batch()
-        adjacency = L0.coalesce().indices()
 
-        x1 = F.relu(torch.cat([gat(X0, adjacency) for gat in self.gat1], dim=1))
-        x2 = F.relu(torch.cat([gat(x1, adjacency) for gat in self.gat2], dim=1))
-        x3 = F.relu(torch.cat([gat(x2, adjacency) for gat in self.gat3], dim=1))
+        x1 = F.relu(torch.cat([gat(X0, L0) for gat in self.gat1], dim=1))
+        x2 = F.relu(torch.cat([gat(x1, L0) for gat in self.gat2], dim=1))
+        x3 = F.relu(torch.cat([gat(x2, L0) for gat in self.gat3], dim=1))
 
         x = torch.cat([x1, x2, x3], dim=1)
         x = global_mean_pool(x, batch[0])
@@ -109,8 +109,7 @@ class PlanetoidGAT(nn.Module):
     def forward(self, simplicialComplex):
         X0, _, _ = simplicialComplex.unpack_features()
         L0, _, _ = simplicialComplex.unpack_laplacians()
-        adjacency = L0.coalesce().indices()
 
-        x = F.relu(torch.cat([gat(X0, adjacency) for gat in self.gat1], dim=1))
+        x = F.relu(torch.cat([gat(X0, L0) for gat in self.gat1], dim=1))
 
         return x

@@ -16,12 +16,13 @@ def change_offset_of_edge_and_tri(X, batch, node_offset, shape):
 def add_edge_and_tri_offset(feature_tuple):
     simplicialComplex, label = feature_tuple
 
-    batch_0, batch_1, batch_2 = simplicialComplex.unpack_batch()
+    batch_0 = simplicialComplex.unpack_batch()[0]
     batch_unique_0 = batch_0.unique(sorted=True)
     batch_unique_0_count = torch.stack([(batch_0 == batch_u).sum() for batch_u in batch_unique_0]).tolist()
     batch_unique_0_offset = batch_unique_0_count
 
     if simplicialComplex.X1 is not None:
+        _, batch_1, batch_2 = simplicialComplex.unpack_batch()
         X1 = simplicialComplex.X1
         simplicialComplex.X1 = change_offset_of_edge_and_tri(X1, batch_1, batch_unique_0_offset, 2)
 

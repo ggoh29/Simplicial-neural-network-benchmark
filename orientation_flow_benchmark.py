@@ -9,11 +9,11 @@ input_size = 1
 output_size = 2
 nb_epochs = 100
 lr = 0.001
-batch_size = 8
+batch_size = 4
 
 # f = torch.nn.functional.relu
-# f = torch.nn.Tanh()
-f = torch.nn.Identity()
+f = torch.nn.Tanh()
+# f = torch.nn.Identity()
 
 nn_mod = flow_SAT
 # nn_mod = flow_SAN
