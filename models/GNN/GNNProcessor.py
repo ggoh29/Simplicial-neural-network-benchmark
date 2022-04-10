@@ -27,7 +27,7 @@ class GraphComplex(SimplicialComplex):
 class GNNProcessor(NNProcessor):
 
     def process(self, CoChain):
-        b1 = to_sparse_coo(CoChain.b1).cpu()
+        b1 = to_sparse_coo(CoChain.b1)
 
         X0 = CoChain.X0
         L0 = torch.sparse.mm(b1, b1.t())

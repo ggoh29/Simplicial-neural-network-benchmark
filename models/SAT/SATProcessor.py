@@ -38,7 +38,7 @@ class SATComplex(SimplicialComplex):
 class SATProcessor(NNProcessor):
 
     def process(self, CoChain):
-        b1, b2 = to_sparse_coo(CoChain.b1).cpu(), to_sparse_coo(CoChain.b2).cpu()
+        b1, b2 = to_sparse_coo(CoChain.b1), to_sparse_coo(CoChain.b2)
 
         X0, X1, X2 = CoChain.X0, CoChain.X1, CoChain.X2
 

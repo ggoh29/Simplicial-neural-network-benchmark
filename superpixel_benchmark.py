@@ -3,7 +3,7 @@ from Superpixel.EdgeFlow import PixelBasedEdgeFlow, RandomBasedEdgeFlow
 from Superpixel.ImageProcessor import ImageProcessor, OrientatedImageProcessor
 from torch.utils.data import DataLoader
 from constants import DEVICE
-from models import superpixel_GCN, superpixel_GAT, superpixel_ESNN, superpixel_BSNN, superpixel_SAT
+from models import superpixel_GCN, superpixel_GAT, superpixel_ESNN, superpixel_BSNN, superpixel_SAT, superpixel_SAN
 import torch
 from torchvision import datasets
 import numpy as np
@@ -123,7 +123,7 @@ def run(processor_type, NN, output_suffix):
     params = sum([np.prod(p.size()) for p in model_parameters])
     print(params)
 
-    train_data = SuperpixelSCDataset('../data', dataset, superpixel_size, edgeFlow, processor_type, imageprocessor,
+    train_data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, imageprocessor,
                                      full_dataset, train=True)
 
     write_file_name = f"./results/{train_data.get_name()}_{NN.__class__.__name__}_{output_suffix}"

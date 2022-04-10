@@ -67,11 +67,11 @@ class BSNNProcessor(NNProcessor):
             values = matrix[2:3].squeeze()
             return torch.sparse_coo_tensor(indices, values, size)
 
-        X0, X1, X2 = CoChain.X0.cpu(), CoChain.X1.cpu(), CoChain.X2.cpu()
+        X0, X1, X2 = CoChain.X0, CoChain.X1, CoChain.X2
         label = CoChain.label
 
         x0, x1, x2 = X0.shape[0], X1.shape[0], X2.shape[0]
-        B1, B2 = to_sparse(CoChain.b1, (x0, x1)).cpu(), to_sparse(CoChain.b2, (x1, x2)).cpu()
+        B1, B2 = to_sparse(CoChain.b1, (x0, x1)), to_sparse(CoChain.b2, (x1, x2))
 
         L0 = torch.sparse.mm(B1, B1.t())
         B1_v_abs, B1_i = torch.abs(B1.coalesce().values()), B1.coalesce().indices()

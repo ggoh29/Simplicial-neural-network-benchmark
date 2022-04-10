@@ -11,9 +11,9 @@ nb_epochs = 100
 lr = 0.001
 batch_size = 4
 
-f = torch.nn.functional.relu
+# f = torch.nn.functional.relu
 # f = torch.nn.Tanh()
-# f = torch.nn.Identity()
+f = torch.nn.Identity()
 
 nn_mod = flow_SAT
 # nn_mod = flow_SAN
@@ -29,8 +29,7 @@ loss_f = torch.nn.CrossEntropyLoss()
 
 
 if __name__ == "__main__":
-
-    data = FlowSCDataset('./data', processor_type)
+    data = FlowSCDataset('../data', processor_type)
     train_dataset, test_dataset = data.get_val_train_split()
 
     train_dataset = DataLoader(train_dataset, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=8,
@@ -38,6 +37,7 @@ if __name__ == "__main__":
     test_dataset = DataLoader(test_dataset, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=8,
                              shuffle=True, pin_memory=True)
 
+    best_acc = 0
     for j in range(nb_epochs):
         training_acc, i = 0, 0
         model.train()
@@ -55,9 +55,13 @@ if __name__ == "__main__":
             train_acc = (torch.argmax(prediction, 1).flatten() == train_labels).type(torch.float).mean().item()
             i += 1
             training_acc += (train_acc - training_acc) / i
+        if training_acc > best_acc:
+            torch.save(model.state_dict(), f'./data/{model.__class__.__name__}_flow.pkl')
+            best_acc == training_acc
 
         print(f"Training accuracy of {training_acc:.4f} for epoch {j}")
 
+    model.load_state_dict(torch.load(f'./data/{model.__class__.__name__}_flow.pkl'))
     model.eval()
     testing_acc = 0
     i = 0
