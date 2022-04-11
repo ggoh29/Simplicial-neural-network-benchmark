@@ -94,11 +94,10 @@ class PRELU(nn.PReLU):
         return F.prelu(input, self.weight)
 
 
-class PlanetoidSAT(nn.Module):
+class PlanetoidSAN(nn.Module):
 
     def __init__(self, num_node_feats, output_size, bias=True):
         super().__init__()
-        k_heads = 2
         self.layer_n = SANLayer(num_node_feats, output_size, bias=bias)
         self.layer_e = SANLayer(num_node_feats, output_size, bias=bias)
         self.layer_t = SANLayer(num_node_feats, output_size, bias=bias)
