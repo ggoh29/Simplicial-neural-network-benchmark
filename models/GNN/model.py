@@ -37,7 +37,7 @@ class PlanetoidGCN(nn.Module):
         self.act = nn.PReLU()
         self.conv1 = GCNConv(input_size, output_size, add_self_loops=False)
 
-    def forward(self, simplicialComplex):
+    def forward(self, simplicialComplex, b1, b2):
         X0, _, _ = simplicialComplex.unpack_features()
         L0, _, _ = simplicialComplex.unpack_laplacians()
 
@@ -99,14 +99,14 @@ class SuperpixelGAT(nn.Module):
 
 class PlanetoidGAT(nn.Module):
 
-    def __init__(self, input_size, output_size, k_heads=2):
+    def __init__(self, input_size, output_size, k_heads=1):
         super().__init__()
 
         f_size = output_size // 2
         assert f_size % k_heads == 0, f"k_heads needs to be a factor of feature size which is currently {f_size}."
         self.gat1 = torch.nn.ModuleList([GATLayer(input_size, output_size // k_heads) for _ in range(k_heads)])
 
-    def forward(self, simplicialComplex):
+    def forward(self, simplicialComplex, b1, b2):
         X0, _, _ = simplicialComplex.unpack_features()
         L0, _, _ = simplicialComplex.unpack_laplacians()
 

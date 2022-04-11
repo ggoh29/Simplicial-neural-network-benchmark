@@ -12,8 +12,8 @@ lr = 0.001
 batch_size = 4
 
 # f = torch.nn.functional.relu
-# f = torch.nn.Tanh()
-f = torch.nn.Identity()
+f = torch.nn.Tanh()
+# f = torch.nn.Identity()
 
 nn_mod = flow_SAT
 # nn_mod = flow_SAN
@@ -29,7 +29,7 @@ loss_f = torch.nn.CrossEntropyLoss()
 
 
 if __name__ == "__main__":
-    data = FlowSCDataset('../data', processor_type)
+    data = FlowSCDataset('./data', processor_type)
     train_dataset, test_dataset = data.get_val_train_split()
 
     train_dataset = DataLoader(train_dataset, batch_size=batch_size, collate_fn=processor_type.batch, num_workers=8,

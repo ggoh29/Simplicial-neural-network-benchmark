@@ -3,7 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch_geometric.nn import global_mean_pool
 
-
 class SNN_Bunch_Layer(nn.Module):
     # This model is based on model described by Eric Bunch et al. in Simplicial 2-Complex Convolutional Neural Networks
     # Github here https://github.com/AmFamMLTeam/simplicial-2-complex-cnns
@@ -108,7 +107,7 @@ class PlanetoidBunch(nn.Module):
 
         self.tri_layer = nn.Linear(output_size, output_size)
 
-    def forward(self, simplicialComplex):
+    def forward(self, simplicialComplex, B1, B2):
         X0, X1, X2 = simplicialComplex.unpack_features()
         L0, L1, L2 = simplicialComplex.unpack_laplacians()
         B2D3, D2B1TD1inv, D1invB1, B2TD2inv = simplicialComplex.unpack_others()
@@ -122,9 +121,7 @@ class PlanetoidBunch(nn.Module):
         X2 = torch.logical_and(X2_i, torch.logical_and(X2_j, X2_k)).float()
 
         X0, X1, X2 = self.layer1(X0, X1, X2, L0, L1, L2, B2D3, D2B1TD1inv, D1invB1, B2TD2inv)
-
-        X0 = (X0 + torch.sparse.mm(D1invB1, X1) + torch.sparse.mm(D1invB1,
-                                                                  self.tri_layer(torch.sparse.mm(B2D3, X2)))) / 3
+        X0 = (X0 + torch.sparse.mm(B1, X1) + torch.sparse.mm(B1, self.tri_layer(torch.sparse.mm(B2, X2)))) / 3
         return X0
 
 

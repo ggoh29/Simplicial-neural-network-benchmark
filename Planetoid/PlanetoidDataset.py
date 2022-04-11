@@ -2,7 +2,7 @@ from torch_geometric.datasets import Planetoid
 from torch_geometric.data import InMemoryDataset
 import numpy as np
 import torch
-from models.nn_utils import convert_to_CoChain, remove_diag_sparse, to_sparse_coo
+from models.nn_utils import convert_to_CoChain, remove_diag_sparse, to_sparse_coo, normalise_boundary
 from Planetoid.FakeDataset import gen_dataset
 
 
@@ -37,7 +37,6 @@ class PlanetoidSCDataset(InMemoryDataset):
             self.data_download = gen_dataset()
         else:
             self.data_download = Planetoid(self.root, self.dataset_name)[0]
-        print(type(self.data_download))
         nodes = self.data_download.x.shape[0]
         self.nodes = np.array([i for i in range(nodes)])
 
@@ -62,6 +61,16 @@ class PlanetoidSCDataset(InMemoryDataset):
         data, slices = self.processor_type.collate(dataset)
         torch.save((data, slices), self.processed_paths[0])
 
+    def get_boundary(self, edge_list, features):
+        adj_ones = torch.ones(edge_list.shape[1])
+        adj = torch.sparse_coo_tensor(edge_list, adj_ones)
+
+        # features = preprocess_features(features)
+        adj = remove_diag_sparse(adj)
+        cochain = convert_to_CoChain(adj, features, None)
+        b1, b2 = normalise_boundary(cochain.b1, cochain.b2)
+        return b1, b2
+
     def _get_node_subsection(self, idx_list):
         dataset = self.__getitem__(0)
         idx_list = torch.tensor(idx_list)
@@ -71,18 +80,19 @@ class PlanetoidSCDataset(InMemoryDataset):
         adj = torch.triu(adj, diagonal=1).to_sparse()
         features = dataset.X0[idx_list]
         labels = dataset.label[idx_list]
-        dataset = convert_to_CoChain(adj, features, labels)
-        dataset = self.processor_type.process(dataset)
-        data_dct = self.processor_type.batch([dataset])[0]
-        data_dct = self.processor_type.clean_features(data_dct)
-        return data_dct
+        simplicialComplex = convert_to_CoChain(adj, features, labels)
+        simplicialComplex = self.processor_type.process(simplicialComplex)
+        simplicialComplex = self.processor_type.batch([simplicialComplex])[0]
+        simplicialComplex = self.processor_type.clean_features(simplicialComplex)
+        return simplicialComplex
 
     def get_full(self):
         simplicialComplex = self.get(0)
         simplicialComplex = self.processor_type.batch([simplicialComplex])[0]
         simplicialComplex = self.processor_type.clean_features(simplicialComplex)
         simplicialComplex = self.processor_type.repair(simplicialComplex)
-        return simplicialComplex
+        b1, b2 = self.get_boundary(simplicialComplex.L0.coalesce().indices(), simplicialComplex.X0)
+        return simplicialComplex, b1, b2
 
     def get_train_labels(self):
         simplicialComplex = self.get(0)

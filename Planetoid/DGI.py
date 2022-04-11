@@ -1,5 +1,4 @@
-from models.nn_utils import unpack_feature_dct_to_L_X_B, convert_to_CoChain, torch_sparse_to_scipy_sparse, repair_sparse,\
-    scipy_sparse_to_torch_sparse, to_sparse_coo, preprocess_features
+from models.nn_utils import  convert_to_CoChain, torch_sparse_to_scipy_sparse, scipy_sparse_to_torch_sparse, normalise_boundary
 import scipy
 import numpy as np
 import torch
@@ -10,7 +9,7 @@ import copy
 def convert_to_device(lst):
     return [i.to(DEVICE) for i in lst]
 
-def corruption_function(simplicialComplex, processor_type, p = 0.005):
+def corruption_function(simplicialComplex, processor_type, p = 0.000):
     L0 = simplicialComplex.L0
     X0 = simplicialComplex.X0
     nb_nodes = X0.shape[0]
@@ -27,7 +26,7 @@ def corruption_function(simplicialComplex, processor_type, p = 0.005):
     # logical xor for edge insertion/deletion
     cor_adj = torch.sparse_coo_tensor(cor_adj_i, cor_adj_v).to(DEVICE)
     cor_adj = L0 + cor_adj
-    cor_adj_i, cor_adj_v = cor_adj.coalesce().indices().to(DEVICE), cor_adj.coalesce().values().to(DEVICE)
+    cor_adj_i, cor_adj_v = cor_adj.coalesce().indices(), cor_adj.coalesce().values()
     cor_adj_v = torch.abs(cor_adj_v)
     cor_adj = torch.sparse_coo_tensor(cor_adj_i, cor_adj_v)
     cor_adj = torch_sparse_to_scipy_sparse(cor_adj)
@@ -35,18 +34,16 @@ def corruption_function(simplicialComplex, processor_type, p = 0.005):
     cor_adj.eliminate_zeros()
     cor_adj = scipy_sparse_to_torch_sparse(cor_adj)
 
-    fake_labels = torch.zeros(nb_nodes).to(DEVICE)
-    scData = convert_to_CoChain(cor_adj, C_X0, fake_labels)
-    corrupted_train = processor_type.process(scData)
+    fake_labels = torch.zeros(nb_nodes)
+    cochain = convert_to_CoChain(cor_adj, C_X0, fake_labels)
+    corrupted_train = processor_type.process(cochain)
     corrupted_train = processor_type.batch([corrupted_train])[0]
     corrupted_train = processor_type.clean_features(corrupted_train)
     corrupted_train = processor_type.repair(corrupted_train)
 
-    # corrupted_train = {feature : feature_dct[feature] for feature in feature_dct.keys()}
-    # corrupted_train['features'] = copy.deepcopy(corrupted_train['features'])
-    # corrupted_train['features'][0] = C_X0
+    b1, b2 = normalise_boundary(cochain.b1, cochain.b2)
 
-    return corrupted_train
+    return corrupted_train, b1, b2
 
 ######################################################################################################
 # This section is adopted from https://github.com/PetarV-/DGI/tree/61baf67d7052905c77bdeb28c22926f04e182362
@@ -99,25 +96,27 @@ class DGI(nn.Module):
 
         self.disc = Discriminator(output_size)
 
-    def forward(self, simplicialComplex, processor_type):
-        corrupted_complex = corruption_function(simplicialComplex, processor_type)
+    def forward(self, simplicialComplex, b1, b2, processor_type):
+        corrupted_complex, cb1, cb2 = corruption_function(simplicialComplex, processor_type)
         simplicialComplex.to_device()
         corrupted_complex.to_device()
+        cb1 = cb1.to(DEVICE)
+        cb2 = cb2.to(DEVICE)
 
-        h_1 = self.model(simplicialComplex).unsqueeze(0)
+        h_1 = self.model(simplicialComplex, b1, b2).unsqueeze(0)
         c = self.read(h_1, None)
         c = self.sigm(c)
 
-        h_2 = self.model(corrupted_complex).unsqueeze(0)
+        h_2 = self.model(corrupted_complex, cb1, cb2).unsqueeze(0)
 
         ret = self.disc(c, h_1, h_2)
 
         return ret
 
     # Detach the return variables
-    def embed(self, simplicialComplex):
+    def embed(self, simplicialComplex, b1, b2):
         simplicialComplex.to_device()
-        h_1 = self.model(simplicialComplex)
+        h_1 = self.model(simplicialComplex, b1, b2)
         c = self.read(h_1, None)
 
         return h_1.detach(), c.detach()

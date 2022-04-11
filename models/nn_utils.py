@@ -8,6 +8,48 @@ from utils import edge_to_node_matrix, triangle_to_edge_matrix
 from models.CoChain import CoChain
 import functools
 import scipy.sparse as sp
+from scipy import sparse
+
+
+def _normalise_boundary(b1, b2):
+    B1, B2 = to_sparse_coo(b1), to_sparse_coo(b2)
+    x0, x1 = B1.shape
+    _, x2 = B2.shape
+
+    B1_v_abs, B1_i = torch.abs(B1.coalesce().values()), B1.coalesce().indices()
+    B1_sum = torch.sparse.sum(torch.sparse_coo_tensor(B1_i, B1_v_abs, (x0, x1)), dim=1)
+    B1_sum_values = B1_sum.to_dense()
+    B1_sum_indices = torch.tensor([i for i in range(x0)])
+    d0_diag_indices = torch.stack([B1_sum_indices, B1_sum_indices], dim=0)
+    B1_sum_inv_values = torch.nan_to_num(1. / B1_sum_values, nan=0., posinf=0., neginf=0.)
+
+    D1_inv = torch.sparse_coo_tensor(d0_diag_indices, 0.5 * B1_sum_inv_values, (x0, x0))
+    D3_values = (1 / 3.) * torch.ones(B2.shape[1])
+    D3_indices = [i for i in range(B2.shape[1])]
+    D3_indices = torch.tensor([D3_indices, D3_indices])
+    D3 = torch.sparse_coo_tensor(D3_indices, D3_values, (x2, x2))
+
+    B2D3 = torch.sparse.mm(B2, D3)
+    D1invB1 = (1 / np.sqrt(2.)) * torch.sparse.mm(D1_inv, B1)
+
+    return D1invB1, B2D3
+
+
+def normalise_boundary(b1, b2):
+    B1, B2 = to_sparse_coo(b1), to_sparse_coo(b2)
+    _, x2 = B2.shape
+    B1, B2 = torch_sparse_to_scipy_sparse(B1), torch_sparse_to_scipy_sparse(B2)
+
+    B1_sum = np.abs(B1).sum(axis=1)
+    B1_sum_inv = 1. / B1_sum
+    B1_sum_inv[np.isinf(B1_sum_inv) | np.isneginf(B1_sum_inv)] = 0
+    D1_inv = sparse.diags((B1_sum_inv * 0.5).A.reshape(-1), 0)
+    D3 = (1 / 3.) * sparse.identity(n=B2.shape[1])
+
+    B2D3 = B2 @ D3
+    D1invB1 = (1 / np.sqrt(2.)) * D1_inv @ B1
+
+    return scipy_sparse_to_torch_sparse(sparse.coo_matrix(D1invB1)), scipy_sparse_to_torch_sparse(sparse.coo_matrix(B2D3))
 
 
 def preprocess_features(features):

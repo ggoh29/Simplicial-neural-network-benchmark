@@ -72,19 +72,22 @@ class SuperpixelSAT(nn.Module):
         # 10k = 30, 50k = 80
         f_size = 30
         k_heads = 2
-        self.layer0_1 = torch.nn.ModuleList([SATLayer_regular(num_node_feats, f_size // k_heads, bias) for _ in range(k_heads)])
+        self.layer0_1 = torch.nn.ModuleList(
+            [SATLayer_regular(num_node_feats, f_size // k_heads, bias) for _ in range(k_heads)])
         self.layer0_2 = torch.nn.ModuleList([SATLayer_regular(f_size, f_size // k_heads, bias) for _ in range(k_heads)])
         self.layer0_3 = torch.nn.ModuleList([SATLayer_regular(f_size, f_size // k_heads, bias) for _ in range(k_heads)])
 
         self.layer0_4 = nn.Linear(3 * f_size, output_size)
 
-        self.layer1_1 = torch.nn.ModuleList([SATLayer_regular(num_edge_feats, f_size // k_heads, bias) for _ in range(k_heads)])
+        self.layer1_1 = torch.nn.ModuleList(
+            [SATLayer_regular(num_edge_feats, f_size // k_heads, bias) for _ in range(k_heads)])
         self.layer1_2 = torch.nn.ModuleList([SATLayer_regular(f_size, f_size // k_heads, bias) for _ in range(k_heads)])
         self.layer1_3 = torch.nn.ModuleList([SATLayer_regular(f_size, f_size // k_heads, bias) for _ in range(k_heads)])
 
         self.layer1_4 = nn.Linear(3 * f_size, output_size)
 
-        self.layer2_1 = torch.nn.ModuleList([SATLayer_regular(num_triangle_feats, f_size // k_heads, bias) for _ in range(k_heads)])
+        self.layer2_1 = torch.nn.ModuleList(
+            [SATLayer_regular(num_triangle_feats, f_size // k_heads, bias) for _ in range(k_heads)])
         self.layer2_2 = torch.nn.ModuleList([SATLayer_regular(f_size, f_size // k_heads, bias) for _ in range(k_heads)])
         self.layer2_3 = torch.nn.ModuleList([SATLayer_regular(f_size, f_size // k_heads, bias) for _ in range(k_heads)])
 
@@ -121,6 +124,48 @@ class SuperpixelSAT(nn.Module):
         return F.softmax(self.combined_layer(x), dim=1)
 
 
+class PRELU(nn.PReLU):
+
+    def forward(self, input):
+        return F.prelu(input, self.weight)
+
+
+class PlanetoidSAT(nn.Module):
+
+    def __init__(self, num_node_feats, output_size, bias=True):
+        super().__init__()
+        k_heads = 2
+        self.layer_n = torch.nn.ModuleList(
+            [SATLayer_regular(num_node_feats, output_size // k_heads, bias) for _ in range(k_heads)])
+        self.layer_e = torch.nn.ModuleList(
+            [SATLayer_regular(num_node_feats, output_size // k_heads, bias) for _ in range(k_heads)])
+        self.layer_t = torch.nn.ModuleList(
+            [SATLayer_regular(num_node_feats, output_size // k_heads, bias) for _ in range(k_heads)])
+        self.f = PRELU()
+
+        self.tri_layer = nn.Linear(output_size, output_size)
+
+    def forward(self, simplicialComplex, B1, B2):
+        X0, X1, X2 = simplicialComplex.unpack_features()
+        L0, _, L2 = simplicialComplex.unpack_laplacians()
+        L1 = simplicialComplex.unpack_up_down()
+
+        X0[X0 != 0] = 1
+
+        X1_in, X1_out = X0[X1[:, 0]], X0[X1[:, 1]]
+        X1 = torch.logical_and(X1_in, X1_out).float()
+
+        X2_i, X2_j, X2_k = X0[X2[:, 0]], X0[X2[:, 1]], X0[X2[:, 2]]
+        X2 = torch.logical_and(X2_i, torch.logical_and(X2_j, X2_k)).float()
+
+        X0 = self.f(functools.reduce(lambda a, b: a + b, [sat(X0, L0) for sat in self.layer_n]))
+        X1 = self.f(functools.reduce(lambda a, b: a + b, [sat(X1, L) for L, sat in zip(L1, self.layer_e)]))
+        X2 = self.f(functools.reduce(lambda a, b: a + b, [sat(X2, L2) for sat in self.layer_t]))
+
+        X0 = (X0 + torch.sparse.mm(B1, X1) + torch.sparse.mm(B1, self.tri_layer(torch.sparse.mm(B2, X2)))) / 3
+        return X0
+
+
 class FlowSAT(nn.Module):
     def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size, f=F.relu, bias=False):
         super().__init__()
@@ -129,9 +174,10 @@ class FlowSAT(nn.Module):
 
         self.f = f
 
-        self.layer1 = torch.nn.ModuleList([SATLayer_orientated(num_edge_feats, f_size//2, bias) for _ in range(k_heads)])
-        self.layer2 = torch.nn.ModuleList([SATLayer_orientated(f_size, f_size//2, bias) for _ in range(k_heads)])
-        self.layer3 = torch.nn.ModuleList([SATLayer_orientated(f_size, f_size//2, bias) for _ in range(k_heads)])
+        self.layer1 = torch.nn.ModuleList(
+            [SATLayer_orientated(num_edge_feats, f_size // 2, bias) for _ in range(k_heads)])
+        self.layer2 = torch.nn.ModuleList([SATLayer_orientated(f_size, f_size // 2, bias) for _ in range(k_heads)])
+        self.layer3 = torch.nn.ModuleList([SATLayer_orientated(f_size, f_size // 2, bias) for _ in range(k_heads)])
         self.layer4 = torch.nn.ModuleList([SATLayer_orientated(f_size, f_size, bias) for _ in range(k_heads)])
 
         self.mlp1 = nn.Linear(f_size, f_size)
@@ -159,9 +205,12 @@ class TestSAT(nn.Module):
     def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size, bias=False, f=F.relu):
         super().__init__()
         k_heads = 2
-        self.layer1 = torch.nn.ModuleList([SATLayer_orientated(num_node_feats, output_size, bias) for _ in range(k_heads)])
-        self.layer2 = torch.nn.ModuleList([SATLayer_orientated(num_edge_feats, output_size, bias) for _ in range(k_heads)])
-        self.layer3 = torch.nn.ModuleList([SATLayer_orientated(num_triangle_feats, output_size, bias) for _ in range(k_heads)])
+        self.layer1 = torch.nn.ModuleList(
+            [SATLayer_orientated(num_node_feats, output_size, bias) for _ in range(k_heads)])
+        self.layer2 = torch.nn.ModuleList(
+            [SATLayer_orientated(num_edge_feats, output_size, bias) for _ in range(k_heads)])
+        self.layer3 = torch.nn.ModuleList(
+            [SATLayer_orientated(num_triangle_feats, output_size, bias) for _ in range(k_heads)])
         self.f = f
 
     def forward(self, simplicialComplex):

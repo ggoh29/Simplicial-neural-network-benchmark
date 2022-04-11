@@ -6,6 +6,7 @@ from models.SAT.model import SATLayer_orientated
 from models.GNN.model import GATLayer
 from constants import DEVICE
 
+
 class SANLayer(nn.Module):
 
     def __init__(self, input_size, output_size, bias=True, orientated=False):
@@ -85,6 +86,45 @@ class SuperpixelSAN(nn.Module):
         x = torch.cat([x0, x1, x2], dim=1)
 
         return F.softmax(self.combined_layer(x), dim=1)
+
+
+class PRELU(nn.PReLU):
+
+    def forward(self, input):
+        return F.prelu(input, self.weight)
+
+
+class PlanetoidSAT(nn.Module):
+
+    def __init__(self, num_node_feats, output_size, bias=True):
+        super().__init__()
+        k_heads = 2
+        self.layer_n = SANLayer(num_node_feats, output_size, bias=bias)
+        self.layer_e = SANLayer(num_node_feats, output_size, bias=bias)
+        self.layer_t = SANLayer(num_node_feats, output_size, bias=bias)
+        self.f = PRELU()
+
+        self.tri_layer = nn.Linear(output_size, output_size, bias=bias)
+
+    def forward(self, simplicialComplex, B1, B2):
+        X0, X1, X2 = simplicialComplex.unpack_features()
+        L0, L1, L2 = simplicialComplex.unpack_laplacians()
+        L1_u, L1_d = simplicialComplex.unpack_up_down()
+
+        X0[X0 != 0] = 1
+
+        X1_in, X1_out = X0[X1[:, 0]], X0[X1[:, 1]]
+        X1 = torch.logical_and(X1_in, X1_out).float()
+
+        X2_i, X2_j, X2_k = X0[X2[:, 0]], X0[X2[:, 1]], X0[X2[:, 2]]
+        X2 = torch.logical_and(X2_i, torch.logical_and(X2_j, X2_k)).float()
+
+        X0 = self.f(self.layer_n(X0, None, L0, L0))
+        X1 = self.f(self.layer_e(X1, L1_u, L1_d, L1))
+        X2 = self.f(self.layer_t(X2, L2, None, L2))
+
+        X0 = (X0 + torch.sparse.mm(B1, X1) + torch.sparse.mm(B1, self.tri_layer(torch.sparse.mm(B2, X2)))) / 3
+        return X0
 
 
 class FlowSAN(nn.Module):

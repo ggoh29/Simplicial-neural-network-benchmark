@@ -73,6 +73,43 @@ class SuperpixelEbli(nn.Module):
         out = torch.cat([out0, out1, out2], dim=1)
         return F.softmax(self.combined_layer(out), dim=1)
 
+class PRELU(nn.PReLU):
+
+    def forward(self, input):
+        return F.prelu(input, self.weight)
+
+
+class PlanetoidEbli(nn.Module):
+
+    def __init__(self, num_node_feats, output_size, bias=True):
+        super().__init__()
+        f_size = output_size
+        self.layer_n = SCNLayer(num_node_feats, f_size, bias)
+        self.layer_e = SCNLayer(num_node_feats, f_size, bias)
+        self.layer_t = SCNLayer(num_node_feats, f_size, bias)
+        self.f = PRELU()
+
+        self.tri_layer = nn.Linear(output_size, output_size)
+
+    def forward(self, simplicialComplex, B1, B2):
+        X0, X1, X2 = simplicialComplex.unpack_features()
+        L0, L1, L2 = simplicialComplex.unpack_laplacians()
+
+        X0[X0 != 0] = 1
+
+        X1_in, X1_out = X0[X1[:, 0]], X0[X1[:, 1]]
+        X1 = torch.logical_and(X1_in, X1_out).float()
+
+        X2_i, X2_j, X2_k = X0[X2[:, 0]], X0[X2[:, 1]], X0[X2[:, 2]]
+        X2 = torch.logical_and(X2_i, torch.logical_and(X2_j, X2_k)).float()
+
+        X0 = self.f(self.layer_n(L0, X0))
+        X1 = self.f(self.layer_e(L1, X1))
+        X2 = self.f(self.layer_t(L2, X2))
+
+        X0 = (X0 + torch.sparse.mm(B1, X1) + torch.sparse.mm(B1, self.tri_layer(torch.sparse.mm(B2, X2)))) / 3
+        return X0
+
 
 class FlowEbli(nn.Module):
     def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size, bias=False, f=nn.LeakyReLU()):

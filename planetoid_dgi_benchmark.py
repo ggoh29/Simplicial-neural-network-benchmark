@@ -18,39 +18,40 @@ lr = 0.001
 l2_coef = 0.0
 patience = 20
 
-nn_mod = planetoid_GCN
-# nn_mod = planetoid_BSNN
+# nn_mod = planetoid_GCN
+nn_mod = planetoid_BSNN
 # nn_mod = planetoid_GAT
 
 processor_type = nn_mod[0]
 model = nn_mod[1]
 
-model = DGI(input_size, output_size, model)
-optimiser = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=l2_coef)
+dgi = DGI(input_size, output_size, model)
+optimiser = torch.optim.Adam(dgi.parameters(), lr=lr, weight_decay=l2_coef)
 b_xent = nn.BCEWithLogitsLoss()
 xent = nn.CrossEntropyLoss()
-
 
 if __name__ == "__main__":
 
     data = PlanetoidSCDataset('./data', dataset, processor_type)
-    data_dct = data.get_full()
+    data_full, b1, b2 = data.get_full()
 
     cnt_wait = 0
     best = 1e9
     best_t = 0
     bl = False
+    b1 = b1.to(DEVICE)
+    b2 = b2.to(DEVICE)
     for epoch in range(nb_epochs):
-        model.train()
+        dgi.train()
         optimiser.zero_grad()
 
-        nb_nodes = data_dct["features"][0].shape[0]
+        nb_nodes = data_full.X0.shape[0]
         lbl_1 = torch.ones(1, nb_nodes)
         lbl_2 = torch.zeros(1, nb_nodes)
 
         lbl = torch.cat((lbl_1, lbl_2), 1).to(DEVICE)
 
-        logits = model(data_dct, processor_type)
+        logits = dgi(data_full, b1, b2, processor_type)
 
         loss = b_xent(logits, lbl)
 
@@ -60,7 +61,7 @@ if __name__ == "__main__":
             best = loss
             best_t = epoch
             cnt_wait = 0
-            torch.save(model.state_dict(), './best_dgi.pkl')
+            torch.save(dgi.state_dict(), f'./data/{model.__name__}_dgi.pkl')
             if epoch != 0:
                 bl = True
         else:
@@ -75,10 +76,10 @@ if __name__ == "__main__":
         optimiser.step()
 
     print('Loading {}th epoch'.format(best_t))
-    model.load_state_dict(torch.load('./best_dgi.pkl'))
+    dgi.load_state_dict(torch.load(f'./data/{model.__name__}_dgi.pkl'))
 
-    embeds, _ = model.embed(data_dct)
-    # embeds = data_dct['features'][0].to(DEVICE)
+    embeds, _ = dgi.embed(data_full, b1, b2)
+    # embeds = data_full.X0.to(DEVICE)
     # output_size = 79
     # with open("./embeddings.py", 'w') as f:
     #     f.write(f'embeddings = {embeds.tolist()}')
@@ -121,6 +122,7 @@ if __name__ == "__main__":
         preds = torch.argmax(logits, dim=1)
         acc = torch.sum(preds == test_lbls).float() / test_lbls.shape[0]
         accs.append(acc * 100)
+        print(model.__name__)
         print(acc)
         tot += acc
 
