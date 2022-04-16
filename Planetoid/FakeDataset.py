@@ -98,8 +98,8 @@ def gen_dataset():
     val_mask.index_fill_(0, val_index, 1)
     val_mask = val_mask > 0
 
-    X0 = torch.sum(adj, dim = 1)
-    X0 = torch.nn.functional.one_hot(X0.long()).float()
+    # X0 = torch.sum(adj, dim = 1)
+    # X0 = torch.nn.functional.one_hot(X0.long()).float()
     # X0 = adj + adj.T
     X0 = torch.ones((adj.shape[0], adj.shape[0]))
     edge_index = torch.nonzero(adj).T

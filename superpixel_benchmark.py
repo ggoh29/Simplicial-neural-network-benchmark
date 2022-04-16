@@ -25,6 +25,9 @@ test_set = 10000
 
 output_size = 10
 
+# model_list = [superpixel_GCN, superpixel_GAT, superpixel_ESNN, superpixel_BSNN, superpixel_SAT, superpixel_SAN]
+model = superpixel_GCN
+
 
 def convert_to_device(lst):
     return [i.to(DEVICE) for i in lst]
@@ -122,8 +125,7 @@ def run(processor_type, NN, output_suffix):
     model_parameters = filter(lambda p: p.requires_grad, NN.parameters())
     params = sum([np.prod(p.size()) for p in model_parameters])
     print(params)
-
-    train_data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, imageprocessor,
+    train_data = SuperpixelSCDataset('../data', dataset, superpixel_size, edgeFlow, processor_type, imageprocessor,
                                      full_dataset, train=True)
 
     write_file_name = f"./results/{train_data.get_name()}_{NN.__class__.__name__}_{output_suffix}"
@@ -140,6 +142,7 @@ def run(processor_type, NN, output_suffix):
 
     NN.load_state_dict(torch.load(f'./data/{NN.__class__.__name__}_nn.pkl'))
     test_acc, top_3_error, top_5_error, _ = test(NN, test_dataset, processor_type)
+    print(test_acc, top_3_error, top_5_error)
 
     s = f"""Dataset: {dataset},\nModel: {NN.__class__.__name__}\n\nparams={params}\n\n
     FINAL RESULTS\nTEST ACCURACY: {test_acc:.4f}\nTRAIN ACCURACY: {train_acc:.4f}\n\n
@@ -153,9 +156,7 @@ def run(processor_type, NN, output_suffix):
 
 
 if __name__ == "__main__":
-    # NN_list = [superpixel_GCN, superpixel_GAT, superpixel_ESNN, superpixel_BSNN, superpixel_SAT]
-    NN_list = [superpixel_SAT]
     for output_suffix in range(1):
-        for processor_type, NN in NN_list:
-            NN = NN(5, 10, 15, output_size)
-            run(processor_type, NN.to(DEVICE), output_suffix)
+        processor_type, NN = model
+        NN = NN(5, output_size)
+        run(processor_type, NN.to(DEVICE), output_suffix)

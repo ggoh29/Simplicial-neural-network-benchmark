@@ -135,12 +135,9 @@ class PlanetoidSAT(nn.Module):
     def __init__(self, num_node_feats, output_size, bias=True):
         super().__init__()
         k_heads = 2
-        self.layer_n = torch.nn.ModuleList(
-            [SATLayer_regular(num_node_feats, output_size // k_heads, bias) for _ in range(k_heads)])
-        self.layer_e = torch.nn.ModuleList(
-            [SATLayer_regular(num_node_feats, output_size // k_heads, bias) for _ in range(k_heads)])
-        self.layer_t = torch.nn.ModuleList(
-            [SATLayer_regular(num_node_feats, output_size // k_heads, bias) for _ in range(k_heads)])
+        self.layer_n = torch.nn.ModuleList([SATLayer_regular(num_node_feats, output_size, bias) for _ in range(k_heads)])
+        self.layer_e = torch.nn.ModuleList([SATLayer_regular(num_node_feats, output_size, bias) for _ in range(k_heads)])
+        self.layer_t = torch.nn.ModuleList([SATLayer_regular(num_node_feats, output_size, bias) for _ in range(k_heads)])
         self.f = PRELU()
 
         self.tri_layer = nn.Linear(output_size, output_size)
