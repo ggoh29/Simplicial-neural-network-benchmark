@@ -8,7 +8,7 @@ conda activate myenv
 ./requirements.sh
 ```
 
-This software features the implements of 6 models:
+This software features the implementation of 6 models:
 - Graph convolutional network (GCN) by Kipf and Welling
 - Graph attention network (GAT) by Veličković et al.
 - Simplicial neural network (SCN) by Ebli, Defferrard, and Spreemann
