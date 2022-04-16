@@ -11,8 +11,8 @@ conda activate myenv
 This software features the implementation of 6 models:
 - Graph convolutional network (GCN) by Kipf and Welling
 - Graph attention network (GAT) by Veličković et al.
-- Simplicial neural network (SCN) by Ebli, Defferrard, and Spreemann
-- Simplicial 2-complex convolutional neural network (SCConv) by Bunch et al
+- Simplicial neural network (currently saved as ESNN but will be changed soon) by Ebli, Defferrard, and Spreemann
+- Simplicial 2-complex convolutional neural network (currently saved as BSNN but will be changed soon) by Bunch et al
 - Simplicial attention network (SAT) by Goh and Bodnar
 - Simplicial attention neural network (SAN) by Giusti et al.
 
