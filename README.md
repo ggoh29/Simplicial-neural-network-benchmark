@@ -19,5 +19,5 @@ This software features the implements of 6 models:
 This software features four benchmarking tests
 - Superpixel graph classication of MNIST and CIFAR10 images (superpixel_benchmark.py)
 - Trajectory classication (orientation_flow_benchmark.py)
-- Adversarial resistance (adversarial_superpixel_benchmark.py_
+- Adversarial resistance (adversarial_superpixel_benchmark.py)
 - Unsupervised representation learning (planetoid_dgi_benchmark.py)
