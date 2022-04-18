@@ -17,7 +17,7 @@ This software features the implementation of 6 models:
 - Simplicial attention neural network (SAN) by Giusti et al.
 
 This software features four benchmarking tests
-- Superpixel graph classication of MNIST and CIFAR10 images (superpixel_benchmark.py)
-- Trajectory classication (orientation_flow_benchmark.py)
+- Superpixel graph classification of MNIST and CIFAR10 images (superpixel_benchmark.py)
+- Trajectory classification (orientation_flow_benchmark.py)
 - Adversarial resistance (adversarial_superpixel_benchmark.py)
 - Unsupervised representation learning (planetoid_dgi_benchmark.py)
