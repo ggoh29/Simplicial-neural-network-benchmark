@@ -25,8 +25,12 @@ test_set = 10000
 
 output_size = 10
 
-# model_list = [superpixel_GCN, superpixel_GAT, superpixel_ESNN, superpixel_BSNN, superpixel_SAT, superpixel_SAN]
-model = superpixel_GCN
+# model = superpixel_GCN
+model = superpixel_GAT
+# model = superpixel_ESNN
+# model = superpixel_BSNN
+# model = superpixel_SAT
+# model = superpixel_SAN
 
 
 def convert_to_device(lst):
@@ -125,7 +129,7 @@ def run(processor_type, NN, output_suffix):
     model_parameters = filter(lambda p: p.requires_grad, NN.parameters())
     params = sum([np.prod(p.size()) for p in model_parameters])
     print(params)
-    train_data = SuperpixelSCDataset('../data', dataset, superpixel_size, edgeFlow, processor_type, imageprocessor,
+    train_data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, imageprocessor,
                                      full_dataset, train=True)
 
     write_file_name = f"./results/{train_data.get_name()}_{NN.__class__.__name__}_{output_suffix}"
