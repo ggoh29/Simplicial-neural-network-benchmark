@@ -2,7 +2,7 @@ from torch_geometric.datasets import Planetoid
 from torch_geometric.data import InMemoryDataset
 import numpy as np
 import torch
-from models.nn_utils import convert_to_CoChain, remove_diag_sparse, to_sparse_coo, normalise_boundary
+from models.nn_utils import convert_to_CoChain, remove_diag_sparse, to_sparse_coo, normalise_boundary, preprocess_features
 from Planetoid.FakeDataset import gen_dataset
 
 
@@ -53,8 +53,7 @@ class PlanetoidSCDataset(InMemoryDataset):
         features, edges, labels = data.x, data.edge_index, data.y
         adj_ones = torch.ones(edges.shape[1])
         adj = torch.sparse_coo_tensor(edges, adj_ones)
-
-        # features = preprocess_features(features)
+        features = preprocess_features(features)
         adj = remove_diag_sparse(adj)
         dataset = convert_to_CoChain(adj, features, labels)
         dataset = [self.processor_type.process(dataset)]
