@@ -15,9 +15,9 @@ batch_size = 4
 f = torch.nn.Tanh()
 # f = torch.nn.Identity()
 
-nn_mod = flow_SAT
+# nn_mod = flow_SAT
 # nn_mod = flow_SAN
-# nn_mod = flow_ESNN
+nn_mod = flow_ESNN
 # nn_mod = flow_BSNN
 
 processor_type = nn_mod[0]
