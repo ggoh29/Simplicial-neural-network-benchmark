@@ -9,7 +9,7 @@ import copy
 def convert_to_device(lst):
     return [i.to(DEVICE) for i in lst]
 
-def corruption_function(simplicialComplex, processor_type, p = 0.000):
+def corruption_function(simplicialComplex, processor_type, p = 0.005):
     L0 = simplicialComplex.L0
     X0 = simplicialComplex.X0
     nb_nodes = X0.shape[0]
@@ -17,14 +17,14 @@ def corruption_function(simplicialComplex, processor_type, p = 0.000):
     # idx = [i for i in range(nb_nodes)]
     C_X0 = X0[idx]
 
-    L0_i = L0.coalesce().indices().to(DEVICE)
-    L0_v = -torch.ones(L0_i.shape[1]).to(DEVICE)
-    L0 = torch.sparse_coo_tensor(L0_i, L0_v).to(DEVICE)
-    cor_adj_i = torch.triu_indices(nb_nodes, nb_nodes, 0).to(DEVICE)
-    cor_adj_v = torch.tensor(np.random.binomial(1, p, size=(cor_adj_i.shape[1])), dtype=torch.float, device = DEVICE)
+    L0_i = L0.coalesce().indices().cpu()
+    L0_v = -torch.ones(L0_i.shape[1])
+    L0 = torch.sparse_coo_tensor(L0_i, L0_v)
+    cor_adj_i = torch.triu_indices(nb_nodes, nb_nodes, 0)
+    cor_adj_v = torch.tensor(np.random.binomial(1, p, size=(cor_adj_i.shape[1])), dtype=torch.float)
 
     # logical xor for edge insertion/deletion
-    cor_adj = torch.sparse_coo_tensor(cor_adj_i, cor_adj_v).to(DEVICE)
+    cor_adj = torch.sparse_coo_tensor(cor_adj_i, cor_adj_v)
     cor_adj = L0 + cor_adj
     cor_adj_i, cor_adj_v = cor_adj.coalesce().indices(), cor_adj.coalesce().values()
     cor_adj_v = torch.abs(cor_adj_v)
