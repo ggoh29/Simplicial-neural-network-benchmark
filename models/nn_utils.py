@@ -11,7 +11,7 @@ import scipy.sparse as sp
 from scipy import sparse
 
 
-def _normalise_boundary(b1, b2):
+def normalise_boundary(b1, b2):
     B1, B2 = to_sparse_coo(b1), to_sparse_coo(b2)
     x0, x1 = B1.shape
     _, x2 = B2.shape
@@ -35,7 +35,7 @@ def _normalise_boundary(b1, b2):
     return D1invB1, B2D3
 
 
-def normalise_boundary(b1, b2):
+def _normalise_boundary(b1, b2):
     B1, B2 = to_sparse_coo(b1), to_sparse_coo(b2)
     _, x2 = B2.shape
     B1, B2 = torch_sparse_to_scipy_sparse(B1), torch_sparse_to_scipy_sparse(B2)
