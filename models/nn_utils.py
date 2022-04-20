@@ -9,6 +9,7 @@ from models.CoChain import CoChain
 import functools
 import scipy.sparse as sp
 
+
 def normalise_boundary(b1, b2):
     B1, B2 = to_sparse_coo(b1), to_sparse_coo(b2)
     x0, x1 = B1.shape

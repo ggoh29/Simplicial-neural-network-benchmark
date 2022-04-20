@@ -4,7 +4,8 @@ import torch
 import numpy as np
 from nn_utils import convert_to_CoChain, torch_sparse_to_scipy_sparse, scipy_sparse_to_torch_sparse, to_sparse_coo
 from scipy import sparse
-from models import SuperpixelSCConv, test_SAN, test_SAT, test_SCConv, test_SCN, flow_SCConv, flow_SAN, flow_SAT, flow_SCN
+from models import SuperpixelSCConv, test_SAN, test_SAT, test_SCConv, test_SCN, flow_SCConv, flow_SAN, flow_SAT, \
+    flow_SCN
 from CoChain import CoChain
 
 
@@ -241,7 +242,6 @@ class MyTestCase(unittest.TestCase):
         result2 = model(f2)
 
         self.assertTrue(torch.allclose(result1, result2, atol=1e-5))
-
 
     def test_orientation_invariant_Bunch(self):
         f = torch.nn.Tanh()
