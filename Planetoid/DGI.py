@@ -1,14 +1,17 @@
-from models.nn_utils import  convert_to_CoChain, torch_sparse_to_scipy_sparse, scipy_sparse_to_torch_sparse, normalise_boundary
+from models.nn_utils import convert_to_CoChain, torch_sparse_to_scipy_sparse, scipy_sparse_to_torch_sparse, \
+    normalise_boundary
 import scipy
 import numpy as np
 import torch
 import torch.nn as nn
 from constants import DEVICE
 
+
 def convert_to_device(lst):
     return [i.to(DEVICE) for i in lst]
 
-def corruption_function(simplicialComplex, processor_type, p = 0.000):
+
+def corruption_function(simplicialComplex, processor_type, p=0.000):
     L0 = simplicialComplex.L0
     X0 = simplicialComplex.X0
     nb_nodes = X0.shape[0]
@@ -43,6 +46,7 @@ def corruption_function(simplicialComplex, processor_type, p = 0.000):
     b1, b2 = normalise_boundary(cochain.b1, cochain.b2)
 
     return corrupted_train, b1, b2
+
 
 ######################################################################################################
 # This section is adopted from https://github.com/PetarV-/DGI/tree/61baf67d7052905c77bdeb28c22926f04e182362
@@ -84,6 +88,7 @@ class Discriminator(nn.Module):
         logits = torch.cat((sc_1, sc_2), 1)
 
         return logits
+
 
 class DGI(nn.Module):
     def __init__(self, input_size, output_size, model):
