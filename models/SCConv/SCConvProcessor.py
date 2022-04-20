@@ -56,7 +56,7 @@ class SCConvComplex(SimplicialComplex):
         self.B2TD2inv = self.B2TD2inv.to(DEVICE)
 
 
-class BSNNProcessor(NNProcessor):
+class SCConvProcessor(NNProcessor):
 
     # This model is based on model described by Eric Bunch et al. in Simplicial 2-Complex Convolutional Neural Networks
     # Github here https://github.com/AmFamMLTeam/simplicial-2-complex-cnns

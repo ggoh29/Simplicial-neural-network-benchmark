@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch_geometric.nn import global_mean_pool
 
-class SNN_Bunch_Layer(nn.Module):
+class SCConv_Layer(nn.Module):
     # This model is based on model described by Eric Bunch et al. in Simplicial 2-Complex Convolutional Neural Networks
     # Github here https://github.com/AmFamMLTeam/simplicial-2-complex-cnns
     def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size, bias=True, f=F.relu):
@@ -53,15 +53,15 @@ class SNN_Bunch_Layer(nn.Module):
         return X0, X1, X2
 
 
-class SuperpixelBunch(nn.Module):
+class SuperpixelSCConv(nn.Module):
 
     def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size, bias=True):
         super().__init__()
         # 10k = 20, 50k = 54
         f_size = 21
-        self.layer1 = SNN_Bunch_Layer(num_node_feats, num_edge_feats, num_triangle_feats, f_size, bias)
-        self.layer2 = SNN_Bunch_Layer(f_size, f_size, f_size, f_size, bias)
-        self.layer3 = SNN_Bunch_Layer(f_size, f_size, f_size, f_size, bias)
+        self.layer1 = SCConv_Layer(num_node_feats, num_edge_feats, num_triangle_feats, f_size, bias)
+        self.layer2 = SCConv_Layer(f_size, f_size, f_size, f_size, bias)
+        self.layer3 = SCConv_Layer(f_size, f_size, f_size, f_size, bias)
 
         self.combined1 = nn.Linear(3 * f_size, output_size, bias)
         self.combined2 = nn.Linear(3 * f_size, output_size, bias)
@@ -98,12 +98,12 @@ class PRELU(nn.PReLU):
         return F.prelu(input, self.weight)
 
 
-class PlanetoidBunch(nn.Module):
+class PlanetoidSCConv(nn.Module):
 
     def __init__(self, num_node_feats, output_size, bias=True):
         super().__init__()
         f_size = output_size
-        self.layer1 = SNN_Bunch_Layer(num_node_feats, num_node_feats, num_node_feats, f_size, bias, PRELU())
+        self.layer1 = SCConv_Layer(num_node_feats, num_node_feats, num_node_feats, f_size, bias, PRELU())
 
         self.tri_layer = nn.Linear(output_size, output_size)
 
@@ -125,16 +125,16 @@ class PlanetoidBunch(nn.Module):
         return X0
 
 
-class FlowBunch(nn.Module):
+class FlowSCConv(nn.Module):
 
     def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size, bias=False, f=F.relu):
         super().__init__()
         f_size = 32
 
-        self.layer1 = SNN_Bunch_Layer(num_node_feats, num_edge_feats, num_triangle_feats, f_size, bias=bias, f=f)
-        self.layer2 = SNN_Bunch_Layer(f_size, f_size, f_size, f_size, bias=bias, f=f)
-        self.layer3 = SNN_Bunch_Layer(f_size, f_size, f_size, f_size, bias=bias, f=f)
-        self.layer4 = SNN_Bunch_Layer(f_size, f_size, f_size, f_size, bias=bias, f=f)
+        self.layer1 = SCConv_Layer(num_node_feats, num_edge_feats, num_triangle_feats, f_size, bias=bias, f=f)
+        self.layer2 = SCConv_Layer(f_size, f_size, f_size, f_size, bias=bias, f=f)
+        self.layer3 = SCConv_Layer(f_size, f_size, f_size, f_size, bias=bias, f=f)
+        self.layer4 = SCConv_Layer(f_size, f_size, f_size, f_size, bias=bias, f=f)
         self.mlp1 = nn.Linear(f_size, f_size)
         self.mlp2 = nn.Linear(f_size, output_size)
 
@@ -155,11 +155,11 @@ class FlowBunch(nn.Module):
         return torch.softmax(self.mlp2(X1), dim=1)
 
 
-class TestBunch(nn.Module):
+class TestSCConv(nn.Module):
 
     def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size, bias=False, f=F.relu):
         super().__init__()
-        self.layer1 = SNN_Bunch_Layer(num_node_feats, num_edge_feats, num_triangle_feats, output_size, bias=bias, f=f)
+        self.layer1 = SCConv_Layer(num_node_feats, num_edge_feats, num_triangle_feats, output_size, bias=bias, f=f)
 
     def forward(self, simplicialComplex):
         X0, X1, X2 = simplicialComplex.unpack_features()

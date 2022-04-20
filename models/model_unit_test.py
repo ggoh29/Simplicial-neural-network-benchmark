@@ -4,7 +4,7 @@ import torch
 import numpy as np
 from nn_utils import convert_to_CoChain, torch_sparse_to_scipy_sparse, scipy_sparse_to_torch_sparse, to_sparse_coo
 from scipy import sparse
-from models import SuperpixelBunch, test_SAN, test_SAT, test_BSNN, test_ESNN, flow_BSNN, flow_SAN, flow_SAT, flow_ESNN
+from models import SuperpixelSCConv, test_SAN, test_SAT, test_SCConv, test_SCN, flow_SCConv, flow_SAN, flow_SAT, flow_SCN
 from CoChain import CoChain
 
 
@@ -136,7 +136,7 @@ class MyTestCase(unittest.TestCase):
 
         B1, B2 = torch_sparse_to_scipy_sparse(b1), torch_sparse_to_scipy_sparse(b2)
         results = Bunch_github_processing(B1, B2)
-        processor = SuperpixelBunch[0]
+        processor = SuperpixelSCConv[0]
         bunch_results = [scipy_sparse_to_torch_sparse(sparse.coo_matrix(matrix)).to_dense() for matrix in results]
         L0_b, L1_b, L2_b, B2D3_b, D2B1TD1inv_b, D1invB1_b, B2TD2inv_b = bunch_results
 
@@ -162,7 +162,7 @@ class MyTestCase(unittest.TestCase):
         f = torch.nn.Tanh()
         input_size, output_size = 1, 1
 
-        module = test_ESNN
+        module = test_SCN
         processor_type = module[0]
         model = module[1](input_size, input_size, input_size, output_size, f=f)
 
@@ -178,7 +178,7 @@ class MyTestCase(unittest.TestCase):
         f = torch.nn.Tanh()
         input_size, output_size = 1, 1
 
-        module = test_BSNN
+        module = test_SCConv
         processor_type = module[0]
         model = module[1](input_size, input_size, input_size, output_size, f=f)
 
@@ -229,7 +229,7 @@ class MyTestCase(unittest.TestCase):
         f = torch.nn.Tanh()
         input_size, output_size = 1, 2
 
-        module = flow_ESNN
+        module = flow_SCN
         processor_type = module[0]
         model = module[1](input_size, input_size, input_size, output_size, f=f)
 
@@ -247,7 +247,7 @@ class MyTestCase(unittest.TestCase):
         f = torch.nn.Tanh()
         input_size, output_size = 1, 2
 
-        module = flow_BSNN
+        module = flow_SCConv
         processor_type = module[0]
         model = module[1](input_size, input_size, input_size, output_size, f=f)
 

@@ -8,8 +8,6 @@ from utils import edge_to_node_matrix, triangle_to_edge_matrix
 from models.CoChain import CoChain
 import functools
 import scipy.sparse as sp
-from scipy import sparse
-
 
 def normalise_boundary(b1, b2):
     B1, B2 = to_sparse_coo(b1), to_sparse_coo(b2)
@@ -33,23 +31,6 @@ def normalise_boundary(b1, b2):
     D1invB1 = (1 / np.sqrt(2.)) * torch.sparse.mm(D1_inv, B1)
 
     return D1invB1, B2D3
-
-
-def _normalise_boundary(b1, b2):
-    B1, B2 = to_sparse_coo(b1), to_sparse_coo(b2)
-    _, x2 = B2.shape
-    B1, B2 = torch_sparse_to_scipy_sparse(B1), torch_sparse_to_scipy_sparse(B2)
-
-    B1_sum = np.abs(B1).sum(axis=1)
-    B1_sum_inv = 1. / B1_sum
-    B1_sum_inv[np.isinf(B1_sum_inv) | np.isneginf(B1_sum_inv)] = 0
-    D1_inv = sparse.diags((B1_sum_inv * 0.5).A.reshape(-1), 0)
-    D3 = (1 / 3.) * sparse.identity(n=B2.shape[1])
-
-    B2D3 = B2 @ D3
-    D1invB1 = (1 / np.sqrt(2.)) * D1_inv @ B1
-
-    return scipy_sparse_to_torch_sparse(sparse.coo_matrix(D1invB1)), scipy_sparse_to_torch_sparse(sparse.coo_matrix(B2D3))
 
 
 def preprocess_features(features):
@@ -120,7 +101,7 @@ def convert_to_CoChain(adj, features, labels, X1=None, X2=None):
     g.add_nodes_from(nodes)
     g.add_edges_from(edges)
     triangles = [list(sorted(x)) for x in nx.enumerate_all_cliques(g) if len(x) == 3]
-    # triangles = [*filter(lambda x: filter_simplices(features, x), triangles) ]
+    # triangles = [*filter(lambda x: filter_simplices(features, x), triangles)]
     b1 = edge_to_node_matrix(edges, nodes, one_indexed=False).to_sparse()
     b2 = triangle_to_edge_matrix(triangles, edges).to_sparse()
 

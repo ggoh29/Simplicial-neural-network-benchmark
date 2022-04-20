@@ -1,6 +1,6 @@
 import torch
 from OrientationFlow.FlowDataset import FlowSCDataset
-from models import flow_SAT, flow_ESNN, flow_BSNN, flow_SAN
+from models import flow_SAT, flow_SCN, flow_SCConv, flow_SAN
 from torch.utils.data import DataLoader
 from constants import DEVICE
 
@@ -17,8 +17,8 @@ f = torch.nn.Tanh()
 
 # nn_mod = flow_SAT
 # nn_mod = flow_SAN
-nn_mod = flow_ESNN
-# nn_mod = flow_BSNN
+nn_mod = flow_SCN
+# nn_mod = flow_SCConv
 
 processor_type = nn_mod[0]
 model = nn_mod[1]

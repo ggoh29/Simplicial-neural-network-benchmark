@@ -16,7 +16,7 @@ class SCNLayer(nn.Module):
         return self.conv(X)
 
 
-class SuperpixelEbli(nn.Module):
+class SuperpixelSCN(nn.Module):
     # This model is based on model described by Stefanie Ebli et al. in Simplicial Neural Networks
     # Github here https://github.com/stefaniaebli/simplicial_neural_networks?utm_source=catalyzex.com
     def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size, bias=True):
@@ -79,7 +79,7 @@ class PRELU(nn.PReLU):
         return F.prelu(input, self.weight)
 
 
-class PlanetoidEbli(nn.Module):
+class PlanetoidSCN(nn.Module):
 
     def __init__(self, num_node_feats, output_size, bias=True):
         super().__init__()
@@ -111,7 +111,7 @@ class PlanetoidEbli(nn.Module):
         return X0
 
 
-class FlowEbli(nn.Module):
+class FlowSCN(nn.Module):
     def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size, bias=False, f=nn.LeakyReLU()):
         super().__init__()
 
@@ -141,7 +141,7 @@ class FlowEbli(nn.Module):
         return F.softmax(self.mlp2(X1), dim=1)
 
 
-class TestEbli(nn.Module):
+class TestSCN(nn.Module):
     def __init__(self, num_node_feats, num_edge_feats, num_triangle_feats, output_size, bias=False, f=nn.Identity()):
         super().__init__()
         self.layer1 = SCNLayer(num_node_feats, output_size, enable_bias=bias)

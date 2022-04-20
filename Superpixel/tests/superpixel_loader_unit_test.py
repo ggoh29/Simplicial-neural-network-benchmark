@@ -6,8 +6,8 @@ import torchvision.transforms as transforms
 from torchvision import datasets
 from tqdm import tqdm
 from models.GNN.GNNProcessor import GNNProcessor
-from models.ESNN.ESNNProcessor import ESNNProcessor
-from models.BSNN.BSNNProcessor import BSNNProcessor
+from models.SCN.SCNProcessor import SCNProcessor
+from models.SCConv.SCConvProcessor import SCConvProcessor
 from models.SAT.SATProcessor import SATProcessor
 
 
@@ -37,7 +37,7 @@ class MyTestCase(unittest.TestCase):
         dataset = datasets.MNIST
         edgeFlow = PixelBasedEdgeFlow
         train = False
-        processor_type = ESNNProcessor()
+        processor_type = SCNProcessor()
 
         train_data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=train)
         mnist_images = datasets.MNIST(root='./data', train=train, download=True, transform=transforms.ToTensor())
@@ -55,7 +55,7 @@ class MyTestCase(unittest.TestCase):
         dataset = datasets.MNIST
         edgeFlow = PixelBasedEdgeFlow
         train = False
-        processor_type = BSNNProcessor()
+        processor_type = SCConvProcessor()
 
         train_data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, train=train)
         mnist_images = datasets.MNIST(root='./data', train=train, download=True, transform=transforms.ToTensor())

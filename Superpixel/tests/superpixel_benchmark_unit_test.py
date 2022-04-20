@@ -8,8 +8,8 @@ from superpixel_benchmark import test
 from torchvision import datasets
 from Superpixel.SuperpixelDataset import SuperpixelSCDataset
 from torch.utils.data import DataLoader
-from models import superpixel_GCN, superpixel_GAT, superpixel_ESNN, superpixel_BSNN, superpixel_SAT, superpixel_SAN, \
-    test_ESNN, test_SAT, test_SAN, test_BSNN
+from models import superpixel_GCN, superpixel_GAT, superpixel_SCN, superpixel_SCConv, superpixel_SAT, superpixel_SAN, \
+    test_SCN, test_SAT, test_SAN, test_SCConv
 from models.nn_utils import normalise, to_sparse_coo
 from models.SAT.SATProcessor import SATProcessor
 import time
@@ -122,8 +122,8 @@ class MyTestCase(unittest.TestCase):
         dataset = datasets.MNIST
         edgeFlow = PixelBasedEdgeFlow
 
-        GNN = superpixel_ESNN[1](5, 10, 15, 10).to(DEVICE)
-        processor_type = superpixel_ESNN[0]
+        GNN = superpixel_SCN[1](5, 10, 15, 10).to(DEVICE)
+        processor_type = superpixel_SCN[0]
 
         data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, ImageProcessor, 1000,
                                    train=True)
@@ -155,8 +155,8 @@ class MyTestCase(unittest.TestCase):
         dataset = datasets.MNIST
         edgeFlow = PixelBasedEdgeFlow
 
-        GNN = superpixel_BSNN[1](5, 10, 15, 10).to(DEVICE)
-        processor_type = superpixel_BSNN[0]
+        GNN = superpixel_SCConv[1](5, 10, 15, 10).to(DEVICE)
+        processor_type = superpixel_SCConv[0]
 
         data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, ImageProcessor, 1000,
                                    train=True)

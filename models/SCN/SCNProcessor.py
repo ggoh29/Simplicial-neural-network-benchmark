@@ -6,7 +6,7 @@ from models.nn_utils import batch_all_feature_and_lapacian_pair, normalise, repa
 from models.SimplicialComplex import SimplicialComplex
 
 
-class ESNNProcessor(NNProcessor):
+class SCNProcessor(NNProcessor):
 
     # This model is based on model described by Stefanie Ebli et al. in Simplicial Neural Networks
     # Github here https://github.com/stefaniaebli/simplicial_neural_networks?utm_source=catalyzex.com

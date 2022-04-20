@@ -3,7 +3,7 @@ from Superpixel.EdgeFlow import PixelBasedEdgeFlow, RandomBasedEdgeFlow
 from Superpixel.ImageProcessor import ImageProcessor, OrientatedImageProcessor
 from torch.utils.data import DataLoader
 from constants import DEVICE
-from models import superpixel_GCN, superpixel_GAT, superpixel_ESNN, superpixel_BSNN, superpixel_SAT, superpixel_SAN
+from models import superpixel_GCN, superpixel_GAT, superpixel_SCN, superpixel_SCConv, superpixel_SAT, superpixel_SAN
 import torch
 from torchvision import datasets
 import numpy as np
@@ -25,10 +25,10 @@ test_set = 10000
 
 output_size = 10
 
-# model = superpixel_GCN
-model = superpixel_GAT
-# model = superpixel_ESNN
-# model = superpixel_BSNN
+model = superpixel_GCN
+# model = superpixel_GAT
+# model = superpixel_SCN
+# model = superpixel_SCConv
 # model = superpixel_SAT
 # model = superpixel_SAN
 
@@ -125,14 +125,14 @@ def test(NN, dataloader, processor_type):
     return (test_acc / i), top_3_error / i, top_5_error / i, predictions
 
 
-def run(processor_type, NN, output_suffix):
+def run(processor_type, NN):
     model_parameters = filter(lambda p: p.requires_grad, NN.parameters())
     params = sum([np.prod(p.size()) for p in model_parameters])
     print(params)
     train_data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, imageprocessor,
                                      full_dataset, train=True)
 
-    write_file_name = f"./results/{train_data.get_name()}_{NN.__class__.__name__}_{output_suffix}"
+    write_file_name = f"./results/{train_data.get_name()}_{NN.__class__.__name__}"
 
     test_data = SuperpixelSCDataset('./data', dataset, superpixel_size, edgeFlow, processor_type, imageprocessor,
                                     test_set, train=False)
@@ -160,7 +160,10 @@ def run(processor_type, NN, output_suffix):
 
 
 if __name__ == "__main__":
-    for output_suffix in range(1):
-        processor_type, NN = model
-        NN = NN(5, output_size)
-        run(processor_type, NN.to(DEVICE), output_suffix)
+    processor_type, NN = model
+    if NN in {superpixel_GCN[1], superpixel_GAT[1]}:
+        NN = NN(5, output_size).to(DEVICE)
+    else:
+        NN = NN(5, 10, 15, output_size).to(DEVICE)
+
+    run(processor_type, NN.to(DEVICE))

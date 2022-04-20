@@ -1,5 +1,5 @@
 from Planetoid.PlanetoidDataset import PlanetoidSCDataset
-from models import planetoid_GCN, planetoid_GAT, planetoid_ESNN, planetoid_BSNN, planetoid_SAN, planetoid_SAT
+from models import planetoid_GCN, planetoid_GAT, planetoid_SCN, planetoid_SCConv, planetoid_SAN, planetoid_SAT
 import torch.nn as nn
 import torch
 from Planetoid.DGI import DGI
@@ -7,7 +7,7 @@ from Planetoid.logreg import LogReg
 from constants import DEVICE
 
 2708, 79
-dataset = 'Cora'
+dataset = 'fake'
 dataset_features_dct = {'Cora' : 1433, 'CiteSeer' : 3703, 'PubMed' : 500, 'fake' : 2708}
 dataset_classes_dct = {'Cora' : 7, 'CiteSeer' : 6, 'PubMed' : 3 , 'fake' : 3}
 input_size = dataset_features_dct[dataset]
@@ -18,13 +18,12 @@ lr = 0.001
 l2_coef = 0.0
 patience = 20
 
-# nn_mod = planetoid_GCN
+nn_mod = planetoid_GCN
 # nn_mod = planetoid_GAT
-# nn_mod = planetoid_ESNN
-nn_mod = planetoid_BSNN
+# nn_mod = planetoid_SCN
+# nn_mod = planetoid_SCConv
 # nn_mod = planetoid_SAT
 # nn_mod = planetoid_SAN
-
 
 processor_type = nn_mod[0]
 model = nn_mod[1]

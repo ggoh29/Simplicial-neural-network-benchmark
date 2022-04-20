@@ -4,7 +4,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 from constants import DEVICE
-import copy
 
 def convert_to_device(lst):
     return [i.to(DEVICE) for i in lst]

@@ -4,7 +4,7 @@ from Superpixel.EdgeFlow import PixelBasedEdgeFlow
 from Superpixel.ImageProcessor import ImageProcessor, AdversarialImageProcessor
 from torch.utils.data import DataLoader
 from constants import DEVICE
-from models import superpixel_GCN, superpixel_GAT, superpixel_ESNN, superpixel_BSNN, superpixel_SAT, superpixel_SAN
+from models import superpixel_GCN, superpixel_GAT, superpixel_SCN, superpixel_SCConv, superpixel_SAT, superpixel_SAN
 import torch
 from torchvision import datasets
 import numpy as np
@@ -24,6 +24,19 @@ full_dataset = 12000
 train_set = 10000
 val_set = 2000
 test_set = 2000
+
+targeted = True
+attack_type = 'direct'
+# attack_type = 'transfer'
+
+model_list = [superpixel_GCN, superpixel_GAT, superpixel_SCN, superpixel_SCConv, superpixel_SAT, superpixel_SAN]
+
+model = superpixel_GCN
+# model = superpixel_GAT
+# model = superpixel_SCN
+# model = superpixel_SCConv
+# model = superpixel_SAT
+# model = superpixel_SAN
 
 
 def convert_to_device(lst):
@@ -288,24 +301,24 @@ def run_transferability_attack(base_nn, target_nn, target_processor_type, full_b
 
 
 if __name__ == "__main__":
-    # NN_list = [superpixel_GCN, superpixel_GAT, superpixel_ESNN, superpixel_BSNN, superpixel_SAT]
-    NN_list = [superpixel_ESNN]
-    for _ in range(1):
-        for processor_type, NN in NN_list:
-            NN = NN(5, 10, 15, output_size)
-            run_direct_attack(processor_type, NN.to(DEVICE), targeted=True)
-    # full_batched_dataset, target_labels = None, None
-    # for i in range(1, 6):
-    #     base_processor_type, base_nn = superpixel_GCN
-    #     base_nn = base_nn(5, output_size).to(DEVICE)
-    #     full_batched_dataset, target_labels = gen_transferability_attack(base_nn, base_processor_type,
-    #         epsilon=0.001, targeted=False, full_batched_dataset=full_batched_dataset, target_labels=target_labels, no_epoch=50)
-    #     for target_gnn in [superpixel_GAT]:
-    #         target_processor_type, target_nn = target_gnn
-    #         if target_nn in {superpixel_GCN[1], superpixel_GAT[1]}:
-    #             target_nn = target_nn(5, output_size).to(DEVICE)
-    #         else:
-    #             target_nn = target_nn(5, 10, 15, output_size).to(DEVICE)
-    #         run_transferability_attack(base_nn, target_nn, target_processor_type, full_batched_dataset,
-    #                                    target_labels)
-    #         print()
+    processor_type, NN = model
+    if NN in {superpixel_GCN[1], superpixel_GAT[1]}:
+        NN = NN(5, output_size).to(DEVICE)
+    else:
+        NN = NN(5, 10, 15, output_size).to(DEVICE)
+
+    if attack_type == 'direct':
+        run_direct_attack(processor_type, NN, targeted=targeted)
+    else:
+        full_batched_dataset, target_labels = None, None
+        full_batched_dataset, target_labels = gen_transferability_attack(NN, processor_type,
+            epsilon=0.001, targeted=targeted, full_batched_dataset=full_batched_dataset, target_labels=target_labels, no_epoch=50)
+        for target_gnn in model_list:
+            target_processor_type, target_nn = target_gnn
+            if target_nn in {superpixel_GCN[1], superpixel_GAT[1]}:
+                target_nn = target_nn(5, output_size).to(DEVICE)
+            else:
+                target_nn = target_nn(5, 10, 15, output_size).to(DEVICE)
+            run_transferability_attack(NN, target_nn, target_processor_type, full_batched_dataset,
+                                       target_labels)
+            print()
