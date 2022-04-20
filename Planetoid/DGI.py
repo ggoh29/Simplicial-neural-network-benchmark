@@ -8,7 +8,7 @@ from constants import DEVICE
 def convert_to_device(lst):
     return [i.to(DEVICE) for i in lst]
 
-def corruption_function(simplicialComplex, processor_type, p = 0.005):
+def corruption_function(simplicialComplex, processor_type, p = 0.000):
     L0 = simplicialComplex.L0
     X0 = simplicialComplex.X0
     nb_nodes = X0.shape[0]
