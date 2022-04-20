@@ -26,8 +26,8 @@ val_set = 2000
 test_set = 2000
 
 targeted = True
-attack_type = 'direct'
-# attack_type = 'transfer'
+direct_attack = True
+# alternative is transfer attack
 
 model_list = [superpixel_GCN, superpixel_GAT, superpixel_SCN, superpixel_SCConv, superpixel_SAT, superpixel_SAN]
 
@@ -307,7 +307,7 @@ if __name__ == "__main__":
     else:
         NN = NN(5, 10, 15, output_size).to(DEVICE)
 
-    if attack_type == 'direct':
+    if direct_attack:
         run_direct_attack(processor_type, NN, targeted=targeted)
     else:
         full_batched_dataset, target_labels = None, None
