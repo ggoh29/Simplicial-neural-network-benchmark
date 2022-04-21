@@ -15,7 +15,7 @@ This software features the implementation of 6 models:
 - Graph attention network (GAT) by Veličković et al.
 - Simplicial neural network (SCN) by Ebli, Defferrard, and Spreemann
 - Simplicial 2-complex convolutional neural network (SCConv) by Bunch et al
-- Simplicial attention network (SAT) by Goh and Bodnar
+- Simplicial attention network (SAT) by Goh, Bodnar, and Liò
 - Simplicial attention neural network (SAN) by Giusti et al.
 
 This software features four benchmarking tests
