@@ -1,5 +1,6 @@
 # Simplicial-neural-network-benchmark
 Simplicial neural network benchmarking software as part of my final year dissertation project
+
 Paper on SAT can be found here: https://arxiv.org/abs/2204.09455
 
 To create the correct environments, run the following commands
